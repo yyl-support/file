@@ -1,0 +1,93 @@
+#chartVersion: 1.0.4
+global:
+  appName: openeuler-website-ar
+namespace:
+  enabled: false
+  name: openeuler-website-ar
+# 副本配置
+replicaCount: 3
+# 镜像配置
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler-website-ar-prod
+  tag: "114bd243ef78f4bd1c62f61bc4bc7b69ed91470f"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+podLabels:
+  app: openeuler-website-ar
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/openeuler/website-tls"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/openeuler/website-tls" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/openeuler/website-tls"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/openeuler/website-tls" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/openeuler/website-tls"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/openeuler/website-tls" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/openeuler/website-tls"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: "{{- with secret \"internal/data/openeuler/website-tls\" -}}\n{{ .Data.data.dhparamPem }}\n{{- end }}  \n"
+  vault.hashicorp.com/role: openeuler-website-ar
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-abc.txt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-server.crt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-server.key: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+env:
+  - name: DET_URL
+    value: https://ar.openeuler.org/ar/
+serviceAccount:
+  create: true
+  name: openeuler-website-ar
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: 1000m
+    memory: 1000Mi
+  limits:
+    cpu: 1000m
+    memory: 1000Mi
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: ar.openeuler.org
+# Service配置
+service:
+  portName: tls-1
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: openeuler-website-ar-domain-tls
+  path: secrets/data/openeuler/openeuler-org-tls
+  ca_crt_key: server.crt
+  tls_crt_key: server.crt
+  tls_key_key: server.key
+istio:
+  enabled: false

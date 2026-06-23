@@ -1,0 +1,199 @@
+# config.yaml
+# API配置
+api:
+  base_url: 'https://api.siliconflow.cn/v1'
+  api_key: 'sk-birwphcdahrhabnqkyhlfhalenhuzeasgjvkbllhinqsbcam'
+  model_name: 'deepseek-ai/DeepSeek-V4-Flash'
+  model2_name: 'Qwen/Qwen3.5-397B-A17B'
+
+# 文件路径配置
+paths:
+  forum_data_dir: 'data/forum_data'
+  csv_file: 'data/forum_data/forum_topics_all20_5_normal.csv'
+  processed_csv_file: 'data/forum_data/processed_forum_topics_normal.csv'
+  answer_csv_file: 'data/forum_data/answer_forum_topics_normal.csv'
+  backup_suffix: '.backup'
+
+# 日志配置
+logging:
+  log_dir: 'logs'
+  main_log_file: 'main.log'
+  app_log_file_pattern: 'app_%Y%m%d.log'
+
+# 监控配置
+monitor:
+  check_interval: 60
+  fetch_limit: 20
+  topic_cutoff_date: '2026-04-09'
+  required_tag:
+    - '提问求助'
+    - 'qa-提问求助'
+  # 预审专用配置
+  pre_audit_tag: []                                     # 预审标签过滤（空列表=不按标签过滤）
+  pre_audit_category_path:                              # 预审类别路径（Discourse category）
+    - '/c/20060-category/20061-category/20061'
+  pre_audit_cutoff_date: '2026-04-15'                   # 预审帖子截止日期
+  pre_audit_title_filter_keywords:                      # 预审标题过滤关键字（包含这些字样的帖子跳过）
+    - '已评审'
+
+# 摘要配置
+summary:
+  max_length: 100
+
+# 回帖配置
+posts:
+  base_url: "https://web-server.discourse:8080"
+  api_key: "4bb52cb398968716ee4a93bfdb469ede94427e38b8c276d88f0eaa8605e56c2e"
+  api_username: "euler_assistant"
+  verify_ssl: false
+
+
+# 图谱检索配置
+retrieval:
+  base_url: "https://lightrag-cn4.test.osinfra.cn"
+  query_endpoint: "/query"
+  only_need_prompt: false
+  only_need_context: true
+  top_k: 10
+  chunk_top_k: 10
+  enable_rerank: true
+  verify_ssl: false
+
+# 搜索配置
+search:
+  base_url: "https://doc-search.openeuler.org"
+  endpoint: "/search/docsng"
+  source: ""
+  referer: "https://www.openeuler.org/zh/other/search"
+  max_keyword_length: 100
+  default_page_size: 10
+  verify_ssl: false
+
+# 论坛数据获取配置
+forum:
+  base_url: "https://web-server.discourse:8080"
+  request_delay: 0.1
+  verify_ssl: false
+
+# git配置
+git:
+  repo_dir: 'openubmc_llm'
+  data_dir: 'data/ForumBot'
+  branch: 'main'
+
+# 数据库配置
+database:
+  host: '10.0.0.201'
+  port: '5432'
+  database: 'openeuler_forumrobot'
+  user: 'discourse'
+  password: 'a07CD8!KXa!W8c!h'
+  sslmode: 'disable'
+
+# 链接配置
+links:
+  forum_base_url: "https://discourse.test.osinfra.cn/"
+  docs_base_url: "https://openeuler.test.osinfra.cn/"
+  topic_path_prefix: "/t/topic"
+
+# 图像处理配置
+image_processing:
+  enabled: true
+  batch_size: 5
+  base_url: "https://web-server.discourse:8080"
+  model1: 'Qwen/Qwen3.5-397B-A17B'
+  model2: 'Qwen/Qwen2.5-VL-72B-Instruct'
+  model3: 'Qwen/Qwen3-VL-30B-A3B-Instruct'
+
+# lightrag数据获取配置
+lightrag_forum_data:
+  base_url: "https://forum.openeuler.org/"
+  verify_ssl: false
+
+# 文件路径配置
+lightrag_paths:
+  lightrag_root_dir: 'lightrag_data'
+  rag_data_dir: 'lightrag_data/rag_data'
+  files_id_mapping: 'lightrag_data/files_id_mapping.json'
+  new_rag_files: 'lightrag_data/new_rag_files.txt'
+  delete_rag_files_id: 'lightrag_data/delete_rag_files_id.txt'
+  all_topic_file_name: 'lightrag_data/all_topic_file_names.txt'
+  update_time: 'lightrag_data/update_time.txt'
+
+# 过滤配置
+filter_keywords:
+  - '网赌'
+  - '置顶'
+  - '用户体验提升'
+  - '贡献报告'
+  - '加油'
+  - '已被社区举报'
+  - '大赛'
+  - '年度'
+  - '报名'
+
+# 定时器配置单位为天
+timer:
+  schedule_interval: 1
+
+last_update_time: '2026-05-21T08:54:22.533345+00:00'
+
+# 预审配置
+pre_audit:
+  readiness_field: '是否准备好AI预审（必选）'
+  readiness_yes_value: '是'
+  # model_name: 'Qwen/Qwen3-235B-A22B-Instruct-2507'  # 可指定独立的预审模型，不配置则使用 api.model_name
+  system_prompt: ''  # 预审型的系统提示词，为空则使用默认
+
+# Schema 验证配置
+schema_validation:
+  base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+  api_key: 'sk-55c8a2c7358045ab810f18fefd54266e'
+  model: 'glm-5.1'
+  schema_dir: 'SchemaFiles'
+  output_dir: 'check_results'
+  disable_file_output: true
+  max_retry: 3              # API 调用失败时最大重试次数
+  retry_delay: 5            # 重试间隔（秒）
+
+# 社区文档同步配置
+doc_sync: true
+
+# gitcode 配置
+gitcode:
+  owner: 'openUBMC'
+  repo: 'docs'
+  api_token: 'CB64zssxFeNxuHf8uMzz_ZAt'
+  base_path: 'docs/zh/development'
+  verify_ssl: false
+  request_delay: 1.5  # API请求间隔（秒），避免触发限流（50次/分钟）
+  skip_dirs:
+   - 'images'
+
+oidc:
+  client_id: "672b25d8b92861baa16ce1e3"
+  client_secret: "d5b9e5650fe393f1b87e496567d9a21a"
+  authorize_url: "https://omapi.osinfra.cn/oneid/oidc/authorize"
+  token_url: "https://omapi.osinfra.cn/oneid/oidc/token"
+  userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/userinfo"
+  scope: "openid profile"
+  redirect_uri: "https://lightrag.test.osinfra.cn/api/v1/rag/auth/callback"
+
+rate_limit:
+  user_hourly_limit: 100
+  window_seconds: 3600
+
+rbac:
+  knowledge_upload_roles:
+    - huawei_maintainer
+    - robot_service
+  role_claim_mapping:
+    huawei_maintainer: "https://omapi.osinfra.cn/claims/roles"
+
+external_api:
+  enabled: true
+  host: "0.0.0.0"
+  port: 5001
+  debug: false
+
+flask_secret_key: "b02ecbd20743ccc94a96380c4ab43af1c63a312834d790c3e0a035389e49e2ce"

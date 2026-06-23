@@ -1,0 +1,58 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "auth-center.fullname" . }}-cronjob
+  namespace: {{ .Values.namespace.name }}
+spec:
+  suspend: {{ .Values.cronjob.suspend }}
+  schedule: {{ .Values.cronjob.schedule | quote }}
+  concurrencyPolicy: {{ .Values.cronjob.concurrencyPolicy }}
+  startingDeadlineSeconds: 180
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            {{- toYaml .Values.cronjob.annotations | nindent 12 }}
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12}}
+          {{- end }}
+          serviceAccountName: {{ .Values.serviceAccount.name }}
+          automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          restartPolicy: {{ .Values.cronjob.restartPolicy }}
+          containers:
+            - name: {{ .Chart.Name }}
+              env: 
+                {{- toYaml .Values.env | nindent 16 }}
+              securityContext:
+                {{- toYaml .Values.cronjob.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              resources:
+                {{- toYaml .Values.cronjob.resources | nindent 16 }}
+              readinessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 25
+                periodSeconds: 10
+                successThreshold: 1
+                httpGet:
+                  {{- toYaml .Values.cronjob.healthCheck | nindent 18 }}
+                timeoutSeconds: 5
+              livenessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 25
+                periodSeconds: 10
+                successThreshold: 1
+                httpGet:
+                  {{- toYaml .Values.cronjob.healthCheck | nindent 18 }}
+                timeoutSeconds: 5
+          volumes:
+
+            {{- toYaml .Values.volumes | nindent 12 }}

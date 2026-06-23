@@ -1,0 +1,15 @@
+{{- range $index, $item := .Values.cronjobs }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: autotest-pvc-{{ printf "%02d" (add $index 1) }}
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Mi
+  storageClassName: sfsturbo-subpath-sc
+  volumeMode: Filesystem
+{{- end }}

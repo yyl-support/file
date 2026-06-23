@@ -1,0 +1,375 @@
+# chartVersion: 1.0.11
+namespace:
+  enabled: true
+  name: mail
+istio:
+  enabled: true
+  nslabel:
+    istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  exim4Annotation:
+    traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0
+    traffic.sidecar.istio.io/excludeInboundPorts: "25,465"
+  mailcoreAnnotation:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "8001,8024"
+    traffic.sidecar.istio.io/excludeInboundPorts: "8001,8024"
+  tls:
+    mode: DISABLE
+  mtlsMode: DISABLE
+  http:
+    - match:
+        - uri:
+            exact: /
+      redirect:
+        uri: /postorius/lists/
+        redirectCode: 301
+        authority: mailweb.openubmc.cn
+    - route:
+        - destination:
+            host: mailman-web-service.mail.svc.cluster.local
+            port:
+              number: 80
+      match:
+        - uri:
+            prefix: /
+      rewrite:
+        uri: /
+affinity: {}
+host: mailweb.openubmc.cn
+ingress:
+  enabled: false
+  name: ""
+  secretName: ""
+mailcore:
+  name: mailman-core
+  podLabels:
+    component: mail-core-service
+    app: mail-suit-service
+  replicas: 1
+  nodeSelector: {}
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/app-mailman/mailman-core-new-build
+    tag: "0d995da03cd978a16d0730caa6d36846313bceb91740095397"
+    imagePullPolicy: IfNotPresent
+  env:
+    secretRef:
+      name: mailman-secrets
+      keys:
+        - name: DATABASE_TYPE
+          key: database_type
+        - name: DATABASE_CLASS
+          key: database_class
+        - name: MAILMAN_REST_USER
+          key: mailman_core_user
+        - name: MAILMAN_REST_PASSWORD
+          key: mailman_core_password
+        - name: HYPERKITTY_API_KEY
+          key: hyperkitty_api_key
+        - name: EMAIL_HOST_USER
+          key: exim4_credential_username
+        - name: EMAIL_HOST_PASSWORD
+          key: exim4_credential_password
+        - name: MM_HOSTNAME
+          key: mailcore_mm_hostname
+        - name: MAILMAN_REST_PORT
+          key: mailcore_rest_port
+        - name: DATABASE_URL
+          key: mailcore_database_url
+        - name: DATABASE_IP
+          key: database_ip
+        - name: DATABASE_PASSWORD
+          key: database_password
+        - name: DATABASE_PORT
+          key: database_port
+        - name: DATABASE_USER
+          key: database_user
+        - name: MTA
+          key: mailcore_mta
+        - name: SMTP_PORT
+          key: mailcore_smtp_port
+  resources:
+    limits:
+      cpu: "4"
+      memory: 4Gi
+    requests:
+      cpu: "4"
+      memory: 4Gi
+  pvc:
+    name: vol-config
+    accessMode: ReadWriteMany
+    storage: 500Gi
+    storageClass: csi-sfsturbo
+  service:
+    name: mailman-core-service
+    type: ClusterIP
+    ports:
+      - port: 8001
+        name: core-service
+        targetPort: 8001
+      - port: 8024
+        name: core-service2
+        targetPort: 8024
+        protocol: TCP
+exim4:
+  name: mailman-exim4
+  podLabels:
+    component: mail-exim4-service
+    app: mail-suit-service
+  replicas: 1
+  nodeSelector: {}
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/app-mailman/mailman-exim
+    tag: "afc9ba498e609ffa2e3a529375b4951a301458491770102443"
+    imagePullPolicy: IfNotPresent
+  nodeSelector: {}
+  resources:
+    limits:
+      cpu: "4"
+      memory: 2Gi
+    requests:
+      cpu: "2"
+      memory: 1Gi
+  configmapName: exim-configmap
+  volumeMounts:
+    - mountPath: /opt/mailman/
+      name: mailman-core-data
+    - mountPath: /var/log/exim/
+      name: mailman-exim4-log
+    - mountPath: /etc/exim/passwd
+      name: mailman-secrets
+      subPath: exim4_credential
+    - mountPath: /etc/exim/dkim/openubmc.key
+      name: mta-dkim-secret
+      subPath: dkim_key
+    - name: exim4-tls-secret
+      mountPath: /etc/exim/ssl_pool/openubmc.cn.crt
+      subPath: openubmc_cn_crt
+    - name: exim4-tls-secret
+      mountPath: /etc/exim/ssl_pool/openubmc.cn.key
+      subPath: openubmc_cn_key
+    - name: exim-config
+      mountPath: /etc/exim/exim.conf
+      subPath: exim_conf
+  volumes:
+    - name: mailman-core-data
+      persistentVolumeClaim:
+        claimName: vol-config
+    - name: mailman-exim4-log
+      persistentVolumeClaim:
+        claimName: data-log
+    - name: mta-dkim-secret
+      secret:
+        secretName: mailman-secrets
+    - name: mailman-secrets
+      secret:
+        secretName: mailman-secrets
+    - name: exim4-tls-secret
+      secret:
+        secretName: mailman-cert-secrets
+    - name: exim-config
+      configMap:
+        name: exim-configmap
+  pvc:
+    name: data-log
+    accessMode: ReadWriteOnce
+    storage: 100Gi
+    storageClass: csi-disk
+  service:
+    name: mailman-exim4-service
+    elbId: 85e89438-de66-4f41-95dd-5dc5cd03a990
+    elbClass: union
+    type: LoadBalancer
+    ports:
+      - port: 25
+        name: tcp-exim4-port
+        targetPort: 25
+        protocol: TCP
+      - port: 465
+        name: tcp-exim4-port-2
+        targetPort: 465
+        protocol: TCP
+mailweb:
+  name: mailman-web
+  podLabels:
+    component: mail-web-service
+    app: mail-suit-service
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  nodeSelector: {}
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/app-mailman/mailman-web-new-build
+    tag: "008d01341747d8c0691ece6a5c73756e939adf7c1742291030"
+    imagePullPolicy: Always
+  env:
+    secretRef:
+      name: mailman-secrets
+      keys:
+        - name: DATABASE_TYPE
+          key: database_type
+        - name: HYPERKITTY_API_KEY
+          key: hyperkitty_api_key
+        - name: DATABASE_IP
+          key: database_ip
+        - name: DATABASE_PASSWORD
+          key: database_password
+        - name: DATABASE_PORT
+          key: database_port
+        - name: DATABASE_USER
+          key: database_user
+        - name: SECRET_KEY
+          key: secret_key
+        - name: MAILMAN_REST_USER
+          key: mailman_core_user
+        - name: MAILMAN_REST_PASSWORD
+          key: mailman_core_password
+        - name: MAILMAN_ADMIN_EMAIL
+          key: mailman_admin_email
+        - name: SMTP_HOST_USER
+          key: exim4_credential_username
+        - name: SMTP_HOST_PASSWORD
+          key: exim4_credential_password
+        - name: SERVE_FROM_DOMAIN
+          key: mailweb_server_from_domain
+        - name: SERVE_WEB_DOMAIN
+          key: mailweb_server_web_domain
+        - name: SMTP_HOST
+          key: mailweb_smtp_host
+        - name: SMTP_PORT
+          key: mailweb_smtp_port
+        - name: DJANGO_ALLOWED_HOSTS
+          key: mailweb_django_allowed_hosts
+        - name: POSTORIUS_TEMPLATE_BASE_URL
+          key: mailweb_postorius_template_base_url
+        - name: DATABASE_URL
+          key: mailweb_database_url
+        - name: redis_ip
+          key: mailweb_redis_ip
+        - name: redis_port
+          key: mailweb_redis_port
+        - name: redis_password
+          key: mailweb_redis_password
+        - name: DATA_STORAGE_LOCATION
+          key: DATA_STORAGE_LOCATION
+        - name: DATA_STORAGE_COMMUNITY
+          key: DATA_STORAGE_COMMUNITY
+    plainValues:
+      - name: PRIVACY_LINK
+        value: https://www.openubmc.cn/privacy/
+      - name: CONDUCT_LINK
+        value: https://www.openubmc.cn/organizations#orgConduct/
+      - name: MAILMAN_ADMIN_USER
+        value: openubmc
+  resources:
+    limits:
+      cpu: "2"
+      memory: 8000Mi
+    requests:
+      cpu: "1"
+      memory: 2000Mi
+  service:
+    name: mailman-web-service
+    type: ClusterIP
+    ports:
+      - port: 8000
+        name: website-port-uwsgi-http
+        targetPort: 8000
+        protocol: TCP
+      - port: 80
+        name: website-port-http
+        targetPort: 80
+        protocol: TCP
+    portNumber: 80
+nginxWeb:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/nginx
+    tag: latest
+    imagePullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: "1"
+      memory: 1Gi
+  configmapName: mailman-nginx-configmap
+tls:
+  secrets:
+    - name: mailman-cert-secrets
+      path: secrets/data/openubmc/openubmc-cn-tls
+      keysMap:
+        openubmc_cn_crt: tls.cert
+        openubmc_cn_key: tls.key
+    - name: mailweb-tls
+      path: secrets/data/openubmc/openubmc-cn-tls
+      keysMap:
+        ca.crt: tls.cert
+        tls.crt: tls.cert
+        tls.key: tls.key
+mailwebSecrets:
+  name: mailman-secrets
+  path: secrets/data/openubmc/mail-secrets
+  keysMap:
+    hyperkitty_api_key: hyperkitty_api_key
+    mailman_core_password: mailman_core_password
+    mailman_core_user: mailman_core_user
+    secret_key: secret_key
+    postgres_user: postgres_user
+    postgres_password: postgres_password
+    mailman_admin_email: mailman_admin_email
+    exim4_credential: exim4_credential
+    exim4_credential_username: exim4_credential_splitted_username
+    exim4_credential_password: exim4_credential_splitted_password
+    dkim_key: dkim_key
+    mailweb_smtp_host: mailweb_smtp_host
+    mailweb_smtp_port: mailweb_smtp_port
+    mailweb_django_allowed_hosts: mailweb_django_allowed_hosts
+    mailweb_postorius_template_base_url: mailweb_postorius_template_base_url
+    mailweb_database_url: mailweb_database_url
+    mailweb_server_from_domain: mailweb_server_from_domain
+    mailweb_server_web_domain: mailweb_server_web_domain
+    mailcore_mm_hostname: mailcore_mm_hostname
+    mailcore_rest_port: mailcore_rest_port
+    mailcore_database_url: mailweb_database_url
+    mailcore_mta: mailcore_mta
+    mailcore_smtp_port: mailweb_smtp_port
+    database_type: database_type
+    database_class: database_class
+    database_ip: database_ip
+    database_password: database_password
+    database_port: database_port
+    database_user: database_user
+    mailman-api-url: mailman_api_url
+    mailweb_redis_ip: mailweb_redis_ip
+    mailweb_redis_port: mailweb_redis_port
+    mailweb_redis_password: mailweb_redis_password
+    DATA_STORAGE_LOCATION: DATA_STORAGE_LOCATION
+    DATA_STORAGE_COMMUNITY: DATA_STORAGE_COMMUNITY
+cronjob:
+  enabled: false
+  # name: scan-subscribe-pending-cronjob
+  # schedule: "0 0 * * *"
+  # concurrencyPolicy: Forbid
+  # restartPolicy: OnFailure
+  # image:
+  #   repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/app-mailman/clean-pending-subscription
+  #   tag: 4a229e7f654a4ba58ca0df6c84d81ed0e011ab701702451209
+  # resources:
+  #   limits:
+  #     cpu: 1000m
+  #     memory: 1000Mi
+  #   requests:
+  #     cpu: 500m
+  #     memory: 500Mi
+  # env:
+  #   secretRef:
+  #     keys:
+  #       - name: mailman_url
+  #         key: mailman-api-url
+  #       - name: mailman_username
+  #         key: mailman_core_user
+  #       - name: mailman_password
+  #         key: mailman_core_password

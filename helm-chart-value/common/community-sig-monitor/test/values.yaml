@@ -1,0 +1,96 @@
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "community-sig-monitor"
+namespace: community-sig-monitor
+replicaCount: 1
+# podLabels: 
+
+#   app: community-sig-monitor
+istio:
+  nslabel: {}
+strategy:
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+  type: RollingUpdate
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/community-sig-monitor
+  tag: "debug-fix-d73652"
+  pullPolicy: IfNotPresent
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+args:
+  - --port=8888
+  - --config-file=/vault/secrets/config.yaml
+  - --enable-debug=true
+  - --rm-cfg=false
+healthCheck:
+  scheme: HTTP
+  path: /internal/heartbeat
+  port: 8888
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+podAnnotations:
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/role: 'community-sig-monitor'
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-inject-perms-config.yaml: "0400"
+  vault.hashicorp.com/agent-inject-secret-config.yaml: 'internal/data/infra-test/community-sig-monitor'
+  vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/community-sig-monitor\" -}}  \n{{ .Data.data.config }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-command-config.yaml: |
+    for count in 1 2 3; do if [ $(netstat -anlp | grep 8888| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /vault/secrets/*; break; else echo "service not running skip";sleep 10; fi done
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+serviceAccount:
+  create: true
+  name: community-sig-monitor
+  automount: false
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+  host: "sig-monitor.test.osinfra.cn"
+service:
+  ports:
+    - name: http-port
+      port: 80
+      protocol: TCP
+      targetPort: 8888
+  type: ClusterIP
+secret:
+  enabled: true
+  name: tls-secrets
+  path: secrets/data/infra-test/domain-tls
+  tls_crt_key: tls.cert
+  tls_key_key: tls.key

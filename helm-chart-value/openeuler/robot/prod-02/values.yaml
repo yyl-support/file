@@ -1,0 +1,774 @@
+# chartVersion: v2.0.1
+namespace:
+  enabled: false
+  name: robot-openeuler
+serviceAccount:
+  create: true
+  name: robot-openeuler
+podAnnotations:
+  # traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0 # 开启istio时添加该行
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/role: robot-openeuler
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+istio:
+  enabled: false
+  nslabel:
+    istio-injection: enabled
+  gateway: istio-system/istio-gateway-https
+  tlsMode: DISABLE
+  mtlsMode: DISABLE
+  vs:
+    name: openeuler-robot-virtualservice
+    host: hook-delivery.openeuler.openatom.cn
+    http:
+      - match:
+          - uri:
+              prefix: /gitcode-hook
+        rewrite:
+          uri: /gitcode-hook
+        route:
+          - destination:
+              host: "robot-universal-hook-delivery-service.robot-openeuler.svc.cluster.local"
+              port:
+                number: 8888
+      - match:
+          - uri:
+              prefix: /ci-tools/
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: "robot-universal-ci-tools-service.robot-openeuler.svc.cluster.local"
+              port:
+                number: 8080
+      - match:
+          - uri:
+              prefix: /sync-bot
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: "sync-bot-service.robot-openeuler.svc.cluster.local"
+              port:
+                number: 8888
+  dr:
+    - name: "robot-openeuler-destinationrule"
+      serviceName: robot-universal-hook-delivery-service
+      port: 8888
+    - name: "robot-openeuler-sync-bot-destinationrule"
+      serviceName: sync-bot-service
+      port: 8888
+    - name: "robot-openeuler-ci-tools-destinationrule"
+      serviceName: robot-universal-ci-tools-service
+      port: 8080
+  pa:
+    - name: "robot-openeuler-peerauthentication"
+      podLabels:
+        app: robot-universal-hook-delivery
+    - name: "robot-openeuler-sync-bot-peerauthentication"
+      podLabels:
+        app: sync-bot
+    - name: "robot-openeuler-ci-tools-peerauthentication"
+      podLabels:
+        app: ci-tools
+ingress:
+  enabled: true
+  name: "hook-delivery-ingress"
+  host: "hook-delivery.openeuler.openatom.cn"
+  syncbot:
+    enabled: true
+    name: "sync-bot"
+    host: "hook-delivery.openeuler.openatom.cn"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+    port: 8888
+    path: /sync-bot(/|$)(.*)
+    pathType: ImplementationSpecific
+  citools:
+    enabled: true
+    name: "robot-universal-ci-tools"
+    host: "hook-delivery.openeuler.openatom.cn"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+    port: 8080
+    path: /ci-tools(/|$)(.*)
+    pathType: ImplementationSpecific
+secret:
+  enabled: true
+  name: "openeuler-openatom-cn-tls"
+  path: "secrets/data/openeuler/openeuler-openatom-cn-tls"
+  crtKey: "server.crt"
+  keyKey: "server.key"
+podSecurityContext: {}
+#   seccompProfile:
+#     localhostProfile: infra-seccomp.json
+#     type: Localhost
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /vault/secrets; chown -R 1000:1000 /vault/secrets; chmod g-s /vault/secrets; ls -ld /vault/secrets
+    image: 'swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3'
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+readinessProbe: # 默认值
+  failureThreshold: 3
+  httpGet:
+    path: /
+    port: 8888
+    scheme: HTTP
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+livenessProbe: # 默认值
+  failureThreshold: 3
+  httpGet:
+    path: /
+    port: 8888
+    scheme: HTTP
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+deployments:
+  # hookDelivery robot 必须填写为第一个数组元素
+  - name: robot-universal-hook-delivery
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-hook-delivery
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-gitcode-secret: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-secret-gitcode-secret: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-config: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.deliveryConfig }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-template-gitcode-secret: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.deliverySecrets }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --hmac-secret-file=/vault/secrets/gitcode-secret
+      - --config-file=/vault/secrets/config
+      - --handle-path=gitcode-hook
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-hook-delivery
+      tag: "main-d443fa"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts: []
+    # - mountPath: /app/conf/
+
+    #   name: app-config
+
+    #   readOnly: true
+    volumes: []
+    # - name: app-config
+
+    #   configMap:
+
+    #     name: 
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-access
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-access
+    podAnnotations: ''
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-access
+      tag: "main-d5bc7b"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-universal-access
+    vaultVolume: ''
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-assign
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-assign
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-assign
+      tag: "main-39af72"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-universal-assign
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-associate
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-associate
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-associate
+      tag: "main-6274e1"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-universal-associate
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-cla
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-cla
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-cla
+      tag: "main-8d4184"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-universal-cla
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-hook-dispatcher
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-hook-dispatcher
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-config: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.dispatcher }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/vault/secrets/config
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-hook-dispatcher
+      tag: "main-f97591"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+    volumeMounts: []
+    # - mountPath: /app/conf/
+
+    #   name: app-config
+
+    #   readOnly: true
+    volumes: []
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-review
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-review
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-review
+      tag: "main-21fc99"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-universal-review
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-label
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-label
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-perms-llm-key: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-secret-llm-key: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-template-llm-key: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.llmKey }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+      - --llm-api-key-file=/vault/secrets/llm-key
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-label
+      tag: "main-c101ac"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-universal-label
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-lifecycle
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-lifecycle
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-lifecycle
+      tag: "main-04d4f0"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-universal-lifecycle
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-welcome
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-welcome
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-welcome
+      tag: "main-f2b1c0"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-universal-welcome
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-agreements
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-agreements
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-agreements
+      tag: "main-ada9bc"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-universal-agreements
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: sync-bot
+    replicas: 1
+    strategy:
+      type: Recreate
+    labels:
+      app: sync-bot
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0700"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    env:
+      - name: TZ
+        value: Asia/Shanghai
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=hooks
+      - --token-path=/vault/secrets/token
+    image:
+      repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceway/openeuler/sync-bot
+      tag: "v1.0.20260615102820"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "2"
+        memory: 2Gi
+      requests:
+        cpu: "2"
+        memory: 2Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+      - mountPath: /repos
+        name: sync-bot-repo-volume
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-sync-bot
+      - name: sync-bot-repo-volume
+        persistentVolumeClaim:
+          claimName: pvc-sync-bot
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+    pvc:
+      name: pvc-sync-bot
+      accessModes: ReadWriteOnce
+      storage: 100Gi
+      scName: csi-disk
+  - name: robot-universal-ci-tools
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: ci-tools
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config.json: "0400"
+      vault.hashicorp.com/agent-inject-secret-config.json: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-config.json: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.ciTools }}\n{{- end }}\n"
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/robot-universal-ci-tools
+      tag: "master-f100c6"
+      pullPolicy: IfNotPresent
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /health
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 5
+    livenessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /health
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 5
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "1"
+        memory: 1Gi
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: robot-universal-repo-watcher
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-repo-watcher
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/openeuler/robot-openeuler
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/openeuler/robot-openeuler\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --handle-path=gitcode-hook
+      - --config-file=/app/conf/config.yaml
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-repo-watcher
+      tag: "main-93da05"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "2"
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+      - mountPath: /opt/app/repo
+        name: config-app
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-repo-watcher
+      - name: config-app
+        emptyDir: {}
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP

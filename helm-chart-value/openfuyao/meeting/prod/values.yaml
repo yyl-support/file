@@ -1,0 +1,255 @@
+namespace: meetingserver
+serviceAccount: meetingserver
+image:
+  center:
+    name: meeting-center
+    repository: swr.cn-north-4.myhuaweicloud.com/openfuyao/meeting-center-prod
+    tag: dev-60e4b8
+  platform:
+    name: meeting-platform
+    repository: swr.cn-north-4.myhuaweicloud.com/openfuyao/meeting-platform-prod
+    tag: dev_meeting-dc55c6
+meetingCenter:
+  initOpeneuler:
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/openfuyao/openeuler
+      tag: 22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+  host: meeting-center.openfuyao.cn
+  meetingCenter:
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      runAsUser: 1000
+    env:
+      configPath: /vault/secrets/config
+      tz: Asia/Shanghai
+      vaultPath: /vault/secrets/secrets.yaml
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  replicas: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-template-ca.pem: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.MysqlCA }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.centerConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.centerSecrets }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.servercrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.serverkey }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: meetingserver
+    vault.hashicorp.com/secret-volume-path: /vault/secrets
+    vault.hashicorp.com/tls-skip-verify: "true"
+meetingPlatform:
+  initOpeneuler:
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/openfuyao/openeuler
+      tag: 22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+  meetingPlatform:
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      runAsUser: 1000
+    env:
+      configPath: /vault/secrets/config
+      tz: Asia/Shanghai
+      vaultPath: /vault/secrets/secrets.yaml
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  replicas: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-template-ca.pem: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.MysqlCA }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.platformConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.kafkacrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.platformSecrets }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.servercrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.serverkey }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: meetingserver
+    vault.hashicorp.com/secret-volume-path: /vault/secrets
+    vault.hashicorp.com/tls-skip-verify: "true"
+specKeysMap:
+  ca.crt:
+    path: secrets/data/openfuyao/openfuyao-cn-tls
+    key: server.crt
+  tls.crt:
+    path: secrets/data/openfuyao/openfuyao-cn-tls
+    key: server.crt
+  tls.key:
+    path: secrets/data/openfuyao/openfuyao-cn-tls
+    key: server.key
+
+updatingSigs:
+  enabled: true
+  podSecurityContext:
+    seccompProfile:
+      localhostProfile: infra-seccomp.json
+      type: Localhost
+  schedule: 0 * * * *
+  startingDeadlineSeconds: 180
+  updatingSigs:
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: false
+      runAsUser: 1000
+    env:
+      configPath: /vault/secrets/config
+      mysqlTlsPemPath: /vault/secrets/ca.pem
+      tlsCrtPath: /vault/secrets/server.crt
+      tlsKeyPath: /vault/secrets/server.key
+      tz: Asia/Shanghai
+      vaultPath: /vault/secrets/secrets.yaml
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+
+cronjob:
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/openfuyao/meetingserver
+    vault.hashicorp.com/agent-inject-template-ca.pem: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.MysqlCA }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.centerConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.centerSecrets }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.servercrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/openfuyao/meetingserver" -}}
+      {{ .Data.data.serverkey}}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: meetingserver
+    vault.hashicorp.com/secret-volume-path: /vault/secrets
+    vault.hashicorp.com/tls-skip-verify: "true"

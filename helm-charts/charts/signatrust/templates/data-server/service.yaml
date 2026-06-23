@@ -1,0 +1,17 @@
+{{- if .Values.dataServer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-service" .Values.dataServer.name }}
+  namespace: {{ .Values.global.namespace }}
+  {{- with .Values.dataServer.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.dataServer.service.type }}
+  selector:
+    component: {{ .Values.dataServer.name }}
+  ports:
+  {{- .Values.dataServer.service.ports | toYaml | nindent 2 }}
+{{- end }}

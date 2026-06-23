@@ -1,0 +1,31 @@
+{{- if .Values.oauth }}
+{{- range $server := .Values.oauth }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.community.name }}-{{ $server.provider }}-oauth-ingress
+  namespace: {{ $.Values.namespace.name }}
+  {{- with $server.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4}}
+  {{- end }}
+spec:
+  tls:
+  - hosts:
+    - {{ $server.ingress.host }}
+    secretName: {{ $.Values.community.name }}-tls
+  rules:
+  - host: {{ $server.ingress.host }}
+    http:
+      paths:
+      - path: {{ $server.ingress.path }}
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.community.name }}-{{ $server.provider }}-oauth-service
+            port:
+              number: {{ $server.service.port }}
+  ingressClassName: {{ $server.ingress.className }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,126 @@
+namespace: mindspore-doc-search
+appName: common-search-deployment
+replicaCount: 2
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/role: mindspore-search
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject-perms-application.yml: "0600"
+  vault.hashicorp.com/agent-inject-secret-application.yml: internal/data/infra-common/search
+  vault.hashicorp.com/agent-inject-template-application.yml: "{{- with secret \"internal/data/infra-common/search\" -}}  \n{{ .Data.data.application }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-es.jks: "0400"
+  vault.hashicorp.com/agent-inject-secret-es.jks: internal/data/infra-common/search
+  vault.hashicorp.com/agent-inject-template-es.jks: "{{- with secret \"internal/data/infra-common/search\" -}}  \n{{ base64Decode .Data.data.esJks }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+  vault.hashicorp.com/agent-inject-secret-redis.crt: internal/data/infra-common/search
+  vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/infra-common/search\" -}}  \n{{ .Data.data.redisCRT }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+  vault.hashicorp.com/agent-inject-secret-tls.pfx: internal/data/infra-common/search
+  vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/infra-common/search\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }}        \n"
+serviceAccount:
+  create: true
+  name: mindspore-search
+imagePullSecret:
+  - name: huawei-swr-image-pull-secret
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/mindspore/docs-search
+  tag: "feature-fuyao-docs-9bed74"
+  pullPolicy: IfNotPresent
+configPath: /vault/secrets/application.yml
+env:
+  - name: MINDSPORE_OFFICIAL
+    value: https://www.mindspore.cn
+resources:
+  limits:
+    cpu: "1"
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  httpGet:
+    path: /error
+    port: 8080
+    scheme: HTTPS
+  timeoutSeconds: 5
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 20
+  periodSeconds: 20
+  successThreshold: 1
+  httpGet:
+    path: /error
+    port: 8080
+    scheme: HTTPS
+  timeoutSeconds: 5
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1001
+  capabilities:
+    drop:
+      - ALL
+service:
+  portName: http
+  port: 8080
+  targetPort: 8080
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+  host: doc-search-common.osinfra.cn
+secret:
+  enabled: true
+  name: doc-search-osinfra-tls
+  tlsPath: secrets/data/infra-common/osinfra-cn
+  keysMap:
+    ca.crt: server.crt
+    tls.crt: server.crt
+    tls.key: server.key
+cronjob:
+  name: cronjob-easysearch-import-refactor
+  schedule: "0 2 1 * *"
+  suspend: false
+  policy: Forbid
+  annotations:
+    vault.hashicorp.com/agent-inject: 'true'
+    vault.hashicorp.com/role: 'mindspore-search'
+    vault.hashicorp.com/agent-inject-secret-application.yml: 'internal/data/infra-common/search'
+    vault.hashicorp.com/agent-inject-secret-mq.crt: "internal/data/infra-common/search"
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-inject-perms-application.yml: "0400"
+    vault.hashicorp.com/agent-inject-perms-mq.crt: "0400"
+    vault.hashicorp.com/agent-run-as-user: "1001"
+    vault.hashicorp.com/agent-run-as-group: "1001"
+    vault.hashicorp.com/secret-volume-path: /config/
+    vault.hashicorp.com/agent-inject-template-application.yml: "{{- with secret \"internal/data/infra-common/search\" -}}  \n{{ .Data.data.import }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/log-level: "warn"
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/search-import-refactor
+    tag: feature-refactor-0c40f2
+  env:
+    - name: APPLICATION_PATH
+      value: /config/application.yml
+  resources:
+    limits:
+      cpu: 1
+      memory: 2Gi
+    requests:
+      cpu: 1
+      memory: 500Mi

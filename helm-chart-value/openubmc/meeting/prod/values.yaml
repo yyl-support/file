@@ -1,0 +1,296 @@
+namespace:
+  enabled: true
+  name: meetingserver
+serviceAccount:
+  create: true
+  name: meetingserver
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+image:
+  center:
+    name: meeting-center
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/meeting/meeting-center
+    tag: main-94462a
+    imagePullPolicy: IfNotPresent
+  platform:
+    name: meeting-platform
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/meeting/meeting-platform
+    tag: "main-d9ae6a"
+    imagePullPolicy: IfNotPresent
+initContainer:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/openeuler
+    tag: 22.03-lts-sp3
+podAnnotations:
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: meetingserver
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+ingress:
+  enabled: false
+  host: meeting-center.openubmc.cn
+  port:
+    number: 80
+# 后端使用ingress路径转发时启用ingressNew
+ingressNew:
+  enabled: false
+istio:
+  enabled: true
+  nslabel:
+    istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: meeting-center.openubmc.cn
+  vs:
+    http:
+      - match:
+          - uri:
+              prefix: /api-platform/
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: meeting-platform.meetingserver.svc.cluster.local
+              port:
+                number: 8080
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: meeting-center.meetingserver.svc.cluster.local
+              port:
+                number: 8080
+  dr:
+    - name: meeting-center
+      serviceName: meeting-center
+      portNumber: 8080
+      tlsMode: SIMPLE
+    - name: meeting-platform
+      serviceName: meeting-platform
+      portNumber: 8080
+      tlsMode: SIMPLE
+  pa:
+    - name: meeting-center
+      mtlsMode: DISABLE
+      label:
+        app: meeting-center
+    - name: meeting-platform
+      mtlsMode: DISABLE
+      label:
+        app: meeting-platform
+meetingCenter:
+  replicas: 2
+  podLabels:
+    app: meeting-center
+  resources:
+    limits:
+      cpu: "2"
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  service:
+    type: LoadBalancer
+    annotations:
+      kubernetes.io/elb.id: 5b87f932-cc03-436c-87a7-f68e512e1939
+      kubernetes.io/elb.class: union
+      kubernetes.io/elb.lb-algorithm: ROUND_ROBIN
+    ports:
+      - name: tls-1
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-template-ca.pem: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.MysqlCA }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.centerconfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.centersecrets }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.servercrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.serverkey }}
+      {{- end }}
+meetingPlatform:
+  replicas: 2
+  podLabels:
+    app: meeting-platform
+  resources:
+    limits:
+      cpu: "2"
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  service:
+    ports:
+      - name: tls-1
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+    type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/openubmc/meeting
+    vault.hashicorp.com/agent-inject-template-ca.pem: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.MysqlCA }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.platformconfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.kafkacrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.platformsecrets }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.servercrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/openubmc/meeting" -}}
+      {{ .Data.data.serverkey }}
+      {{- end }}
+secret:
+  enable: false
+  # name: meeting-server-tls
+  # specKeysMap:
+  #   ca.crt:
+  #     path: secrets/data/opengauss/opengauss-org-tls
+  #     key: server.crt
+  #   tls.crt:
+  #     path: secrets/data/opengauss/opengauss-org-tls
+  #     key: server.crt
+  #   tls.key:
+  #     path: secrets/data/opengauss/opengauss-org-tls
+  #     key: server.key
+cronjob:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsUser: 1000
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/config
+    - name: VAULT_PATH
+      value: /vault/secrets/secrets.yaml
+    - name: MYSQL_TLS_PEM_PATH
+      value: /vault/secrets/ca.pem
+    - name: TLS_CRT_PATH
+      value: /vault/secrets/server.crt
+    - name: TLS_KEY_PATH
+      value: /vault/secrets/server.key
+updatingSigs:
+  enabled: true
+  imageTag: main-715d78
+  schedule: 0 * * * *
+  suspend: false
+  policy: Forbid
+  command:
+    - /bin/sh
+    - -c
+    - |
+      python manage.py sync_sig
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+handleMeeting:
+  enabled: true
+  imageTag: main-553cae
+  schedule: "*/15 * * * *"
+  suspend: false
+  policy: Forbid
+  command:
+    - /bin/sh
+    - -c
+    - |
+      python3 manage.py handle_meeting
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+handleRecording:
+  enabled: true
+  imageTag: main-553cae
+  schedule: 30 * * * *
+  suspend: false
+  policy: Forbid
+  command:
+    - /bin/sh
+    - -c
+    - |
+      python3 manage.py handle_recordings
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 500m
+      memory: 500Mi

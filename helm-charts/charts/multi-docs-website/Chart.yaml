@@ -1,0 +1,5 @@
+apiVersion: v2
+name: multi-docs-website
+description: Helm chart for docs website
+version: 1.0.3
+appVersion: latest

@@ -1,0 +1,45 @@
+dispatcher:
+  enabled: true
+  robotHookDispatcherDeployment:
+    podSecurityContext:
+      seccompProfile:
+        localhostProfile: infra-seccomp.json
+        type: Localhost
+    replicas: 1
+    robotHookDispatcher:
+      args:
+        - --port=8888
+        - --config-file=/vault/secrets/config
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsUser: 1000
+      resources:
+        limits:
+          cpu: 100m
+          memory: 300Mi
+        requests:
+          cpu: 100m
+          memory: 300Mi
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/infra-test/openjiuwen-robot" -}}
+      {{ .Data.data.dispatcherConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: openjiuwen-robot
+    vault.hashicorp.com/tls-skip-verify: "true"
+  NetworkPolicy:
+    enabled: true

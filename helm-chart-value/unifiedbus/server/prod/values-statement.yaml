@@ -1,0 +1,81 @@
+statement:
+  name: statement-server
+  replicaCount: 2
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/unifiedbus/statement-management-prod
+    tag: main-d44d34
+    pullPolicy: IfNotPresent
+  podLabels:
+    app: statement-server
+  podAnnotations:
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/unifiedbus/unifiedbus-server'
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/unifiedbus/unifiedbus-server\" -}}  \n{{ .Data.data.statement }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-secret-redis.crt: 'internal/data/unifiedbus/unifiedbus-server'
+    vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/unifiedbus/unifiedbus-server\" -}}  \n{{ .Data.data.statementRedisCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-secret-server.crt: 'internal/data/unifiedbus/domain-tls'
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-server.crt: "{{- with secret \"internal/data/unifiedbus/domain-tls\" -}}  \n{{ .Data.data.ServerCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-secret-server.key: 'internal/data/unifiedbus/domain-tls'
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-template-server.key: "{{- with secret \"internal/data/unifiedbus/domain-tls\" -}}  \n{{ .Data.data.ServerKey }}\n{{- end }}\n"
+  args:
+    - --config-file=/vault/secrets/conf.yaml
+    - --port=8080
+    - --enable-debug=true
+    - --rm-config=true
+    - --tls-key=/vault/secrets/server.key
+    - --tls-cert=/vault/secrets/server.crt
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    successThreshold: 1
+    httpGet:
+      scheme: HTTPS
+      path: /internal/v1/heartbeat
+      port: 8080
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    successThreshold: 1
+    httpGet:
+      scheme: HTTPS
+      path: /internal/v1/heartbeat
+      port: 8080
+    timeoutSeconds: 5
+  resources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 1
+      memory: 1Gi
+  volumeMounts:
+    - name: volume-data
+      mountPath: /home/app/statements
+  volumes:
+    - name: token-vol
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+    - name: volume-data
+      persistentVolumeClaim:
+        claimName: unifiedbus-statement-data
+  service:
+    port: 8080
+    targetPort: 8080

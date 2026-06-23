@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.mailcore.name }}
+  {{- with .Values.mailcore.deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.mailcore.replicas }}
+  selector:
+    {{- with .Values.mailcore.podLabels }}
+    matchLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  serviceName: mail-suit-service
+  template:
+    metadata:
+      {{- if .Values.istio.enabled }}
+      annotations:
+        {{- toYaml .Values.istio.mailcoreAnnotation | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mailcore.podLabels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- if .Values.mailcore.nodeSelector }}
+      nodeSelector: {{- toYaml .Values.mailcore.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - env:
+        {{- range .Values.mailcore.env.secretRef.keys }}
+        - name: {{ .name }}
+          valueFrom:
+            secretKeyRef:
+              key: {{ .key }}
+              name: {{ $.Values.mailcore.env.secretRef.name }}
+        {{- end }}
+        - name: HYPERKITTY_URL
+          value: "http://{{.Values.mailweb.service.name}}.{{.Values.namespace.name}}.svc.cluster.local:8000/hyperkitty"
+        - name: SMTP_HOST
+          value: {{.Values.exim4.service.name}}.{{.Values.namespace.name}}.svc.cluster.local
+        image: "{{ .Values.mailcore.image.repository }}:{{ .Values.mailcore.image.tag }}"
+        imagePullPolicy: {{ .Values.mailcore.image.imagePullPolicy }}
+        name: {{ .Values.mailcore.name }}
+        {{- with .Values.mailcore.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - mountPath: /opt/mailman/
+          name: mailman-core-volume
+      volumes:
+      - name: mailman-core-volume
+        persistentVolumeClaim:
+          claimName: {{ .Values.mailcore.pvc.name }}
+  updateStrategy:
+    type: RollingUpdate

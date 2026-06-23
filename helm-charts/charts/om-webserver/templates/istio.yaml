@@ -1,0 +1,50 @@
+{{- if .Values.istio.enabled }}
+{{- with .Values.istio.vs }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .name }}
+spec:
+  gateways:
+  - {{ $.Values.istio.gateway }}
+  hosts:
+  - {{ .host }}
+  http:
+  {{- toYaml .http | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+{{- range .Values.istio.dr }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{ .name }}
+spec:
+  host: {{ .serviceName }}
+  trafficPolicy:
+    portLevelSettings:
+      - port:
+          number: {{ .port }}
+        tls:
+          mode: {{ $.Values.istio.tlsMode }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+{{- range .Values.istio.pa }}
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: {{ .name }}
+spec:
+  mtls:
+    mode: {{ $.Values.istio.mtlsMode }}
+  selector:
+    matchLabels:
+      {{- .podLabels | toYaml | nindent 6 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,158 @@
+# chartVersion: 1.0.0
+namespace:
+  # -- 命名空间名称
+  name: osi-task-manager
+strategy:
+  rollingUpdate:
+    # -- 最大不可用副本数
+    maxUnavailable: 0
+    # -- 最大超出副本上限数
+
+    maxSurge: 1
+  # -- 更新策略
+
+  type: RollingUpdate
+nameOverride: ""
+# -- 服务资源名称
+
+fullnameOverride: osi-task-gitcode
+# -- 镜像仓库访问凭证名称
+
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+image:
+  # -- 镜像名称
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/osi-task-manager-gitcode
+  # -- 镜像Tag
+
+  tag: "feature-gitcode-5c0005"
+  # -- 镜像拉取策略，默认为IfNotPresent
+
+  pullPolicy: Always
+# -- pod自定义声明项
+
+podAnnotations: {}
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+# -- 环境变量数组
+
+env:
+  - name: DB_USER
+    key: db-username
+  - name: DB_PWD
+    key: db-passwd
+  - name: DB_URI
+    key: db-uri
+  - name: AES_KEY
+    key: aes-key
+  - name: OSI_HOOK_PWD
+    key: osi-hook-pwd
+  - name: GITCODE_SRC_TOKEN
+    key: gitcode-token
+  - name: EMAIL_NAME
+    key: cve-email-sendaddr
+  - name: EMAIL_PWD
+    key: cve-email-password
+  - name: GITCODE_MINDSPORE_TOKEN
+    key: gitcode-mindspore-token
+  - name: GITCODE_GAUSS_TOKEN
+    key: gitcode-gauss-token
+  - name: GITCODE_UBMC_TOKEN
+    key: gitcode-ubmc-token
+  - name: GITCODE_PYTORCH_TOKEN
+    key: gitcode-pytorch-token
+secret:
+  # -- secret名称
+  name: osi-task-gitcode-secrets
+  # -- secret在vault中的存放路径
+
+  path: secrets/data/openeuler/osi-task-gitcode
+  # -- secret key在vault中key的对应关系
+
+  keysMap:
+    db-passwd: db-passwd
+    db-uri: db-uri
+    db-username: db-username
+    aes-key: aes-key
+    osi-hook-pwd: osi-hook-pwd
+    gitcode-token: gitcode-token
+    cve-email-sendaddr: cve-email-sendaddr
+    cve-email-password: cve-email-password
+    gitcode-mindspore-token: gitcode-mindspore-token
+    gitcode-gauss-token: gitcode-gauss-token
+    gitcode-ubmc-token: gitcode-ubmc-token
+    gitcode-pytorch-token: gitcode-pytorch-token
+livenessProbe:
+  # -- 延迟加载时间
+  initialDelaySeconds: 20
+  # -- 重试时间间隔
+
+  periodSeconds: 30
+  # -- 超时时间设置
+
+  timeoutSeconds: 10
+  # -- 探测失败的重试次数
+
+  failureThreshold: 5
+  httpGet:
+    # -- 检查接口
+    path: /healthz/liveness
+    # -- 服务端口
+
+    port: 8080
+readinessProbe:
+  # -- 延迟加载时间
+  initialDelaySeconds: 20
+  # -- 重试时间间隔
+
+  periodSeconds: 30
+  # -- 超时时间设置
+
+  timeoutSeconds: 10
+  # -- 探测失败的重试次数
+
+  failureThreshold: 5
+  httpGet:
+    # -- 检查接口
+    path: /healthz/readiness
+    # -- 服务端口
+
+    port: 8080
+# -- pod副本数量
+replicas: 1
+# -- pod标签
+
+podLabels:
+  app: osi-task-gitcode
+# -- pod启动命令
+
+resources:
+  requests:
+    # -- 服务需求cpu资源
+    cpu: "1"
+    # -- 服务需求内存资源
+
+    memory: 2Gi
+  limits:
+    # -- 服务分配cpu资源
+    cpu: "1.5"
+    # -- 服务分配内存资源
+
+    memory: 3Gi
+servicePorts:
+  # 端口名称
+  - name: httpport
+    # -- 对外访问端口
+
+    port: 80
+    # -- 转发通信协议
+
+    protocol: TCP
+    # -- 服务暴露端口
+
+    targetPort: 8080
+# -- service类型
+
+serviceType: ClusterIP

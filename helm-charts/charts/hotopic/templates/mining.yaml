@@ -1,0 +1,76 @@
+{{range .Values.minings }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .community }}-hotopic-mining-deployment
+  labels:
+    {{- toYaml .deploymentLabels | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- toYaml .podLabels | nindent 6 }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate 
+  template:
+    metadata:
+      annotations:
+        {{- toYaml $.Values.podAnnotations | nindent 8 }}
+        {{- toYaml .podAnnotations | nindent 8 }}
+        vault.hashicorp.com/agent-run-as-user: "1001"
+        vault.hashicorp.com/agent-run-as-group: "1001"
+        vault.hashicorp.com/secret-volume-path: "/app/conf"
+        vault.hashicorp.com/agent-inject-perms-config.ini: "0400"
+      labels:
+        {{- toYaml .podLabels | nindent 8 }}
+    spec:
+      serviceAccount: {{ $.Values.serviceAccount.name }}
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: {{ $.Values.imagePullSecret }}
+      securityContext:
+        seccompProfile:
+          type: Localhost
+          localhostProfile: infra-seccomp.json
+      containers:
+        - name: {{ .community }}-hotopic-mining
+          image: "{{ $.Values.mining.image.repository }}:{{ .imageTag }}"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
+          resources:
+          {{- if not .resources }}
+            {{- toYaml $.Values.mining.resources | nindent 12 }}
+          {{- else }}
+            {{- toYaml .resources | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: app-config
+              mountPath: "/app/conf/config.yaml"
+              subPath: "config.yaml"
+              readOnly: true
+            - name: volume-data
+              mountPath: /app/tests/mock_data
+      volumes:
+      - name: token-vol
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+      - name: app-config
+        configMap:
+          name: {{ .configMapName }}
+      - name: volume-data
+        persistentVolumeClaim:
+          claimName: {{ .pvc.name }}
+{{- end }}

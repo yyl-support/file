@@ -1,0 +1,224 @@
+deployment:
+  replicaCount: 1
+  revisionHistoryLimit: 10
+  labels:
+    app: control-etherpad-v2
+  strategyType: Recreate
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/etherpad
+    pullPolicy: IfNotPresent
+    tag: "openeuler-v1.9.7-sso-9629f0"
+  imagePullSecrets:
+    - name: huawei-swr-image-pull-secret
+  containerName: etherpad-lite
+  ports:
+    - containerPort: 9001
+      name: http
+      protocol: TCP
+  env:
+    secretRef:
+      name: ether-secret-v2
+      keys:
+        - name: DB_TYPE
+          key: db_type
+        - name: DB_HOST
+          key: db_host
+        - name: DB_PORT
+          key: db_port
+        - name: DB_USER
+          key: db_user
+        - name: DB_PASS
+          key: db_password
+        - name: DB_CHARSET
+          key: db_charset
+        - name: DB_NAME
+          key: db_name
+        - name: PORT
+          key: port
+        - name: ADMIN_PASSWORD
+          key: admin_password
+        - name: SKIN_NAME
+          key: skin
+        - name: NODE_ENV
+          key: env
+        - name: ISSUER_CLIENT_ID
+          key: issuer_client_id
+        - name: ISSUER_CLIENT_SECRET
+          key: issuer_client_secret
+    plainValues:
+      - name: ISSUER_AUTHORIZATION_ENDPOINT
+        value: "https://unifiedbus.test.osinfra.cn/oneid/oneid/oidc/authorize"
+      - name: ISSUER_TOKEN_ENDPOINT
+        value: "https://unifiedbus.test.osinfra.cn/oneid/oneid/oidc/token"
+      - name: ISSUER_USERINFO_ENDPOINT
+        value: "https://unifiedbus.test.osinfra.cn/oneid/oneid/oidc/user"
+      - name: ISSUER_ENDPOINT
+        value: "https://unifiedbus-etherpad.authing.cn/oidc"
+      - name: ISSUER_JWKS_URI
+        value: "https://id.unifiedbus.test.osinfra.cn"
+      - name: ISSUER_BASE_URL
+        value: "https://etherpad.unifiedbus.test.osinfra.cn"
+      - name: REQUIRE_AUTHENTICATION
+        value: "true"
+      - name: OSSLOGOUTURL
+        value: "https://id.unifiedbus.test.osinfra.cn/logout"
+      - name: OSSCHECKURL
+        value: "https://unifiedbus.test.osinfra.cn/oneid/oneid/user/permission"
+
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "openeuler-etherpad"  
+
+namespace: openeuler-etherpad
+
+secretDefinitions:
+  ether-secret-v2:
+    enabled: true
+    keysMap:
+      db_type:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: db_type_v2
+      db_host:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: db_host_v2
+      db_port:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: db_port_v2
+      db_user:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: db_user_v2
+      db_password:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: db_password_v2
+      db_charset:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: db_charset_v2
+      db_name:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: db_name_v2
+      admin_password:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: admin_password_v2
+      skin:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: skin_v2
+      env:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: env_v2
+      port:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: port_v2
+      issuer_client_id:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: issuer_client_id
+      issuer_client_secret:
+        path: secrets/data/unifiedbus/etherpad-test
+        key: issuer_client_secret
+  etherpad-unifiedbus-tls:
+    enabled: true
+    keysMap:
+      ca.crt:
+        key: tls.cert
+        path: secrets/data/infra-test/unifiedbus-domain-tls
+      tls.crt:
+        key: tls.cert
+        path: secrets/data/infra-test/unifiedbus-domain-tls
+      tls.key:
+        key: tls.key
+        path: secrets/data/infra-test/unifiedbus-domain-tls
+
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  ports:
+    - name: ether-http
+      port: 9001
+      protocol: TCP
+      targetPort: 9001
+  type: ClusterIP
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ^~ /admin {
+        deny all;
+      }
+      location ^~ /stats {
+        deny all;
+      }
+  hosts:
+    - host: etherpad.unifiedbus.test.osinfra.cn
+      paths:
+        - path: /
+          pathType: Prefix
+          portNumber: 9001
+  tlsHosts:
+    - host: etherpad.unifiedbus.test.osinfra.cn
+      secretsName: etherpad-unifiedbus-tls
+
+istio:
+  enabled: false
+  nslabel: {}
+    # istio-injection: enabled
+  # gateway: "istio-system/istio-gateway-https"
+  # host: etherpad.opengaus.org
+  # virtualService:
+  #   routes:
+  #     - destinations:
+  #         - host: ""
+  #       match:
+  #       - uri:
+  #           prefix: /
+  # tls:
+  #   mode: DISABLE
+  # mtls:
+  #   mode: DISABLE
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: "1"
+    memory: 1Gi
+
+pvc:
+  ether-data-vol-v2:
+    enabled: true
+    annotations: {}
+      # everest.io/disk-volume-type: SSD
+    labels: {}
+    accessModes:
+      - ReadWriteOnce
+    storage: 1Gi
+    storageClassName: csi-disk-sas
+    volumeMode: Filesystem
+  etherpad-plugin-vol:
+    enabled: false
+    annotations:
+      everest.io/disk-volume-type: SSD
+    accessModes:
+      - ReadWriteOnce
+    storage: 1Gi
+    storageClassName: csi-disk
+    volumeName: ""
+    volumeMode: Filesystem
+
+# Additional volumes on the output Deployment definition.
+volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: ether-data-vol-v2
+  # - name: plugin-volume
+  #   persistentVolumeClaim:
+  #     claimName: etherpad-plugin-vol
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  - mountPath: /opt/etherpad-lite/var
+    name: data-volume
+  # - mountPath: /opt/etherpad-lite/plugin_packages
+  #   name: plugin-volume

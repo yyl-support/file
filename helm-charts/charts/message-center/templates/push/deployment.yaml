@@ -1,0 +1,42 @@
+{{- if .Values.pushDeployment.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.pushDeployment.name }}
+  namespace: {{ .Values.namespace }}
+  {{- with .Values.deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.pushDeployment.app }}
+  replicas: {{ .Values.pushDeployment.replicaCount }}
+  strategy:
+    {{- toYaml .Values.pushDeployment.strategy | nindent 4 }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.pushDeployment.podAnnotations | nindent 8 }}
+      labels:
+        app: {{ .Values.pushDeployment.app }}
+    spec:
+      serviceAccount: {{ .Values.serviceAccount.name }}
+      imagePullSecrets:
+      - name: {{ .Values.imagePullSecrets.name }}
+      automountServiceAccountToken: false
+      containers:
+      - name: push
+        image: {{ .Values.pushDeployment.image.repository }}:{{ .Values.pushDeployment.image.tag }}
+        imagePullPolicy: {{ .Values.pushDeployment.image.pullPolicy }}
+        args:
+        {{- toYaml .Values.pushDeployment.args | nindent 8 }}
+        resources:
+          {{- toYaml .Values.pushDeployment.resources | nindent 10 }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+      volumes:
+      {{- toYaml .Values.volumes | nindent 6 }}
+{{- end }}

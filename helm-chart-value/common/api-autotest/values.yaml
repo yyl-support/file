@@ -1,0 +1,314 @@
+# chartVersion: 1.0.1
+
+podAnnotations:
+  # -- 是否启用vault inject功能,默认开启
+  vault.hashicorp.com/agent-inject: 'true'
+  # -- vault权限角色
+
+  vault.hashicorp.com/role: 'api-autotest'
+  # -- 配置文件在Vault中存放的路径
+
+  vault.hashicorp.com/agent-inject-secret-config.yaml: 'internal/data/infra-test/api-autotest'
+  # -- vault agent是否作为init容器
+
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-inject-perms-config.yaml: "0400"
+  # -- vault agent容器运行用户id
+
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  # -- vault agent容器运行用户组id
+
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  # -- 配置文件挂载到容器的路径
+
+  vault.hashicorp.com/secret-volume-path: "/app/check/config"
+  # -- vault agent挂载的sa资源名
+
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  # -- 设置vault agent容器日志等级
+
+  vault.hashicorp.com/log-level: "warn"
+  # -- vault agent和vault server通信是否跳过tls验证,默认为true
+
+  vault.hashicorp.com/tls-skip-verify: "true"
+imagePullSecrets:
+  # -- 镜像仓访问凭证名称
+  - name: huawei-swr-image-pull-secret
+serviceAccount:
+  # 是否创建serviceAccount资源
+  create: true
+  # -- serviceAccount名称
+
+  name: api-autotest
+image:
+  # -- 镜像名称
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/api-autotest-cronjob
+  # -- 镜像Tag
+
+  tag: "gitcode_datacheck-bfca2c"
+cronjobs:
+  # -- 是否停止运行
+  - suspend: false
+    # -- 触发周期设置
+
+    schedule: "31 14 29 12 *"
+    # -- 并行触发设置，默认禁止
+
+    concurrencyPolicy: Forbid
+    # -- 重启机制设置
+
+    restartPolicy: OnFailure
+    # -- 自定义声明项
+
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobOneConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        # -- 服务最大使用CPU资源数
+        cpu: "1"
+        # -- 服务最大使用内存容量
+
+        memory: 6Gi
+      requests:
+        # -- 服务最少使用的CPU资源数
+        cpu: "500m"
+        # -- 服务最少使用内存容量
+
+        memory: 1Gi
+  - suspend: false
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobTwoConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: false
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobThrConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: false
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobThurConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: false
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobFiveConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: false
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobSixConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: false
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobSevenConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobEightConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobNineConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobTenConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+        memory: 2Gi
+  - suspend: true
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobEleConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobTelvConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobThrteenConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobFourteenConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobFifteenConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "10 20 21 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobSixteenConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "44 20 20 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobSeventeenConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "25 20 20 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobEighteenConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+  - suspend: true
+    schedule: "40 21 20 12 *"
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+    annotations:
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/api-autotest\" -}}  \n{{ .Data.data.cronjobNineteenConf }}\n{{- end }}\n"
+    resources:
+      limits:
+        cpu: "1"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+
+
+

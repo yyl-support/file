@@ -1,0 +1,339 @@
+configmaps:
+  - name: configmap-access
+    filename: config.yaml
+    content: |-
+      access:
+        repo_plugins:
+          - org_or_repo:
+              - agentic-develop-playground
+            plugin_name:
+              - robot-service-cla
+              - robot-service-label
+              - robot-service-review
+              - robot-service-associate
+              - robot-service-quality-gate-trigger
+              - robot-service-welcome
+              - robot-service-assign
+        plugins:
+          - name: robot-service-cla
+            endpoint: http://robot-universal-cla-service.robot-agentic-develop.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-label
+            endpoint: http://robot-universal-label-service.robot-agentic-develop.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-review
+            endpoint: http://robot-universal-review-service.robot-agentic-develop.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-associate
+            endpoint: http://robot-universal-associate-service.robot-agentic-develop.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Issue Hook"
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-quality-gate-trigger
+            endpoint: http://robot-universal-quality-gate-trigger-service.robot-agentic-develop.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-welcome
+            endpoint: http://robot-universal-welcome-service.robot-agentic-develop.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Issue Hook"
+          - name: robot-service-assign
+            endpoint: http://robot-universal-assign-service.robot-agentic-develop.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Issue Hook"
+              - "Note Hook"
+  - name: configmap-cla
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - agentic-develop-playground
+          cla_label_yes: opensourceways-cla/yes
+          cla_label_no: opensourceways-cla/no
+          check_url: https://clasign.osinfra.cn/api/v1/individual-signing/696f4f397a5429cd9010ec7a
+          sign_url: https://clasign.osinfra.cn/sign/696f4f397a5429cd9010ec7a
+          faq_url: https://clasign.osinfra.cn/faqxxxxx
+          check_by_committer: true
+          lite_pr_committer:
+            email: "noreply@github.com"
+            email_patch: "@users.noreply.github.com"
+            name: GitHub
+
+      user_mark_format: "@"
+      placeholder_committer: ""
+      sig_info_url: "https://magicapi.test.osinfra.cn/stat/sig/robot/info"
+      community_name: agentic
+      community_robot_id: opensourceways-bot
+      placeholder_cla_sign_guide_title: "### CLA Signature Guide"
+      placeholder_cla_sign_pass_title: "### CLA Signature Pass"
+      comment_command_trigger: "### CLA Signature Manual  \n\nBecause of the network problem, please comment `/check-cla` once again. :pray: "
+      comment_pr_no_commits: "### CLA Signature Manual  \n\nThere is no valid commits in the pull request, please check it. "
+      comment_some_need_sign: "### CLA Signature Guide  \n\n %s , thanks for your pull request. \n\nThe following commit(s) are not associated with a signed **<font color=green>_Contributor License Agreement (CLA)_</font>**.\n\n%s \n\nTo sign CLA, [**<ins>click here</ins>**](%s). \n\nTo check if your email is configured correctly, refer to the [**<font color=red><ins>_FAQs_</ins></font>**](%s). \n\nOnce you've signed the CLA or updating your email, please comment **`/check-cla`** to revalidate CLA status."
+      comment_update_label_failed: "### CLA Signature Manual  \n\nBecause of the CLA label update fail, please comment `/check-cla` once again. :pray: "
+      comment_all_signed: "### CLA Signature Pass  \n %s, thanks for your pull request. All authors of the commits have signed the CLA. :+1: "
+      invalid_email: "@noreply.gitcode.com"
+      invalid_email_message: "the email used in the commit is an invalid email! <br>please check all commits."
+      cla_service_failed_message: "the CLA service call failed! please comment `/check-cla` once again."
+      comment_unsigned_title: "| Commit | Reason |\n|--|--|"
+      comment_unsigned_line: "\n| %s | %s |"
+      not_signed_email_message: "the email used in the commit is not linked to a signed CLA! <br>please verify that it matches the email you used when signing the CLA."
+      message_individual_version_behind: "the individual CLA content has been updated. <br>[Please click here to re-sign the agreement](https://clasign.osinfra.cn/sign-cla/696f4f397a5429cd9010ec7a/individual-update?email=%s)."
+      message_corporation_version_behind: "the corporation CLA content has been updated. <br>Please contact your corporation CLA manager to re-sign the agreement."
+      cla_signature_type_corporation: "corporation"
+  - name: configmap-label
+    filename: config.yaml
+    content: |-
+      config_items:
+      - repos:
+          - agentic-develop-playground
+        auto_remove_pr_label_rules:
+          - label_name: "stat/needs-squash"
+            commits_threshold: 1
+          - label_name: "gate_check_pass"
+          - label_prefix: "lgtm"
+            event_actions:
+              - "pr close to trigger remove label"
+          - label_name: "approved"
+            event_actions:
+              - "pr close to trigger remove label"
+        auto_add_pr_label_rules:
+          - label_name: "stat/needs-squash"
+            commits_threshold: 1
+        manual_add_or_remove_pr_label_rules:
+          - label_prefix: "lgtm"
+            add_label_command: "/lgtm"
+            remove_label_command: "/lgtm cancel"
+            verify_permission: "strict"
+            user_sig_role_list:
+              - "maintainer"
+              - "committer"
+            user_sig_role_only: true
+            can_not_add_labels_by_self: true
+          - label_name: "approved"
+            add_label_command: "/approve"
+            remove_label_command: "/approve cancel"
+            verify_permission: "strict"
+            user_sig_role_list:
+              - "maintainer"
+              - "committer"
+            user_sig_role_only: true
+            can_not_add_labels_by_self: true
+          - label_name: "needs-issue"
+            remove_label_command: "/remove-needs-issue"
+            verify_permission: "strict"
+            user_id_list:
+              - "maintainer"
+              - "committer"
+              - "repo admin"
+            user_sig_role_only: true
+          - label_name: "merge/squash"
+            add_label_command: "/squash"
+            remove_label_command: "/squash cancel"
+            verify_permission: "strict"
+            user_sig_role_list:
+              - "maintainer"
+              - "committer"
+              - "repo admin"
+            user_sig_role_only: true
+          - label_name: "merge/rebase"
+            add_label_command: "/rebase"
+            remove_label_command: "/rebase cancel"
+            verify_permission: "strict"
+            user_sig_role_list:
+              - "maintainer"
+              - "committer"
+              - "repo admin"
+            user_sig_role_only: true
+
+      sig_info_url: "https://magicapi.test.osinfra.cn/stat/sig/robot/info"
+      community_name: agentic
+      community_robot_id: opensourceways-bot
+      command_reg_exp_key_word: "project"
+      command_label_separator: ":"
+      delayed_seconds: 2
+      comment_remove_labels_when_pr_source_code_updated: "### Notification  \nThis pull request has been changed(code update) or closed, so removes the following label(s): %s."
+      comment_label_command_conflict: "### Label Command Feedback  \n @%s , the comment that add and delete a same label, please check it!"
+      comment_update_label_failed: "### Label Command Feedback \n\n @%s, because of the label **%s** update failed, please comment once again!"
+      comment_add_not_exist_label: "### Label Command Feedback  \nThe repository doesn't have the label(s) **%s**, it cannot be added!"
+      comment_add_label_by_self: "### Review Code Warning \n @%s , you can't review code by yourself, please contact the maintainers/committers."
+      comment_add_label_successful: "### Review Code Feedback \n- The label **%s** was added to this pull request. It means that **%s** reviewed the code changes. :wave: \n ##### *Tips* \n- If this pull request is not merged while all conditions are met, comment **`/check-pr`** to try again. :smile: "
+      comment_no_permission_for_user_list: "The label(s) **%s** permission is of **%s**, please contact them."
+      comment_no_permission_for_sig_member: "Thanks for your review, your opinion is very important to us. The maintainers will consider your advice carefully."
+      comment_no_permission_for_repo_member: "The label(s) **%s** permission is outside."
+      comment_permission_tip_for_branch_keeper: "The repository's branch is control of maintainer and branch keeper!"
+      comment_pr_no_found_commits: "### Warning  \nThe PR commit(s) can not be got, please check it!"
+      comment_pr_no_found_code_change: "### Warning  \nThe PR code change can not be got, please check it!"
+      feedback_comment_prefix: "### Label Command Feedback  \n%s"
+      add_label_to_feedback:
+        - "lgtm"
+        - "approved"
+        - "lgtm-"
+  - name: configmap-review
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - agentic-develop-playground
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: opensourceways-cla/yes
+                need_num: 1
+                legal_operator: opensourceways-bot
+                legal_operate_time: false
+              - label_name: approved
+                need_num: 1
+                legal_operator: opensourceways-bot
+                legal_operate_time: true
+              - label_name: gate_check_pass
+                need_num: 1
+                legal_operator: opensourceways-bot
+                legal_operate_time: true
+            prefix_label_metric:
+              - label_name: lgtm
+                need_num: 2
+                legal_operator: opensourceways-bot
+                legal_operate_time: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: needs-issue
+                need_num: 1
+                legal_operator: opensourceways-bot
+                legal_operate_time: false
+      sig_info_url: "https://magicapi.test.osinfra.cn/stat/sig/robot/info"
+      community_name: "agentic"
+      community_robot_id: "opensourceways-bot"
+      comment_failed_list_pr_operation_logs: "### Warning\n The corresponding operation log is missing! please check it."
+      comment_failed_list_pr_labels: "### Warning\n The PR label(s) can not be got!"
+      comment_pr_work_in_process: "### Warning\n The PR label(s) is working in process!"
+      comment_pr_no_found_commits: "### Warning\n The PR commit(s) can not be got!"
+      comment_pr_cannot_merge_reason: "### Merge Verification Failed\n@%s, this pr is not mergeable and the reasons are below:\n\n%s"
+      comment_msg_missing_labels: "##### *Missing Labels*\n- the pull request needs **%s** label(s)."
+      comment_msg_block_labels: "##### *Label BlockList*\n- the **%s** label(s) caused the pull request to be unable to merge."
+      comment_msg_not_enough_label: "##### *Not Enough Labels*\n%s"
+      comment_msg_not_enough_label_template: "- the pull request needs **%d** **%s** labels, but now gets **%d**."
+      comment_non_compliance_label_operations: "##### *Non-Compliance Label Operations*\n%s"
+      comment_non_compliance_label_operation_template: "- the **%s** label modification should be operated by **%s**, but is currently executed by **%s**!"
+      comment_failed_merge_pr: "### PR Merge Failed \n - reason: %s"
+      comment_failed_merge_pr_unknown_reason: "unknown error occurred, please contact community infrastructure team."
+      comment_allow_label_log_non_compliance: ""
+      label_usage_tip_title: "##### *Label Usage Tips*"
+      label_usage_tip_detail: "- **%s**: %s"
+      label_usage_description:
+        - label_name: opensourceways-cla/yes
+          description: "All contributor has signed the CLA."
+        - label_name: opensourceways-cla/no
+          description: "At least one contributor has not signed the CLA!"
+        - label_name: gate_check_pass
+          description: "The code compilation/build/testcase check job is passed."
+        - label_name: no-pass-all-review
+          description: "The pull request has not yet been approved by all codeowners."
+      action_add_label_gitcode: "add labelName"
+      action_delete_label_gitcode: "delete labelName"
+      action_commit_update_gitcode: "commit"
+      action_target_branch_change_gitcode: "target_branch"
+      action_reopen_gitcode: "opened"
+      action_add_label_gitee: "add_label"
+      action_delete_label_gitee: "remove_label"
+      label_unresolved_reviews: "unresolved-reviews"
+      label_no_passed_code_owners: "no-pass-all-review"
+      comment_unresolved_reviews: "### Notice\n The PR has **%d** review comment. **%d** is not resolved. if all are resolved, please comment ***`/check-pr`*** to try merge the PR. :smile: "
+      comment_no_passed_code_owners: "### Notice\n The PR needs **%d** assignees to review. **%d** does not review. if all are passed, please comment ***`/check-pr`*** to try merge the PR. :smile: "
+      comment_not_found_code_owners: "### Notice\n The PR not found codeowners. "
+  - name: configmap-associate
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - agentic-develop-playground/backlog
+          enable_check_associate_issue: true
+          associate_issue_rules:
+            org:
+              - "agentic-develop-playground"
+              - "opensourceways"
+              - "openUBMC"
+            org_label: needs-issue
+            org_issue_state_limit: false
+            org_comment_command_check_label: /check-issue
+            org_comment_command_remove_label: /remove-needs-issue
+            org_remove_label_permission: true
+            org_comment_remove_label_no_permission: "### Notice \nOnly members of the repository can delete the **needs-issue** label. Please contact them to do it."
+            org_comment_label_block_feedback: "### Linking Issue Notice \n @%s , the pull request must be linked to at least one issue. \nIf an issue has already been linked, but the **needs-issue** label remains, you can remove the label by commenting **`/check-issue`** ."
+        - repos:
+            - agentic-develop-playground
+          enable_check_associate_issue: true
+          associate_issue_rules:
+            org:
+              - "agentic-develop-playground"
+              - "opensourceways"
+              - "openUBMC"
+            org_label: needs-issue
+            org_issue_state_limit: true
+            org_issue_limit_state: "open"
+            org_issue_limit_workflow_state: 
+              - issue_type: Enhancement
+                state: accepted
+            org_comment_command_check_label: /check-issue
+            org_comment_command_remove_label: /remove-needs-issue
+            org_remove_label_permission: true
+            org_comment_remove_label_no_permission: "### Notice \nOnly members of the repository can delete the **needs-issue** label. Please contact them to do it."
+            org_comment_label_block_feedback: "### Linking Issue Notice \n @%s , the pull request must be linked to at least one issue. \nIf an issue has already been linked, but the **needs-issue** label remains, you can remove the label by commenting **`/check-issue`** ."
+            org_comment_state_mismatch_feedback: "### Issue State Mismatch Notice \n The pull request is linked to issue(s) that are not in allowed states. Please check the linked issue(s) and make sure at least one of them is in allowed states. Allowed issue states: %s."
+      sig_info_url: "https://magicapi.test.osinfra.cn/stat/sig/robot/info"
+      community_name: agentic
+      community_robot_id: opensourceways-bot
+      placeholder_linking_issue_notice_title: "### Linking Issue Notice"
+      placeholder_linking_pr_notice_title: "### Linking PR Notice"
+  - name: configmap-welcome
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - agentic-develop-playground
+          community_name: agentic-develop-playground
+          command_link: https://github.com/agentic-develop-playground/community/blob/master/en/sig-infrastructure/command.md
+          sig_info_link: "[%s](https://github.com/agentic-develop-playground/opensourceway/blob/master/community/sig-info.yaml#%s)"
+          welcome_message:
+            - "### Welcome To %s Community"
+            - "Hey %s , thanks for your contribution to the community."
+            - "#### Bot Usage Manual"
+            - "I'm the Bot here serving you. You can find the instructions on how to interact with me at **[Here](%s)** . That means you can comment below every pull request or issue to trigger Bot Commands."
+            - "#### Contact Guide"
+            - "If you have any questions, please contact the SIG: **%s** ,"
+            - "and you want to get quick review about your pull request or issue, please contact the owners in first: %s ,"
+            - "and any of the maintainers: %s ,"
+            - "and any of the committers: %s ."
+            - "If you have any questions, please contact any of the repository's maintainers: %s ."
+      user_mark_format: "@"
+      sig_info_url: "https://magicapi.test.osinfra.cn/stat/sig/robot/info"
+      community_name: agentic
+  - name: configmap-assign
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - agentic-develop-playground
+          enable_issue_assign: true
+      
+      community_robot_id: opensourceways-bot
+      msg_multiple_assignee: "### Notice \nCan only assign one assignee to the issue."
+      msg_assign_repeatedly: "### Notice \nThis issue is already assigned to ***%s***. Please do not assign repeatedly."
+      msg_not_allow_assign: "### Notice \nThis issue can not be assigned to ***%s***. Please try to assign to the repository members."
+      msg_not_allow_unassign: "### Notice \n***%s*** can not be unassigned from this issue. Please try to unassign the assignee of this issue."
+      msg_default_assignee: "### Notification \nThis issue requires an assignee. Since you haven't specified one, we've assigned ***%s*** as the default assignee for this issue."

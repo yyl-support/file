@@ -1,0 +1,17 @@
+{{- if .Values.collectGithookService.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.collectGithookService.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: {{ .Values.collectGithookService.portName }}
+    port: {{ .Values.collectGithookService.port }}
+    protocol: TCP
+    targetPort: {{ .Values.collectGithookService.targetPort }}
+  selector:
+    app: {{ .Values.collectGithookService.app }}
+  type: {{ .Values.collectGithookService.type }}
+{{- end }}

@@ -1,0 +1,18 @@
+{{- range $server := .Values.servers }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $server.name }}
+spec:
+  ports:
+  - name: {{ $server.service.portName }}
+    port: {{ $server.service.port }}
+    protocol: TCP
+    targetPort: {{ $server.service.targetPort }}
+  {{- with $server.podLabels }}
+  selector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  type: {{ $server.service.type }}
+{{- end }}

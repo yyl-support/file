@@ -1,0 +1,480 @@
+#chartVersion: 1.0.13
+namespace:
+  enabled: false
+  name: openeuler-meetingserver
+serviceAccount:
+  create: true
+  name: openeuler-meetingserver-v2
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+image:
+  center:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-center
+    tag: "dev_cl-8eb98c"
+    imagePullPolicy: IfNotPresent
+  platform:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+    tag: "fix_mindspore-eaa947"
+    imagePullPolicy: IfNotPresent
+  server:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+    tag: "release0604-4cd64b"
+    imagePullPolicy: IfNotPresent
+initContainer:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler
+    tag: 22.03-lts-sp3
+podAnnotations:
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: openeuler-meeting-v2
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/openeuler/openeuler-meeting-v2
+  vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/openeuler/domain-tls
+  vault.hashicorp.com/agent-inject-secret-server.key: internal/data/openeuler/domain-tls
+  vault.hashicorp.com/agent-inject-template-ca.pem: |
+    {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+    {{ .Data.data.MysqlCA }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/openeuler/domain-tls" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/openeuler/domain-tls" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+ingress:
+  enabled: true
+  name: openeuler-meeting-server-ingress
+  annotations: {}
+  host: "meeting-v2.openeuler.openatom.cn"
+  serviceName: meeting-server
+  serviceNumber: 8080
+# 后端使用ingress路径转发时启用ingressNew
+ingressNew:
+  enabled: false
+  # name: meeting-center
+  # annotations:
+  #   nginx.ingress.kubernetes.io/rewrite-target: /api/v1/meeting$1
+  # host: ""
+  # path: /meeting(.*)
+  # pathType: Prefix
+  # secretName: domain-tls
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: ""
+  # vs:
+  #   http:
+  #     - match:
+  #       - uri:
+  #           prefix: /api-platform/
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-platform.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  #     - match:
+  #       - uri:
+  #           prefix: /
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-center.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  # dr:
+  # - name: meeting-center
+  #   serviceName: meeting-center
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # - name: meeting-platform
+  #   serviceName: meeting-platform
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # pa:
+  # - name: meeting-center
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-center
+  # - name: meeting-platform
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-platform
+meetingCenter:
+  enabled: false
+  name: meeting-center
+  replicas: 1
+  podLabels:
+    app: meeting-center
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  service:
+    type: ClusterIP
+    annotations: {}
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/openeuler-meeting-v2
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openeuler/openeuler-meeting-v2
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+      {{ .Data.data.centerConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+      {{ .Data.data.centerSecrets }}
+      {{- end }}
+meetingPlatform:
+  enabled: true
+  name: meeting-platform
+  replicas: 2
+  # deploymentLabels:
+  #   virtual-kubelet.io/burst-to-cci: enforce
+  podLabels:
+    app: meeting-platform
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+    requests:
+      cpu: 1
+      memory: 1Gi
+  service:
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+    type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/openeuler-meeting-v2
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/openeuler/openeuler-meeting-v2
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openeuler/openeuler-meeting-v2
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+      {{ .Data.data.platformConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |
+      {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+      {{ .Data.data.kafkacrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+      {{ .Data.data.platformSecrets }}
+      {{- end }}
+meetingServer:
+  enabled: true
+  name: meeting-server
+  replicas: 2
+  # deploymentLabels:
+  #   virtual-kubelet.io/burst-to-cci: enforce
+  podLabels:
+    app: meeting-server
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/config
+    - name: VAULT_PATH
+      value: /vault/secrets/secrets.yaml
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+    requests:
+      cpu: 1
+      memory: 1Gi
+  service:
+    name: meeting-server
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+    type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/openeuler-meeting-v2
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openeuler/openeuler-meeting-v2
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+      {{ .Data.data.centerConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+      {{ .Data.data.centerSecrets }}
+      {{- end }}
+secret:
+  enabled: true
+  name: meeting-server-tls
+  specKeysMap:
+    ca.crt:
+      path: secrets/data/openeuler/openeuler-openatom-cn-tls
+      key: server.crt
+    tls.crt:
+      path: secrets/data/openeuler/openeuler-openatom-cn-tls
+      key: server.crt
+    tls.key:
+      path: secrets/data/openeuler/openeuler-openatom-cn-tls
+      key: server.key
+cronjobCommon:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsUser: 1000
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/config
+    - name: VAULT_PATH
+      value: /vault/secrets/secrets.yaml
+    - name: MYSQL_TLS_PEM_PATH
+      value: /vault/secrets/ca.pem
+    - name: TLS_CRT_PATH
+      value: /vault/secrets/server.crt
+    - name: TLS_KEY_PATH
+      value: /vault/secrets/server.key
+cronjobs:
+  - enabled: true
+    name: upload-meeting-video
+    labels:
+      app: upload-meeting-video
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-kafka.crt: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.kafkacrt }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py handle_recordings
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+      tag: "fix_mindspore-eaa947"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 2
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: true
+    name: update-activity-status
+    labels:
+      app: update-activity-status
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.centerConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.centerSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py update_activity_status
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+      tag: "release0604-4cd64b"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: true
+    name: sendmessage-cronjob
+    labels:
+      app: sendmessage
+    concurrencyPolicy: Forbid
+    schedule: "*/10 * * * *"
+    suspend: false
+    restartPolicy: Never
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.centerConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.centerSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py sendmessages
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+      tag: "release0604-4cd64b"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: true
+    name: clean-logoff-user-cronjob
+    labels:
+      app: clean-logoff-user
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: false
+    restartPolicy: Never
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.centerConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.centerSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py clean_logoff_user
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+      tag: "release0604-4cd64b"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: true
+    name: handle-meeting-cronjob
+    labels:
+      app: handle-meeting
+    concurrencyPolicy: Forbid
+    schedule: "*/15 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/openeuler/openeuler-meeting-v2
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-kafka.crt: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.kafkacrt }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/openeuler/openeuler-meeting-v2" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py handle_meeting
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+      tag: "fix_mindspore-eaa947"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi

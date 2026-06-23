@@ -1,0 +1,21 @@
+{{- if .Values.guid.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.guid.name }}-service
+  labels:
+    {{- with .Values.guid.podLabels }}
+    {{- toYaml . | nindent 4}}
+    {{- end }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.guid.service.port }}
+      targetPort: {{ .Values.guid.service.targetPort }}
+      protocol: TCP
+      name: http-port
+  {{- with .Values.guid.podLabels }}
+  selector:
+    {{- toYaml . | nindent 4}}
+  {{- end }}
+{{- end }}

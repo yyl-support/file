@@ -1,0 +1,116 @@
+# chartVersion: 1.0.1
+
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "audit-server"
+namespace: audit-server
+replicaCount: 1
+istio:
+  enabled: true
+  nslabel:
+    istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: audit.openubmc.cn
+  vs:
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: audit-server.audit-server.svc.cluster.local
+              port:
+                number: 80
+  dr:
+    serviceName: audit-server
+    portNumber: 80
+  tlsMode: DISABLE
+  mtlsMode: DISABLE
+strategy:
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+  type: RollingUpdate
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/openubmc/audit-server-prod
+  tag: "v1.14.1-7cdde5"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+args:
+  - --port=8000
+  - --config-file=/vault/secrets/application.yaml
+  - --enable_debug=true
+  - --rm-cfg=true
+healthCheck:
+  scheme: HTTP
+  path: /internal/heartbeat
+  port: 8000
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+podAnnotations:
+  traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0 # 启用istio时添加这一行
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/role: 'audit-server'
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-inject-perms-application.yaml: "0400"
+  vault.hashicorp.com/agent-inject-secret-application.yaml: 'internal/data/openubmc/audit-server'
+  vault.hashicorp.com/agent-inject-template-application.yaml: "{{- with secret \"internal/data/openubmc/audit-server\" -}}  \n{{ .Data.data.config }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-postgre.crt: "0400"
+  vault.hashicorp.com/agent-inject-secret-postgre.crt: 'internal/data/openubmc/audit-server'
+  vault.hashicorp.com/agent-inject-template-postgre.crt: "{{- with secret \"internal/data/openubmc/audit-server\" -}}  \n{{ .Data.data.pgsqlCA }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-command-application.yaml: |
+    for count in 1 2 3; do if [ $(netstat -anlp | grep 8000| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /vault/secrets/*; break; else echo "service not running skip";sleep 10; fi done
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+serviceAccount:
+  create: true
+  name: audit-server
+  automount: false
+resources:
+  limits:
+    cpu: 500m
+    memory: 500Mi
+  requests:
+    cpu: 500m
+    memory: 500Mi
+ingress:
+  enabled: false
+  # className: "nginx"
+  # annotations:
+  #   nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+  #   nginx.ingress.kubernetes.io/rewrite-target: /$2
+  # hosts:
+  #   - host: ""
+  #     paths:
+  #       - path: /openubmc(/|$)(.*)
+  #         pathType: ImplementationSpecific
+service:
+  ports:
+    - name: http-port
+      port: 80
+      protocol: TCP
+      targetPort: 8000
+  type: ClusterIP

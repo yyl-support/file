@@ -1,0 +1,30 @@
+{{- if .Values.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "lightrag.fullname" . }}-rag-storage
+  labels:
+    {{- include "lightrag.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessModes }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.ragStorage.size }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "lightrag.fullname" . }}-inputs
+  labels:
+    {{- include "lightrag.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessModes }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.inputs.size }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+{{- end }}

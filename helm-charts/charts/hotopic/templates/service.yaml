@@ -1,0 +1,33 @@
+{{- range .Values.hotopics }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .community }}-hotopic-data-clean-service
+  namespace: {{ $.Values.namespace }}
+spec:
+  ports:
+  - name: http-port
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    {{ toYaml .podLabels | nindent 4 }}
+  type: ClusterIP
+{{- end }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hotopic-server-service
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: http-port
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: hotopic-server
+  type: ClusterIP

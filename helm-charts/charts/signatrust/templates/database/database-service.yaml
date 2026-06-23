@@ -1,0 +1,17 @@
+{{- if .Values.database.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.database.database.name }}
+  namespace: {{ .Values.namespace }}
+  annotations: {{ include "signatrust.annotations" . | indent 4 }}
+spec:
+  type: {{ .Values.database.database.type }}
+  clusterIP: {{ .Values.database.database.clusterIP }}
+  ports:
+    - name: {{ .Values.database.database.port.name }}
+      port: {{ .Values.database.database.port.port }}
+      targetPort: {{ .Values.database.database.port.targetPort }}
+  selector:
+    component: {{ .Values.database.database.component }}
+{{- end }}

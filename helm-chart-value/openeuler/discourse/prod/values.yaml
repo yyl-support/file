@@ -1,0 +1,289 @@
+#ChartVersion: 1.0.10
+replicaCount: 4
+updateStrategy:
+  rollingUpdate:
+    maxSurge: 3
+    maxUnavailable: 3
+  type: RollingUpdate
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/discourse
+  pullPolicy: Always
+  tag: "v3.0.1"
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+# This is to override the chart name.
+nameOverride: "web-server"
+fullnameOverride: "web-server"
+namespace:
+  enabled: false
+  name: discourse
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: "discourse"
+deploymentLabels: {}
+podAnnotations:
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/role: 'discourse'
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-inject-perms-monitor.sh: "0500"
+  vault.hashicorp.com/agent-inject-secret-monitor.sh: 'internal/data/openeuler/discourse'
+  vault.hashicorp.com/agent-inject-template-monitor.sh: "{{- with secret \"internal/data/openeuler/discourse\" -}}  \n{{ .Data.data.monitorScript }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-envbash.sh: "0500"
+  vault.hashicorp.com/agent-inject-secret-envbash.sh: 'internal/data/openeuler/discourse'
+  vault.hashicorp.com/agent-inject-template-envbash.sh: "{{- with secret \"internal/data/openeuler/discourse\" -}}  \n{{ .Data.data.envScript }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-pg-server-ca.crt: "0400"
+  vault.hashicorp.com/secret-volume-path-pg-server-ca.crt: /usr/local/share/ca-certificates
+  vault.hashicorp.com/agent-inject-secret-pg-server-ca.crt: 'internal/data/openeuler/discourse'
+  vault.hashicorp.com/agent-inject-template-pg-server-ca.crt: "{{- with secret \"internal/data/openeuler/discourse\" -}}  \n{{ .Data.data.pgsqlCA }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-redis-server-ca.crt: "0400"
+  vault.hashicorp.com/secret-volume-path-redis-server-ca.crt: /usr/local/share/ca-certificates
+  vault.hashicorp.com/agent-inject-secret-redis-server-ca.crt: 'internal/data/openeuler/discourse'
+  vault.hashicorp.com/agent-inject-template-redis-server-ca.crt: "{{- with secret \"internal/data/openeuler/discourse\" -}}  \n{{ .Data.data.redisCA }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-discourse.key: "0400"
+  vault.hashicorp.com/secret-volume-path-discourse.key: /etc/nginx/certs
+  vault.hashicorp.com/agent-inject-secret-discourse.key: 'internal/data/openeuler/discourse'
+  vault.hashicorp.com/agent-inject-template-discourse.key: "{{- with secret \"internal/data/openeuler/discourse\" -}}  \n{{ .Data.data.serverKey }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-discourse.crt: "0400"
+  vault.hashicorp.com/secret-volume-path-discourse.crt: /etc/nginx/certs
+  vault.hashicorp.com/agent-inject-secret-discourse.crt: 'internal/data/openeuler/discourse'
+  vault.hashicorp.com/agent-inject-template-discourse.crt: "{{- with secret \"internal/data/openeuler/discourse\" -}}  \n{{ .Data.data.serverCrt }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-command-discourse.key: |
+    for count in 1 2 3; do if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /etc/nginx/* ; rm -rf /usr/local/share/ca-certificates/pg-server-ca.crt;
+    rm -rf /usr/local/share/ca-certificates/redis-server-ca.crt ; break; else echo "service not running skip";sleep 10; fi done
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+podLabels:
+  app: web-server
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - "chmod 0700 /vault/secrets/;chmod 0700 /etc/nginx/; chmod 0700 /usr/local/share/ca-certificates/; chown -R 1000:1000 /vault/secrets/; chown -R 1000:1000 /etc/nginx/;chown -R 1000:1000 /usr/local/share/ca-certificates/; chmod g-s /vault/secrets/; chmod g-s /etc/nginx/;chmod g-s /usr/local/share/ca-certificates/; ls -ld /vault/secrets/"
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+service:
+  name: http
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+ingress:
+  enabled: true
+  host: forum.openeuler.org
+  secretName: discourse-tls
+  default:
+    name: discourse-ingress
+    path: /
+    pathType: Prefix
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "4m"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  limit:
+    name: discourse-discussion-mail-send-ratelimit-ingress
+    path: /admin/email
+    pathType: Exact
+    annotations:
+      nginx.ingress.kubernetes.io/limit-rpm: "1"
+      nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+resources:
+  requests:
+    cpu: 500m
+    memory: 1500Mi
+  limits:
+    cpu: 2
+    memory: 4000Mi
+livenessProbe:
+  tcpSocket:
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+readinessProbe:
+  tcpSocket:
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+volumes:
+  - name: discourse-storage
+    persistentVolumeClaim:
+      claimName: discourse-share-volume-sfs-turbo
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+  - name: config-vol
+    configMap:
+      name: discourse-proxy
+volumeMounts:
+  - name: discourse-storage
+    mountPath: /shared
+  - name: config-vol
+    mountPath: /etc/nginx/conf.d/outlets/server/40-proxy.conf
+    subPath: 40-proxy.conf
+nodeSelector:
+  kubernetes.io/arch: amd64
+env:
+  - name: DISCOURSE_MAXMIND_LICENSE_KEY
+    value: ""
+  - name: DISCOURSE_DEVELOPER_EMAILS
+    value: ""
+  - name: DISCOURSE_DB_NAME
+    value: ""
+  - name: DISCOURSE_DB_PASSWORD
+    value: ""
+  - name: DISCOURSE_REDIS_PASSWORD
+    value: ""
+tolerations: []
+affinity: {}
+pvc:
+  enabled: true
+  name: discourse-share-volume-sfs-turbo
+  accessModes: ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: csi-sfsturbo
+  volumeMode: Filesystem
+  volumeName: pv-efs-discourse-share-volume
+tlsDefinition:
+  enabled: true
+  name: discourse-tls
+  path: secrets/data/openeuler/openeuler-org-tls
+  keysMap:
+    ca.crt: server.crt
+    tls.crt: server.crt
+    tls.key: server.key
+command:
+  - /bin/bash
+  - -c
+  - /vault/secrets/envbash.sh
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  # gateway: "istio-system/istio-gateway-https"
+  # virtualService:
+  #   routes:
+  #     - destinations:
+  #         - host: web-server.discourse.svc.cluster.local
+  #       match:
+  #         - uri:
+  #             prefix: /
+  # tls:
+  #   mode: SIMPLE
+  # mtlsMode: DISABLE
+robot:
+  enabled: true
+  replicaCount: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  podLabels:
+    app: forum-robot
+  podAnnotations:
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-inject: 'true'
+    vault.hashicorp.com/role: 'discourse'
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-inject-perms-config.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config.yaml: 'internal/data/openeuler/discourse'
+    vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/openeuler/discourse\" -}}  \n{{ .Data.data.robotConf }}\n{{- end }}\n"
+    vault.hashicorp.com/secret-volume-path: "/app/config"
+    vault.hashicorp.com/template-static-secret-render-interval: 5s
+    vault.hashicorp.com/agent-inject-command-config.yaml: |
+      for count in 1 2 3; do if [ $(netstat -anlp | grep 5000| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /app/config/* ;  break; else echo "service not running skip";sleep 10; fi done
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/forum-robot
+    tag: "main-e29192"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 200m
+      memory: 600Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  volumeMounts:
+    - name: data-vol
+      mountPath: /app/data/forum_data
+  volumes:
+    - name: token-vol
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+    - name: data-vol
+      persistentVolumeClaim:
+        claimName: pvc-forumrobot-data
+  pvc:
+    name: pvc-forumrobot-data
+    accessModes: ReadWriteMany
+    storage: 10Gi
+    storageClassName: sfsturbo-subpath-sc
+    volumeMode: Filesystem
+  # ===== RAG 对外接口（issue-921）：Service + nginx Ingress 暴露 forum-robot:5000 =====
+  service:
+    type: ClusterIP
+    portName: http
+    port: 5000
+    targetPort: 5000
+  ingress:
+    enabled: true
+    name: forum-robot-rag-ingress
+    # TODO: 确认 prod RAG 对外域名（test 为 lightrag.test.osinfra.cn，此处按惯例取 lightrag.osinfra.cn，需运维/OneID 最终确认）
+    host: lightrag.osinfra.cn
+    path: /
+    pathType: Prefix
+    # TODO: 为上面的 host 准备证书 secret；discourse-tls 是 forum.openeuler.org 证书，不适用，需新建 lightrag-rag-tls
+    secretName: lightrag-rag-tls
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "20m"  # knowledge/upload 传文件需放大请求体
+      # 注意：forum-robot 为明文 HTTP:5000，切勿设置 backend-protocol: HTTPS
+configmaps:
+  - name: discourse-proxy
+    keyName: 40-proxy.conf
+    content: |-
+      # Proxy configuration
+      # Production environment proxy
+      location /api-dsapi/ {
+          proxy_set_header X-Forwarded-For $http_x_real_ip;
+          proxy_pass https://dsapi.osinfra.cn/;
+      }
+
+      # Proxy configuration for logout
+      location /euler-logout {
+          proxy_set_header X-Forwarded-For $http_x_real_ip;
+          proxy_pass https://omapi.osinfra.cn/oneid/logout;
+      }
+auditCronJob:
+  enabled: false

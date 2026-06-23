@@ -1,0 +1,49 @@
+{{- range .Values.cronjobs }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace.name }}
+spec:
+  suspend: {{ .suspend }}
+  schedule: {{ .schedule | quote }}
+  concurrencyPolicy: {{ .concurrencyPolicy }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          {{- if .annotations }}
+          annotations:
+            {{- toYaml .annotations | nindent 12 }}
+          {{- end }}
+        spec:
+          affinity:
+            {{- toYaml .affinity | nindent 12}}
+          imagePullSecrets:
+            {{- toYaml $.Values.imagePullSecrets | nindent 12 }}
+          automountServiceAccountToken: false
+          securityContext:
+            {{- toYaml $.Values.podSecurityContext | nindent 12 }}
+          restartPolicy: {{ .restartPolicy }}
+          containers:
+            - name: {{ .name }}
+              env: 
+              {{- range $.Values.env }}
+              - name: {{ .name }}
+                valueFrom:
+                  secretKeyRef:
+                    key: {{ .key }}
+                    name: {{ $.Values.secret.name }}
+              {{- end }}
+              command:
+                {{- toYaml .command | nindent 16 }}
+              image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+              imagePullPolicy: {{ $.Values.image.pullPolicy }}
+              resources:
+                {{- toYaml .resources | nindent 16 }}
+              volumeMounts:
+                {{- toYaml $.Values.volumeMounts | nindent 16 }}
+          volumes:
+            {{- toYaml $.Values.volumes | nindent 12 }}
+{{- end }}

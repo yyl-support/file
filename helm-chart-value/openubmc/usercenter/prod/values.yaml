@@ -1,0 +1,115 @@
+# helm chart version: 1.0.4
+global:
+  namespace: usercenter-website
+  appName: usercenter-website
+namespace:
+  name: usercenter-website
+  enabled: false
+replicaCount: 3
+# 镜像配置
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/openubmc/usercenter-website
+  tag: "release-319712"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+podLabels:
+  app: usercenter-website
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/openubmc/openubmc-website"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/openubmc/openubmc-website" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/openubmc/openubmc-website"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/openubmc/openubmc-website" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/openubmc/openubmc-website"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/openubmc/openubmc-website" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/openubmc/openubmc-website"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/openubmc/openubmc-website" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: usercenter-website
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-abc.txt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-server.crt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-server.key: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: warn
+env:
+  - name: DET_URL
+    value: https://usercenter.openubmc.cn
+serviceAccount:
+  create: true
+  name: usercenter-website
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: 1
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 1Gi
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+  host: usercenter.openubmc.cn
+# Service配置
+service:
+  portName: tls-01
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: openubmc-domain-tls
+  path: secrets/data/openubmc/openubmc-cn-tls
+  ca_crt_key: tls.cert
+  tls_crt_key: tls.cert
+  tls_key_key: tls.key
+istio:
+  enabled: true
+  nslabel:
+    istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  virtualService:
+    host: usercenter.openubmc.cn
+    routes:
+      - destinations:
+          - host: usercenter-website-service.usercenter-website.svc.cluster.local
+        match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+  tls:
+    mode: SIMPLE
+  mtls:
+    mode: DISABLE

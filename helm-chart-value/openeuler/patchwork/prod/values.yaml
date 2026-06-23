@@ -1,0 +1,387 @@
+# chartVersion: 1.0.1
+namespace:
+  # -- 命名空间名称
+  name: patchwork
+strategy:
+  # -- 更新策略
+  type: Recreate
+# -- 镜像仓库访问凭证名称
+
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+image:
+  # -- 镜像名称
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/patchwork/patchwork-gitcode
+  # -- 镜像Tag
+
+  tag: "main-v1.0.20260605095639"
+  # -- 镜像拉取策略，默认为IfNotPresent
+
+  pullPolicy: IfNotPresent
+# -- pod自定义声明项
+podAnnotations: {}
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+# -- 环境变量数组
+
+env:
+  - name: DATABASE_NAME
+    key: DATABASE_NAME
+  - name: DATABASE_HOST
+    key: DATABASE_HOST
+  - name: DATABASE_USER
+    key: DATABASE_USER
+  - name: DATABASE_PASSWORD
+    key: DATABASE_PASSWORD
+  - name: DATABASE_PORT
+    key: DATABASE_PORT
+  - name: EMAIL_HOST
+    key: EMAIL_HOST
+  - name: EMAIL_PORT
+    key: EMAIL_PORT
+  - name: EMAIL_HOST_USER
+    key: EMAIL_HOST_USER
+  - name: EMAIL_HOST_PASSWORD
+    key: EMAIL_HOST_PASSWORD
+  - name: DJANGO_SECRET_KEY
+    key: DJANGO_SECRET_KEY
+  - name: PATCHWORK_SERVER
+    key: PATCHWORK_SERVER
+  - name: PATCHWORK_TOKEN
+    key: PATCHWORK_TOKEN
+  - name: REPO_OWNER
+    key: REPO_OWNER
+  - name: GITEE_TOKEN
+    key: GITEE_TOKEN
+  - name: GITEE_TOKEN_NOT_CI_BOT
+    key: GITEE_TOKEN_NOT_CI_BOT
+  - name: SEND_EMAIL_HOST
+    key: SEND_EMAIL_HOST
+  - name: SEND_EMAIL_HOST_USER
+    key: SEND_EMAIL_HOST_USER
+  - name: SEND_EMAIL_HOST_PASSWORD
+    key: SEND_EMAIL_HOST_PASSWORD
+  - name: SEND_EMAIL_PORT
+    key: SEND_EMAIL_PORT
+  - name: CI_BOT_EMAIL
+    key: CI_BOT_EMAIL
+  - name: CI_BOT_NAME
+    key: CI_BOT_NAME
+  - name: SRC_OPENEULER_KERNEL_HOST
+    key: SRC_OPENEULER_KERNEL_HOST
+  - name: SRC_OPENEULER_KERNEL_PASS
+    key: SRC_OPENEULER_KERNEL_PASS
+  - name: OPENEULER_KERNEL_HOST
+    key: OPENEULER_KERNEL_HOST
+  - name: OPENEULER_KERNEL_PASS
+    key: OPENEULER_KERNEL_PASS
+  - name: IMAP_SERVER
+    key: IMAP_SERVER
+  - name: IMAP_PORT
+    key: IMAP_PORT
+  - name: SEND_EMAIL_DOMAIN
+    key: SEND_EMAIL_DOMAIN
+  - name: ROBOT_GITCODE_TOKEN
+    key: ROBOT_GITCODE_TOKEN
+secret:
+  # -- secret名称
+  name: patchwork-secrets
+  # -- secret在vault中的存放路径
+
+  path: secrets/data/openeuler/patchwork-gitcode
+  # -- secret key在vault中key的对应关系
+
+  keysMap:
+    DATABASE_NAME: DATABASE_NAME
+    DATABASE_HOST: DATABASE_HOST
+    DATABASE_USER: DATABASE_USER
+    DATABASE_PASSWORD: DATABASE_PASSWORD
+    DATABASE_PORT: DATABASE_PORT
+    EMAIL_HOST: EMAIL_HOST
+    EMAIL_PORT: EMAIL_PORT
+    EMAIL_HOST_USER: EMAIL_HOST_USER
+    EMAIL_HOST_PASSWORD: EMAIL_HOST_PASSWORD
+    DJANGO_SECRET_KEY: DJANGO_SECRET_KEY
+    PATCHWORK_SERVER: PATCHWORK_SERVER
+    PATCHWORK_TOKEN: PATCHWORK_TOKEN
+    REPO_OWNER: REPO_OWNER
+    GITEE_TOKEN: GITEE_TOKEN
+    GITEE_TOKEN_NOT_CI_BOT: GITEE_TOKEN_NOT_CI_BOT
+    SEND_EMAIL_HOST: SEND_EMAIL_HOST
+    SEND_EMAIL_HOST_USER: SEND_EMAIL_HOST_USER
+    SEND_EMAIL_HOST_PASSWORD: SEND_EMAIL_HOST_PASSWORD
+    SEND_EMAIL_PORT: SEND_EMAIL_PORT
+    CI_BOT_EMAIL: CI_BOT_EMAIL
+    CI_BOT_NAME: CI_BOT_NAME
+    SRC_OPENEULER_KERNEL_HOST: SRC_OPENEULER_KERNEL_HOST
+    SRC_OPENEULER_KERNEL_PASS: SRC_OPENEULER_KERNEL_PASS
+    OPENEULER_KERNEL_HOST: OPENEULER_KERNEL_HOST
+    OPENEULER_KERNEL_PASS: OPENEULER_KERNEL_PASS
+    IMAP_SERVER: IMAP_SERVER
+    IMAP_PORT: IMAP_PORT
+    SEND_EMAIL_DOMAIN: SEND_EMAIL_DOMAIN
+    ROBOT_GITCODE_TOKEN: ROBOT_GITCODE_TOKEN
+livenessProbe:
+  # -- 延迟加载时间
+  initialDelaySeconds: 20
+  # -- 重试时间间隔
+
+  periodSeconds: 5
+  # -- 超时时间设置
+
+  timeoutSeconds: 10
+  # -- 探测失败的重试次数
+
+  failureThreshold: 5
+  tcpSocket:
+    # -- tcp探测端口号
+    port: 8000
+readinessProbe:
+  # -- 延迟加载时间
+  initialDelaySeconds: 20
+  # -- 重试时间间隔
+
+  periodSeconds: 5
+  # -- 超时时间设置
+
+  timeoutSeconds: 10
+  # -- 探测失败的重试次数
+
+  failureThreshold: 5
+  tcpSocket:
+    # -- tcp探测端口号
+    port: 8000
+volumes:
+  # -- 挂载卷名
+  - name: patchwork-file-volume
+    persistentVolumeClaim:
+      # PVC资源名称
+      claimName: patchwork-share-sfs-turbo
+      # -- 挂载卷名
+  - name: patchwork-configmap
+    configMap:
+      # -- configmap资源名称
+      name: patchwork-configmap
+volumeMounts:
+  # -- 挂载路径
+  - mountPath: /home/patches
+    # -- 挂载卷名
+
+    name: patchwork-file-volume
+    # -- 挂载路径
+  - mountPath: /home/patchwork/repositories_branches_map.yaml
+    # -- 挂载卷名
+
+    name: patchwork-configmap
+    subPath: repositories_branches_map.yaml
+deployment:
+  # -- deployment资源名称
+  name: patchwork
+  # -- pod副本数量
+
+  replicas: 1
+  # -- pod标签
+
+  podLabels:
+    app: patchwork
+  # -- pod启动命令
+
+  command:
+    - /bin/sh
+    - -c
+    - |
+      python manage.py makemigrations
+      python manage.py migrate
+      python manage.py loaddata default_tags default_states
+      python manage.py collectstatic
+      python manage.py runserver 0.0.0.0:8000
+  resources:
+    requests:
+      # -- 服务需求cpu资源
+      cpu: "4"
+      # -- 服务需求内存资源
+
+      memory: 4Gi
+    limits:
+      # -- 服务分配cpu资源
+      cpu: "4"
+      # -- 服务分配内存资源
+
+      memory: 4Gi
+pvc:
+  # -- pvc名称
+  name: patchwork-share-sfs-turbo
+  # -- 访问模式，与磁盘类型有关
+
+  accessModes: ReadWriteMany
+  # -- 磁盘容量
+
+  storage: 500Gi
+  # -- 存储类型
+
+  storageClass: csi-sfsturbo
+service:
+  # -- service名称
+  name: patchwork
+  ports:
+    # 端口名称
+    - name: httpport
+      # -- 对外访问端口
+
+      port: 80
+      # -- 转发通信协议
+
+      protocol: TCP
+      # -- 服务暴露端口
+
+      targetPort: 8000
+  # -- service类型
+
+  type: ClusterIP
+cronjobs:
+  # -- 定时任务名称
+  - name: patch2pr
+    # -- 是否停止运行
+
+    suspend: false
+    # -- 触发周期设定
+
+    schedule: "*/5 * * * *"
+    # -- 并发策略，一般为Forbid
+
+    concurrencyPolicy: Forbid
+    # -- 失败重试设置
+
+    restartPolicy: OnFailure
+    # -- 自定义声明项
+
+    annotations: {}
+    #  节点亲和策略
+
+    affinity: {}
+    # podAffinity:
+    #   requiredDuringSchedulingIgnoredDuringExecution:
+    #     - labelSelector:
+    #         matchExpressions:
+    #           - key: app
+    #             operator: In
+    #             values:
+    #               - patchwork
+    #       topologyKey: kubernetes.io/hostname
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python /home/patchwork/multi_patch2pr.py > /home/patches/patch2pr.log 2>&1
+        python /home/patchwork/backup_log.py
+    resources:
+      requests:
+        # -- 服务需求cpu资源
+        cpu: 2
+        # -- 服务需求内存资源
+
+        memory: 2Gi
+      limits:
+        # -- 服务分配cpu资源
+        cpu: 2
+        # -- 服务分配内存资源
+
+        memory: 2Gi
+        # -- 定时任务名称
+  - name: refresh-repos
+    # -- 是否停止运行
+
+    suspend: true
+    # -- 触发周期设定
+
+    schedule: "0 2 * * *"
+    # -- 并发策略，一般为Forbid
+
+    concurrencyPolicy: Forbid
+    # -- 失败重试设置
+
+    restartPolicy: OnFailure
+    # -- 自定义声明项
+
+    annotations: {}
+    #  节点亲和策略
+
+    affinity: {}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python /home/patchwork/refresh_repos.py > /home/patches/refresh.log 2>&1
+    resources:
+      requests:
+        # -- 服务需求cpu资源
+        cpu: 200m
+        # -- 服务需求内存资源
+
+        memory: 2Gi
+      limits:
+        # -- 服务分配cpu资源
+        cpu: 200m
+        # -- 服务分配内存资源
+
+        memory: 2Gi
+configmap:
+  name: patchwork-configmap
+  filename: repositories_branches_map.yaml
+  content: |-
+    mapping:
+      src-openeuler/kernel:
+        mailing-list: "kernel-build@openeuler.org"
+        env:
+          host: "SRC_OPENEULER_KERNEL_HOST"
+          pass: "SRC_OPENEULER_KERNEL_PASS"
+        branches:
+          master: 'master'
+          openEuler-20.03-LTS: 'openEuler-20.03-LTS'
+          openEuler-20.03-LTS-Next: 'openEuler-20.03-LTS-Next'
+          openEuler-20.03-LTS-SP1: 'openEuler-20.03-LTS-SP1'
+          openEuler-20.03-LTS-SP1-testing: 'openEuler-20.03-LTS-SP1-testing'
+          openEuler-20.03-LTS-SP2: 'openEuler-20.03-LTS-SP2'
+          openEuler-20.03-LTS-SP3: 'openEuler-20.03-LTS-SP3'
+          openEuler-20.09: 'openEuler-20.09'
+          openEuler-21.03: 'openEuler-21.03'
+          openEuler-21.09: 'openEuler-21.09'
+          openEuler-22.03-LTS: 'openEuler-22.03-LTS'
+          openEuler-22.03-LTS-LoongArch: 'openEuler-22.03-LTS-LoongArch'
+          openEuler-22.03-LTS-Next: 'openEuler-22.03-LTS-Next'
+          openEuler-22.03-LTS-SP1: 'openEuler-22.03-LTS-SP1'
+          openEuler-22.09: 'openEuler-22.09'
+          openEuler-22.09-HeXin: 'openEuler-22.09-HeXin'
+          openEuler-23.03: 'openEuler-23.03'
+          openEuler1.0: 'openEuler1.0'
+          openEuler1.0-base: 'openEuler1.0-base'
+          openEuler-23.09: "openEuler-23.09"
+          openEuler-22.03-LTS-SP2: 'openEuler-22.03-LTS-SP2'
+          openEuler-20.03-LTS-SP4: 'openEuler-20.03-LTS-SP4'
+          openEuler-24.03-LTS: 'openEuler-24.03-LTS'
+          openEuler-24.03-LTS-Next: "openEuler-24.03-LTS-Next"
+      openeuler/kernel:
+        mailing-list: "kernel@openeuler.org"
+        env:
+          host: "OPENEULER_KERNEL_HOST"
+          pass: "OPENEULER_KERNEL_PASS"
+        branches:
+          master: "master"
+          openEuler-1.0-LTS: "openEuler-1.0-LTS"
+          openEuler-22.03-LTS-SP1: "openEuler-22.03-LTS-SP1"
+          openEuler-22.03-LTS-SP2: "openEuler-22.03-LTS-SP2"
+          OLK-5.10: "OLK-5.10"
+          openEuler-22.03-LTS: "openEuler-22.03-LTS"
+          openEuler-22.09: "openEuler-22.09"
+          openEuler-22.03-LTS-Ascend: "openEuler-22.03-LTS-Ascend"
+          openEuler-22.09-HCK: "openEuler-22.09-HCK"
+          openEuler-20.03-LTS-SP3: "openEuler-20.03-LTS-SP3"
+          openEuler-21.09: "openEuler-21.09"
+          openEuler-21.03: "openEuler-21.03"
+          openEuler-20.09: "openEuler-20.09"
+          openEuler-23.09: "openEuler-23.09"
+          OLK-6.6: "OLK-6.6"
+          openEuler-25.03: "openEuler-25.03"
+          openEuler-26.09: "openEuler-26.09"

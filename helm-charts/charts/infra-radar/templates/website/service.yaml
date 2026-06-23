@@ -1,0 +1,16 @@
+{{- if .Values.website.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.website.appName }}-service
+  namespace: {{ .Values.namespace.name }}
+spec:
+  ports:
+  - name: {{ .Values.website.service.portName }}
+    port: {{ .Values.website.service.port }}
+    protocol: TCP
+    targetPort: {{ .Values.website.service.targetPort }}
+  selector:
+    {{- toYaml .Values.website.podLabels | nindent 4 }}
+  type: {{ .Values.website.service.type }}
+{{- end }}

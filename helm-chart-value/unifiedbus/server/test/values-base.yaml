@@ -1,0 +1,131 @@
+updateStrategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+
+serviceAccount:
+  name: lingqu
+  automount: false
+
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+
+nodeSelector:
+  kubernetes.io/arch: amd64
+
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+
+initContainers:
+- command:
+  - /bin/bash
+  - -c
+  - chmod 0700 /vault/secrets/; chown -R 1000:1000 /vault/secrets/; chmod g-s /vault/secrets/; ls -ld /vault/secrets/
+  image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+  imagePullPolicy: IfNotPresent
+  name: init-unifiedbus
+
+podAnnotations:
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/role: 'lingqu'
+
+ingress:
+  secretName: test-osinfra-cn-tls
+  host: "unifiedbus.test.osinfra.cn"
+  main:
+    enabled: false
+    host: "unifiedbus.test.osinfra.cn"
+    name: lingqu-website-ingress
+    annotations:
+      nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+      nginx.ingress.kubernetes.io/limit-rpm: "500"
+  rewrite:
+    enabled: false
+    host: ""
+    name: ""
+    annotations: []
+  subpaths:
+    - name: lingqu-server-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "100"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+      path: /api-server(/|$)(.*)
+      pathType: Prefix
+      serviceName: unifiedbus-server-service
+      servicePort: 8080
+    - name: lingqu-statement-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "100"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+      path: /api-statement(/|$)(.*)
+      pathType: Prefix
+      serviceName: statement-server-service
+      servicePort: 8080
+    - name: lingqu-captcha-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "100"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+      path: /api-captcha(/|$)(.*)
+      pathType: Prefix
+      serviceName: captcha-common-service
+      servicePort: 8080
+    - name: lingqu-guid-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "100"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+        nginx.ingress.kubernetes.io/proxy-body-size: 10m	
+        nginx.ingress.kubernetes.io/proxy-buffer-size: 8k	
+        nginx.ingress.kubernetes.io/proxy-buffering: 'on'	
+        nginx.ingress.kubernetes.io/proxy-buffers-number: '4'
+      path: /api-guid(/|$)(.*)
+      pathType: Prefix
+      serviceName: unifiedbus-guid-management-service
+      servicePort: 8080
+    - name: lingqu-errata-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/cors-allow-origin: '*'
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/limit-rpm: "100"
+        nginx.ingress.kubernetes.io/proxy-body-size: 10m
+        nginx.ingress.kubernetes.io/proxy-buffer-size: 8k
+        nginx.ingress.kubernetes.io/proxy-buffering: "on"
+        nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+      path: /api-errata(/|$)(.*)
+      pathType: Prefix
+      serviceName: unifiedbus-errata-management-service
+      servicePort: 8080
+
+
+pvc:
+  name: unifiedbus-server-data
+  annotations: {}
+  accessModes: 
+  - ReadWriteMany
+  storage: 1Gi
+  storageClassName: csi-sfs
+  volumeMode: Filesystem
+
+secrets:
+  enabled: true
+  name: test-osinfra-cn-tls
+  path: secrets/data/infra-test/domain-tls
+  keysMap:
+    ca.crt: tls.cert
+    tls.crt: tls.cert
+    tls.key: tls.key

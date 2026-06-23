@@ -1,0 +1,118 @@
+# chartVersion: v1.0.7
+global:
+  appName: website
+namespace:
+  enabled: false
+  name: website
+replicaCount: 2
+image:
+  repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/hifloat-portal
+  tag: "main-7f3efa"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-instance-image-pull-secret
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+autoscale:
+  enabled: false
+  start: 30 8 * * *
+  end: 55 23 * * *
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+podLabels:
+  app: website
+podAnnotations:
+  # traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/hifloat/domain-tls"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/hifloat/domain-tls" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/hifloat/domain-tls"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/hifloat/domain-tls" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/hifloat/domain-tls"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/hifloat/domain-tls" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/hifloat/domain-tls"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/hifloat/domain-tls" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: website
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/log-level: "warn"
+env:
+  - name: DET_URL
+    value: https://hifloat.gccorg.com
+serviceAccount:
+  create: true
+  name: website
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: "1"
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: hifloat.gccorg.com
+# Service配置
+service:
+  portName: http-port
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: hifloat-domain-tls
+  path: secrets/data/hifloat/gccorg-com-tls
+  ca_crt_key: server_crt
+  tls_crt_key: server_crt
+  tls_key_key: server_key
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  # gateway: istio-system/istio-gateway-https
+  # virtualService:
+  #   host: ""
+  #   http:
+  #     - route:
+  #         - destination:
+  #             host: ""
+  #             port:
+  #               number: 8080
+  #       match:
+  #         - uri:
+  #             prefix: /
+  #       rewrite:
+  #         uri: /
+  # tlsMode: SIMPLE
+  # mtlsMode: DISABLE

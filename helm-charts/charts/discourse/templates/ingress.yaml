@@ -1,0 +1,58 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  {{- with .Values.ingress.default.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ .Values.ingress.default.name }}
+  namespace: {{ .Values.namespace.name }}
+spec:
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.secretName }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.default.path }}
+            pathType: {{ .Values.ingress.default.pathType }}
+            backend:
+              service:
+                name: {{ $.Values.fullnameOverride }}
+                port:
+                  number: {{ $.Values.service.port }}
+  ingressClassName: nginx
+{{- end }}
+
+---
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  {{- with .Values.ingress.limit.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ .Values.ingress.limit.name }}
+  namespace: {{ .Values.namespace.name }}
+spec:
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.secretName }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.limit.path }}
+            pathType: {{ .Values.ingress.limit.pathType }}
+            backend:
+              service:
+                name: {{ $.Values.fullnameOverride }}
+                port:
+                  number: {{ $.Values.service.port }}
+  ingressClassName: nginx
+{{- end }}

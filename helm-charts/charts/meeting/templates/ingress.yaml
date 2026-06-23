@@ -1,0 +1,60 @@
+{{- with .Values.ingress }}
+{{- if .enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .name }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ .serviceName }}
+            port:
+              number: {{ .serviceNumber}}
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - {{ .host}}
+    secretName: {{ $.Values.secret.name }}
+{{- end }}
+{{- end }}
+
+{{- with .Values.ingressNew }}
+{{- if .enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .name }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .host}}
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ $.Values.meetingCenter.name }}
+            port:
+              number: 8080
+        path: {{ .path }}
+        pathType: {{ .pathType }}
+  tls:
+  - hosts:
+    - {{ .host}}
+    secretName: {{ .secretName }}
+{{- end }}
+{{- end }}

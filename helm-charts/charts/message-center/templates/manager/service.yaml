@@ -1,0 +1,17 @@
+{{- if .Values.managerService.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.managerService.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: {{ .Values.managerService.portName }}
+    port: {{ .Values.managerService.port }}
+    protocol: TCP
+    targetPort: {{ .Values.managerService.targetPort }}
+  selector:
+    app: {{ .Values.managerService.app }}
+  type: {{ .Values.managerService.type }}
+{{- end }}

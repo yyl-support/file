@@ -1,0 +1,554 @@
+# chartVersion: 1.0.0
+# latest Version: 1.0.0
+hotopic:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/hotopic-data-clean-test
+  resources:
+    requests:
+      cpu: 300m
+      memory: 500Mi
+    limits:
+      cpu: 300m
+      memory: 500Mi
+mining:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/hotopic-mining-test
+  resources:
+    requests:
+      cpu: 300m
+      memory: 800Mi
+    limits:
+      cpu: 300m
+      memory: 800Mi
+imagePullSecret: huawei-swr-image-pull-secret
+namespace: community-hot-topic
+serviceAccount:
+  name: "community-hot-topic"
+confPath: internal/data/infra-test/community-hot-topic
+podAnnotations:
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/role: 'community-hot-topic'
+hotopics:
+  - community: cann
+    deploymentLabels: {}
+    podLabels:
+      app: cann-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.cannConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: mindcluster
+    deploymentLabels: {}
+    podLabels:
+      app: mindcluster-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindclusterConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: mindie
+    deploymentLabels: {}
+    podLabels:
+      app: mindie-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindieConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: mindsdk
+    deploymentLabels: {}
+    podLabels:
+      app: mindsdk-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindsdkConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: mindspore
+    deploymentLabels: {}
+    podLabels:
+      app: mindspore-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindsporeConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: mindstudio
+    deploymentLabels: {}
+    podLabels:
+      app: mindstudio-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindstudioConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: openeuler
+    deploymentLabels: {}
+    podLabels:
+      app: openeuler-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.openeulerConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: opengauss
+    deploymentLabels: {}
+    podLabels:
+      app: opengauss-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.opengaussConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: openubmc
+    deploymentLabels: {}
+    podLabels:
+      app: openubmc-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.openubmcConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: pta
+    deploymentLabels: {}
+    podLabels:
+      app: pta-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.ptaConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: unifiedbus
+    deploymentLabels: {}
+    podLabels:
+      app: unifiedbus-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.unifiedbusConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: vllm
+    deploymentLabels: {}
+    podLabels:
+      app: vllm-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.vllmConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: mindspeed
+    deploymentLabels: {}
+    podLabels:
+      app: mindspeed-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindspeedConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: pytorch
+    deploymentLabels: {}
+    podLabels:
+      app: pytorch-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.pytorchConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: triton
+    deploymentLabels: {}
+    podLabels:
+      app: triton-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.tritonConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: sgl
+    deploymentLabels: {}
+    podLabels:
+      app: sglang-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.sglangConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: tilelang
+    deploymentLabels: {}
+    podLabels:
+      app: tilelang-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.tilelangConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: verl
+    deploymentLabels: {}
+    podLabels:
+      app: verl-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.verlConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: ascendnpuir
+    deploymentLabels: {}
+    podLabels:
+      app: ascendnpuir-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.ascendnpuirConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: openfuyao
+    deploymentLabels: {}
+    podLabels:
+      app: openfuyao-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.openfuyaoConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: cannopen
+    deploymentLabels: {}
+    podLabels:
+      app: cannopen-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.cannopenConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: boostkit
+    deploymentLabels: {}
+    podLabels:
+      app: boostkit-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.boostkitConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: vllm-ascend
+    deploymentLabels: {}
+    podLabels:
+      app: vllm-ascend-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.vllmAscendConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+  - community: hpckit
+    deploymentLabels: {}
+    podLabels:
+      app: hpckit-hotopic-data-clean
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.hpckitConfig }}\n{{- end }}\n"
+    imageTag: main-110c36
+minings:
+  - community: cann
+    deploymentLabels: {}
+    podLabels:
+      app: cann-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.cannMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources: use this field to cover default settings
+
+    configMapName: cann-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: cann-hotopic-mining-data
+  - community: mindcluster
+    deploymentLabels: {}
+    podLabels:
+      app: mindcluster-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindclusterMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: mindcluster-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: mindcluster-hotopic-mining-data
+  - community: mindie
+    deploymentLabels: {}
+    podLabels:
+      app: mindie-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindieMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: mindie-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: mindie-hotopic-mining-data
+  - community: mindsdk
+    deploymentLabels: {}
+    podLabels:
+      app: mindsdk-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindsdkMining }}\n{{- end }}\n"
+    imageTag: main-09b004
+    # resources use this field to cover default settings
+
+    configMapName: mindsdk-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: mindsdk-hotopic-mining-data
+  - community: mindspore
+    deploymentLabels: {}
+    podLabels:
+      app: mindspore-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindsporeMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: mindspore-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: mindspore-hotopic-mining-data
+  - community: mindstudio
+    deploymentLabels: {}
+    podLabels:
+      app: mindstudio-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindstudioMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: mindstudio-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: mindstudio-hotopic-mining-data
+  - community: openeuler
+    deploymentLabels: {}
+    podLabels:
+      app: openeuler-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.openeulerMining }}\n{{- end }}\n"
+    imageTag: main-09b004
+    # resources use this field to cover default settings
+
+    configMapName: openeuler-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: openeuler-hotopic-mining-data
+  - community: opengauss
+    deploymentLabels: {}
+    podLabels:
+      app: opengauss-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.opengaussMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: opengauss-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: opengauss-hotopic-mining-data
+  - community: openubmc
+    deploymentLabels: {}
+    podLabels:
+      app: openubmc-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.openubmcMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: openubmc-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: openubmc-hotopic-mining-data
+  - community: pta
+    deploymentLabels: {}
+    podLabels:
+      app: pta-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.ptaMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: pta-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: pta-hotopic-mining-data
+  - community: unifiedbus
+    deploymentLabels: {}
+    podLabels:
+      app: unifiedbus-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.unifiedbusMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: unifiedbus-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: unifiedbus-hotopic-mining-data
+  - community: vllm
+    deploymentLabels: {}
+    podLabels:
+      app: vllm-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.vllmMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: vllm-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: vllm-hotopic-mining-data
+  - community: mindspeed
+    deploymentLabels: {}
+    podLabels:
+      app: mindspeed-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mindspeedMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: mindspeed-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: mindspeed-hotopic-mining-data
+  - community: pytorch
+    deploymentLabels: {}
+    podLabels:
+      app: pytorch-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.pytorchMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: pytorch-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: pytorch-hotopic-mining-data
+  - community: triton
+    deploymentLabels: {}
+    podLabels:
+      app: triton-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.tritonMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: triton-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: triton-hotopic-mining-data
+  - community: sglang
+    deploymentLabels: {}
+    podLabels:
+      app: sglang-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.sglangMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: sglang-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: sglang-hotopic-mining-data
+  - community: ascendnpuir
+    deploymentLabels: {}
+    podLabels:
+      app: ascendnpuir-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.ascendnpuirMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: ascendnpuir-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: ascendnpuir-hotopic-mining-data
+  - community: openfuyao
+    deploymentLabels: {}
+    podLabels:
+      app: openfuyao-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.openfuyaoMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+
+    configMapName: openfuyao-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: openfuyao-hotopic-mining-data
+  - community: tilelang
+    deploymentLabels: {}
+    podLabels:
+      app: tilelang-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.tilelangMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+    configMapName: tilelang-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: tilelang-hotopic-mining-data
+  - community: verl
+    deploymentLabels: {}
+    podLabels:
+      app: verl-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.verlMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources use this field to cover default settings
+    configMapName: verl-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: verl-hotopic-mining-data
+  - community: cannopen
+    deploymentLabels: {}
+    podLabels:
+      app: cannopen-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.cannopenMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources: use this field to cover default settings
+
+    configMapName: cannopen-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: cannopen-hotopic-mining-data
+  - community: boostkit
+    deploymentLabels: {}
+    podLabels:
+      app: boostkit-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.boostkitMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources: use this field to cover default settings
+
+    configMapName: boostkit-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: boostkit-hotopic-mining-data
+  - community: vllm-ascend
+    deploymentLabels: {}
+    podLabels:
+      app: vllm-ascend-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.vllmAscendMining }}\n{{- end }}\n"
+    imageTag: main-2bfe53
+    # resources: use this field to cover default settings
+
+    configMapName: vllm-ascend-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: vllm-ascend-hotopic-mining-data
+  - community: hpckit
+    deploymentLabels: {}
+    podLabels:
+      app: hpckit-hotopic-mining
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-test/community-hot-topic'
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.hpckitMining }}\n{{- end }}\n"
+    imageTag: main-ca2532
+    configMapName: hpckit-mining-config # 在values-configmap.yaml文件中同步修改
+    pvc:
+      name: hpckit-hotopic-mining-data
+backendServer:
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/community-hot-topic'
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.server }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-secret-mongo.crt: 'internal/data/infra-test/community-hot-topic'
+    vault.hashicorp.com/agent-inject-perms-mongo.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-mongo.crt: "{{- with secret \"internal/data/infra-test/community-hot-topic\" -}}  \n{{ .Data.data.mongoCrt }}\n{{- end }}\n"
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/hotopic-website-backend-test
+    tag: "hl_dev-fce530"
+  pvcName: hotopic-server-data
+host: hotopic-data.test.osinfra.cn
+secrets:
+  path: secrets/data/infra-test/domain-tls
+  keysMap:
+    ca.crt: tls.cert
+    tls.crt: tls.cert
+    tls.key: tls.key

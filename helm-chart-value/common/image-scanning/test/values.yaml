@@ -1,0 +1,114 @@
+replicaCount: 1
+strategy:
+  type: Recreate
+namespace: image-scanning
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/image-scanning
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "main-85bff0"
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+nameOverride: "image-scanning"
+fullnameOverride: "image-scanning"
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "image-scanning"
+  automount: false
+podAnnotations:
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/role: 'image-scanning'
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-inject-perms-config.yaml: "0400"
+  vault.hashicorp.com/agent-inject-secret-config.yaml: 'internal/data/infra-test/image-scanning'
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/image-scanning\" -}} \n{{ .Data.data.conf }}\n{{- end }}\n"
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+env:
+  - name: TZ
+    value: Asia/Shanghai
+args:
+  - --config-file=/vault/secrets/config.yaml
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 2000m
+    memory: 16Gi
+  requests:
+    cpu: 2000m
+    memory: 12Gi
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  successThreshold: 1
+  httpGet:
+    scheme: HTTP
+    path: /
+    port: 8080
+  timeoutSeconds: 10
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  successThreshold: 1
+  httpGet:
+    scheme: HTTP
+    path: /
+    port: 8080
+  timeoutSeconds: 10
+nodeSelector:
+  kubernetes.io/arch: amd64
+  # kubernetes.io/hostname: 192.168.10.225
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - "chmod 0700 /vault/secrets/; chown -R 1000:1000 /vault/secrets/; chmod g-s /vault/secrets/; ls -ld /vault/secrets/"
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+tolerations: []
+affinity: {}
+volumeMounts:
+  - name: data-vol
+    mountPath: /opt/app/persistent
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+  - name: data-vol
+    persistentVolumeClaim:
+      claimName: image-scanning-data-storage
+pvc:
+  enabled: true
+  name: image-scanning-data-storage
+  accessModes: ReadWriteOnce
+  storage: 500Gi
+  storageClassName: csi-disk
+  volumeMode: Filesystem
+  volumeName: {}

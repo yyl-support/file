@@ -1,0 +1,6 @@
+apiVersion: v2
+name: oneid-workbench
+description: A Helm chart for oneid workbench
+type: application
+version: 1.0.2
+appVersion: "1.0.0"

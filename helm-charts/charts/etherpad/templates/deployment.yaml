@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "etherpad.fullname" . }}-deployment
+  {{- with .Values.deployment.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.deployment.replicaCount }}
+  strategy:
+    {{- toYaml .Values.deployment.strategy | nindent 4 }}
+  selector:
+    matchLabels: {{- include "etherpad.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "etherpad.selectorLabels" . | nindent 8 }}
+      {{- with .Values.deployment.annotations }}
+      annotations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- if .Values.serviceAccount.create }}
+      serviceAccount: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      containers:
+      - image: {{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag }}
+        imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+        name: {{ .Values.deployment.containerName }}
+        ports: {{- toYaml .Values.deployment.ports | nindent 10 }}
+        resources: {{- toYaml .Values.resources | nindent 10 }}
+        securityContext: {{- toYaml .Values.securityContext | nindent 10 }}
+        volumeMounts: {{- toYaml .Values.volumeMounts | nindent 10 }}
+      imagePullSecrets: {{- toYaml .Values.deployment.imagePullSecrets | nindent 8 }}
+      volumes: {{- toYaml .Values.volumes | nindent 8 }}

@@ -1,0 +1,115 @@
+namespace: openeuler-doc-search
+appName: doc-search-deployment
+replicaCount: 2
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/role: search
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject-secret-application.yml: 'internal/data/openeuler/search'
+  vault.hashicorp.com/agent-inject-secret-redis.crt: 'internal/data/openeuler/search'
+  vault.hashicorp.com/agent-inject-perms-application.yml: "0644"
+  vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+  vault.hashicorp.com/agent-inject-template-application.yml: "{{- with secret \"internal/data/openeuler/search\" -}}  \n{{ .Data.data.application }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/openeuler/search\" -}}  \n{{ .Data.data.redisCrt }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-truststore.jks: "0400"
+  vault.hashicorp.com/agent-inject-secret-truststore.jks: internal/data/openeuler/search
+  vault.hashicorp.com/secret-volume-path-truststore.jks: /opt/sql
+  vault.hashicorp.com/agent-inject-template-truststore.jks: "{{- with secret \"internal/data/openeuler/search\" -}}  \n{{ base64Decode .Data.data.esJks }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+  vault.hashicorp.com/agent-inject-secret-tls.pfx: internal/data/openeuler/search
+  vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/openeuler/search\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }}        \n"
+serviceAccount:
+  create: true
+  name: search
+imagePullSecret:
+  - name: huawei-swr-image-pull-secret
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/doc-search
+  tag: "release-multiRecall-69a80d"
+  pullPolicy: IfNotPresent
+configPath: /vault/secrets/application.yml
+env:
+  - name: FORUMDOMAIM
+    value: "https://forum.openeuler.org"
+  - name: SERVICE_URL
+    value: "https://gitee.com/opensourceway/om-data/raw/master/src/openeuler/server.yaml"
+volumeMounts:
+  - mountPath: /opt/config/prompt/
+    name: app-config
+    readOnly: true
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+  - name: app-config
+    configMap:
+      name: configmap-multimodal-md
+resources:
+  requests:
+    cpu: 500m
+    memory: 500Mi
+  limits:
+    cpu: 1000m
+    memory: 3000Mi
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  successThreshold: 1
+  httpGet:
+    path: /error
+    port: 8080
+    scheme: HTTPS
+  timeoutSeconds: 5
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  successThreshold: 1
+  httpGet:
+    path: /error
+    port: 8080
+    scheme: HTTPS
+  timeoutSeconds: 5
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1001
+  capabilities:
+    drop:
+      - ALL
+service:
+  portName: http
+  port: 8080
+  targetPort: 8080
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+  host: doc-search.openeuler.org
+secret:
+  enabled: true
+  name: doc-search-tls
+  tlsPath: secrets/data/openeuler/doc-search
+  keysMap:
+    ca.crt: server.crt
+    tls.crt: server.crt
+    tls.key: server.key
+cronjob:
+  enabled: false
+autoscale:
+  enabled: false

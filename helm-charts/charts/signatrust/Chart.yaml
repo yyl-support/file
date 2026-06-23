@@ -1,0 +1,4 @@
+apiVersion: v2
+name: signatrust
+version: 4.0.2
+description: helm chart for signatrust

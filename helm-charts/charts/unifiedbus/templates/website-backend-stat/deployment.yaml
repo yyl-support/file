@@ -1,0 +1,79 @@
+{{- if .Values.stat.enabled}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.stat.name }}-deployment
+  labels:
+    {{- include "unifiedbus.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.stat.replicaCount }}
+  {{- with .Values.updateStrategy }}
+  strategy: 
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- with .Values.stat.podLabels }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+        {{- toYaml .Values.stat.podAnnotations | nindent 8 }}
+      labels:
+        {{- with .Values.stat.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.stat.name }}
+          {{- with .Values.stat.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.stat.image.repository }}:{{ .Values.stat.image.tag }}"
+          imagePullPolicy: {{ .Values.stat.image.pullPolicy }}
+          {{- with .Values.server.args }}
+          args:
+          {{- toYaml . | nindent 12}}
+          {{- end }}
+          {{- with .Values.stat.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.stat.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.stat.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.stat.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.stat.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,133 @@
+# chartVersion: v1.0.5
+global:
+  appName: website-v2
+namespace:
+  enabled: false
+  name: website-revision
+replicaCount: 4
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 2
+    maxSurge: 2
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/mindspore/mindspore-website
+  tag: "v1.0.20260623052222"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+podLabels:
+  app: website-v2
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/mindspore/mindspore-website"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/mindspore/mindspore-website" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/mindspore/mindspore-website"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/mindspore/mindspore-website" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/mindspore/mindspore-website"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/mindspore/mindspore-website" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/mindspore/mindspore-website"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/mindspore/mindspore-website" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: mindspore-website
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/log-level: "warn"
+env:
+  - name: DET_URL
+    value: https://www.mindspore.cn
+serviceAccount:
+  create: true
+  name: mindspore-website
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: 1
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 1Gi
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  successThreshold: 1
+  httpGet:
+    scheme: HTTPS
+    path: /
+    port: 8080
+    httpHeaders:
+      - name: Host
+        value: "www.mindspore.cn"
+  timeoutSeconds: 5
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+  httpGet:
+    scheme: HTTPS
+    path: /
+    port: 8080
+    httpHeaders:
+      - name: Host
+        value: "www.mindspore.cn"
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-body-size: 2m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  host: www.mindspore.cn
+# Service配置
+service:
+  portName: tls-1
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: website-tls
+  path: secrets/data/mindspore/mindspore-cn-tls
+  ca_crt_key: ca.cert
+  tls_crt_key: ca.cert
+  tls_key_key: ca.key
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: ""
+  virtualService:
+    host: ""
+    http: []
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE

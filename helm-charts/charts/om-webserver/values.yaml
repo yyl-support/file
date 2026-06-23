@@ -1,0 +1,72 @@
+# 全局配置
+global:
+  namespace: comon-omwebserver
+  appName: comon-omwebserver
+  appSubName: om-webserver
+# 副本配置
+replicaCount: 2
+revisionHistoryLimitCount: 4
+# 镜像配置
+image:
+  repository: xxx.com/om/om-webserver
+  tag: release-om-webserver
+  pullPolicy: IfNotPresent
+  pullSecret: SECRET
+containers:
+  applicationPath: "xxx/application.properties"
+  containerPort: XXX
+  portsName: omwebserver
+# 资源限制
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2000Mi
+  requests:
+    cpu: 500m
+    memory: 1000Mi
+probeHttpGet:
+  path: /oneid/checkOmService
+  port: XXX
+  scheme: HTTPS
+# Vault配置
+vault:
+  runAsUser: "XXX"
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  host: XXX.cn
+  backendProtocol: "HTTPS"
+  limitConnections: "400"
+  limitRPS: "400"
+  port: 80
+# Service配置
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+secret:
+  ca_crt_path: XXX
+  ca_crt_key: XXX
+  tls_crt_path: XXX
+  tls_crt_key: XXX
+  tls_key_path: XXX
+  tls_key_key: XXX
+podAnnotations:
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/role: 'comon-omwebserver'
+  vault.hashicorp.com/agent-run-as-user: "XXX"
+  vault.hashicorp.com/agent-run-as-group: "XXX"
+  vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+  vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+  vault.hashicorp.com/agent-inject-secret-tls.pfx: 'XXX/comon-omwebserver'
+  vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"XXX/comon-omwebserver\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-secret-application.properties: 'XXX/comon-omwebserver'
+  vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"XXX/comon-omwebserver\" -}}  \n{{ .Data.data.application }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+  vault.hashicorp.com/agent-inject-secret-redis.crt: 'XXX/comon-omwebserver'
+  vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"XXX/comon-omwebserver\" -}}  \n{{ .Data.data.redis }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/secret-volume-path: "/XXX/om-webserver"

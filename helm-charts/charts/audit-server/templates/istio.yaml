@@ -1,0 +1,46 @@
+{{- with .Values.istio }}
+{{- if .enabled }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "audit-server.fullname" $ }}-virtualservice
+spec:
+  gateways:
+  - {{ .gateway }}
+  hosts:
+  - {{ .host }}
+  http:
+    {{- toYaml .vs.http | nindent 4 }}
+
+
+{{- with .dr }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{ include "audit-server.fullname" $ }}-destinationrule
+spec:
+  host: {{ .serviceName }}
+  trafficPolicy:
+    portLevelSettings:
+      - port:
+          number: {{ .portNumber }}
+        tls:
+          mode: {{ $.Values.istio.tlsMode }}
+{{- end }}
+
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: {{ include "audit-server.fullname" $ }}-peerauthentication
+spec:
+  mtls:
+    mode: {{ $.Values.istio.mtlsMode }}
+  selector:
+    matchLabels:
+      {{- include "audit-server.selectorLabels" $ | nindent 6 }}
+{{- end }}
+{{- end }}

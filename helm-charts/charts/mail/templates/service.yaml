@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mailcore.service.name }}
+  labels:
+  {{- include "mail.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.mailcore.service.type }}
+  selector: {{- toYaml .Values.mailcore.podLabels | nindent 4 }}
+  ports:
+  {{- .Values.mailcore.service.ports | toYaml | nindent 2 }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mailweb.service.name }}
+  labels:
+  {{- include "mail.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.mailweb.service.type }}
+  selector: {{- toYaml .Values.mailweb.podLabels | nindent 4 }}
+  ports:
+  {{- .Values.mailweb.service.ports | toYaml | nindent 2 }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.exim4.service.name }}
+  labels:
+  {{- include "mail.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/elb.class: {{ .Values.exim4.service.elbClass }}
+    kubernetes.io/elb.id: {{ .Values.exim4.service.elbId }}
+    kubernetes.io/elb.lb-algorithm: ROUND_ROBIN
+    kubernetes.io/elb.pass-through: onlyLocal
+spec:
+  externalTrafficPolicy: Local
+  type: {{ .Values.exim4.service.type }}
+  selector: {{- toYaml .Values.exim4.podLabels | nindent 4 }}
+  ports:
+  {{- .Values.exim4.service.ports | toYaml | nindent 2 }}

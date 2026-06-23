@@ -1,0 +1,138 @@
+# chartVersion: 1.0.8
+deployment:
+  replicaCount: 1
+  labels:
+    # virtual-kubelet.io/burst-to-cci: enforce
+  strategy: 
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/etherpad
+    pullPolicy: IfNotPresent
+    tag: "main-383f61"
+  imagePullSecrets:
+    - name: huawei-swr-image-pull-secret
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-apikey.txt: "0400"
+    vault.hashicorp.com/agent-inject-perms-credentials.json: "0400"
+    vault.hashicorp.com/agent-inject-secret-apikey.txt: internal/data/infra-test/openfuyao-etherpad
+    vault.hashicorp.com/agent-inject-secret-credentials.json: internal/data/infra-test/openfuyao-etherpad
+    vault.hashicorp.com/agent-inject-template-apikey.txt: "{{- with secret \"internal/data/infra-test/openfuyao-etherpad\"
+      -}}  \n{{ .Data.data.apikey }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-credentials.json: "{{- with secret
+      \"internal/data/infra-test/openfuyao-etherpad\" -}}  \n{{ .Data.data.config }}\n{{-
+      end }}\n"
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "5001"
+    vault.hashicorp.com/agent-run-as-user: "5001"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/log-level: warn
+    vault.hashicorp.com/role: openfuyao-etherpad
+    vault.hashicorp.com/tls-skip-verify: "true"
+  containerName: etherpad-lite
+  ports:
+    - containerPort: 9001
+      name: https
+      protocol: TCP
+
+
+# This is to override the chart name.
+nameOverride: "openfuyao-etherpad"
+fullnameOverride: "openfuyao-etherpad"  # 最优先，定义deployment,service,ingress资源的名字前缀
+namespace: openfuyao-etherpad
+serviceAccount:
+  create: true
+  name: openfuyao-etherpad
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+secretDefinitions:
+  etherpad-openfuyao-tls:
+    enabled: true
+    keysMap:
+      ca.crt:
+        key: tls.cert
+        path: secrets/data/infra-test/openfuyao-domain-tls
+      tls.crt:
+        key: tls.cert
+        path: secrets/data/infra-test/openfuyao-domain-tls
+      tls.key:
+        key: tls.key
+        path: secrets/data/infra-test/openfuyao-domain-tls
+
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  ports:
+    - name: ether-http
+      port: 9001
+      protocol: TCP
+      targetPort: 9001
+  type: ClusterIP
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "false"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ^~ /admin {
+        deny all;
+      }
+      location ^~ /stats {
+        deny all;
+      }
+  hosts:
+    - host: etherpad.openfuyao.test.osinfra.cn
+      paths:
+        - path: /
+          pathType: Prefix
+          portNumber: 9001
+  tlsHosts:
+    - host: etherpad.openfuyao.test.osinfra.cn
+      secretsName: etherpad-openfuyao-tls
+
+istio:
+  enabled: false
+resources:
+  requests:
+    cpu: "100m"
+    memory: 500Mi
+
+pvc:
+  etherpad-data-vol:
+    enabled: true
+    accessModes:
+      - ReadWriteMany
+    storage: 10Gi
+    storageClassName: sfsturbo-subpath-sc
+    volumeMode: Filesystem
+
+# Additional volumes on the output Deployment definition.
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: etherpad-data-vol
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  - mountPath: /opt/etherpad-lite/var
+    name: data-volume
+    subPath: data

@@ -1,0 +1,18 @@
+{{- if .Values.autoscale }}
+{{- range .Values.servers }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .name }}-autoscaler
+  namespace: {{ $.Values.namespace }}
+spec:
+  scaleTargetRef:
+    name: {{ .name }}
+  triggers:
+  - type: cron
+    metadata:
+      {{- toYaml $.Values.autoscale.metadata | nindent 6 }}
+{{- end }}
+{{- end }}
+

@@ -1,0 +1,53 @@
+guidcronjob:
+  enabled: true
+  name: guid
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-perms-mq.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-pg.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: internal/data/unifiedbus/unifiedbus-server
+    vault.hashicorp.com/agent-inject-secret-pg.crt: internal/data/unifiedbus/unifiedbus-server
+    vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret
+      \"internal/data/unifiedbus/unifiedbus-server\" -}}  \n{{ .Data.data.guidCronjob
+      }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-pg.crt: "{{- with secret \"internal/data/unifiedbus/unifiedbus-server\"
+      -}}  \n{{ .Data.data.PgCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+  args:
+  - --config-file=/vault/secrets/conf.yaml
+  env:
+  - name: Tz
+    value: Asia/shanghai
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/unifiedbus/cronjob-prod
+    tag: c868cf2578cdb9054e6f53b0a6dc3c199857fd95
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+  volumeMounts:
+  - mountPath: /opt/data/
+    name: volume-data
+    subPath: data
+  restartPolicy: Never
+  volumes:
+  - name: token-vol
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          audience: api
+          expirationSeconds: 600
+          path: token
+  - name: volume-data
+    persistentVolumeClaim:
+      claimName: unifiedbus-guid-data
+  schedule: "0 1 * * *"
+  suspend: false

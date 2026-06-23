@@ -1,0 +1,84 @@
+{{- if .Values.dataServer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.dataServer.name }}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  {{- if not .Values.global.autoscaler.enabled }}
+  replicas: {{ .Values.dataServer.replicas }}
+  {{- with $.Values.dataServer.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  selector:
+    matchLabels:
+      component: {{ .Values.dataServer.name }}
+  template:
+    metadata:
+      labels:
+        component: {{ .Values.dataServer.name }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.dataServer.image.pullSecret }}
+      automountServiceAccountToken: false
+      initContainers:
+{{- range .Values.dataServer.initContainers }}
+        - name: {{ .name }}
+          image: {{ .image }}
+          command:
+{{- range .command }}
+            - {{ . | quote }}
+{{- end }}
+{{- end }}
+
+      containers:
+        - name: {{ .Values.dataServer.container.name }}
+          image: "{{ .Values.dataServer.image.repository }}:{{ .Values.dataServer.image.tag }}"
+          imagePullPolicy: {{ .Values.dataServer.image.pullPolicy }}
+          command:
+{{- range .Values.dataServer.container.command }}
+            - {{ . | quote }}
+{{- end }}
+          resources:
+            requests:
+              cpu: {{ .Values.dataServer.resources.requests.cpu }}
+              memory: {{ .Values.dataServer.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.dataServer.resources.limits.cpu }}
+              memory: {{ .Values.dataServer.resources.limits.memory }}
+          ports:
+{{- range .Values.dataServer.container.ports }}
+            - containerPort: {{ .containerPort }}
+              name: {{ .name }}
+              protocol: {{ .protocol }}
+{{- end }}
+          env:
+{{- range .Values.dataServer.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+{{- end }}
+          volumeMounts:
+            - name: secret
+              mountPath: {{ .Values.dataServer.mounts.controlServer.mountPath }}
+              subPath: {{ .Values.dataServer.mounts.controlServer.subPath }}
+            - name: secret
+              mountPath: {{ .Values.dataServer.mounts.srvcrt.mountPath }}
+              subPath: {{ .Values.dataServer.mounts.srvcrt.subPath }}
+            - name: secret
+              mountPath: {{ .Values.dataServer.mounts.key.mountPath }}
+              subPath: {{ .Values.dataServer.mounts.key.subPath }}
+            - name: secret
+              mountPath: {{ .Values.dataServer.mounts.rootcrt.mountPath }}
+              subPath: {{ .Values.dataServer.mounts.rootcrt.subPath }}
+          securityContext:
+            allowPrivilegeEscalation: {{ .Values.dataServer.securityContext.allowPrivilegeEscalation }}
+            runAsUser: {{ .Values.dataServer.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.dataServer.securityContext.runAsGroup }}
+
+      volumes:
+        - name: secret
+          secret:
+            secretName: {{ .Values.dataServer.volumes.secretName }}
+{{- end }}

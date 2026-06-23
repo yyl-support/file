@@ -1,0 +1,54 @@
+erratamsg:
+  enabled: false
+  name: unifiedbus-errata-messageserver
+  replicaCount: 1
+  podLabels:
+    app: errata-messageserver
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-perms-mq.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: internal/data/infra-test/unifiedbus
+    vault.hashicorp.com/agent-inject-secret-mq.crt: internal/data/infra-test/unifiedbus
+    vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/unifiedbus\"
+      -}}  \n{{ .Data.data.errataMessageServer }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-mq.crt: "{{- with secret \"internal/data/infra-test/unifiedbus\"
+      -}}  \n{{ .Data.data.kafkaCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    runAsUser: 1000
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/unifiedbus/errata-messageserver-test
+    tag: 2b84e650167b72fdf139ae918e78e3f199966828
+    pullPolicy: IfNotPresent
+  args:
+  - --config-file=/vault/secrets/conf.yaml
+  - --port=8080
+  - --enable-debug=true
+  - --rm-config=false
+  livenessProbe:
+  readinessProbe:
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: "1"
+      memory: 1Gi
+  volumeMounts: {}
+  volumes:
+  - name: token-vol
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          audience: api
+          expirationSeconds: 600
+          path: token
+  service:
+    port: 8080
+    targetPort: 8080

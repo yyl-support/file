@@ -1,0 +1,99 @@
+review:
+  enabled: true
+  configmap:
+    name: configmap-review
+    config: |-
+      config_items:
+        - repos:
+            - testmyai
+          legal_operator: openJiuwen-bot
+          labels_for_merge:
+            - openJiuwen-cla/yes
+          lgtm_counts_required: 1
+          labels_not_allow_merge:
+            - ci-failed
+
+      sig_info_url: "https://magicapi.test.osinfra.cn/stat/sig/detail/info"
+      community_name: openjiuwen
+      comment_try_squash_again: "### 变更合入方法失败 \n 请使用 **/rebase cancel** 来删除 **merge/rebase** 标签，然后再尝试评论 **/squash** 。"
+      comment_try_rebase_again: "### 变更合入方法失败 \n请使用 **/squash cancel** 来移除 **merge/squash** 标签，然后再尝试评论 **/rebase** 。"
+      comment_add_lgtm_by_self: "### 代码审视提示 \n @%s ,PR的创建者不能自己添加 ***lgtm***标签。:astonished:"
+      comment_removed_label: "### 代码审视消息 \n @%s ,标签 **%s** 已被移除，因为 PR 可能需要重新审视。 :flushed: "
+      comment_add_label_successful: "### 代码审视消息 \n- 标签 **%s** 被 ***%s*** 添加至本PR。 :wave: \n ##### *注意:* 如果本PR在满足所有合入条件后未能自动合并，可通过评论“/check-pr”手动触发合并任务。 :smile: "
+      comment_add_label_failed: "### 代码审视消息 \n 标签 **%s** 未添加，操作者： ***%s***。 :wave: \n 请重新评论下。"
+      comment_no_permission_for_label: "### 代码审视消息 \n ***@%s*** 在本PR中没有 %s **%s** 标签的权限。 :astonished: \n 请联系本仓库管理人员。"
+      comment_no_permission_for_lgtm_label: "### 代码审视消息 \n 感谢您的审阅, ***%s***, 您的意见对我们来说非常宝贵。 :wave: \n 仓库管理人员会认真考虑您的意见。"
+      comment_command_trigger: "### 合入指导\n @%s, 请重新评论 ***`/%s`*** . :pray: "
+      comment_clear_label_case_by_pr_update: "### 注意\n 本PR有新的代码提交，以下标签将会被移除： ***%s***。 :flushed: "
+      comment_clear_label_case_by_reopen_pr: "### 注意\n PR被重新打开，以下标签将被移除： ***%s***。 :flushed: "
+      comment_pr_cannot_merge_reason: "### 合入校验失败\n@%s, 当前PR不可合入，原因如下:\n\n%s"
+      comment_msg_missing_labels: "##### *缺少标签*\n- PR当前没有以下标签: %s。"
+      comment_msg_invalid_labels: "##### *不应有标签*\n- 本PR应该删除以下标签: %s。"
+      comment_msg_not_enough_lgtm_label: "##### *LGTM标签数量不够*\n- PR需要至少 %d 个lgtm标签，当前已有 %d个。"
+      comment_try_label_again: "相关标签操作日志丢失。请删除如下标签： **%s** 并尝试通过评论重新添加。"
+      comment_no_permission_add_label: "%s 您不能自己添加标签 **%s**，请手动移除此标签后通过评论重新添加。"
+      comment_failed_list_pr_operation_logs: "### 注意\n 查询PR操作日志失败。"
+      comment_no_ready_tips: "##### *不合规的标签操作*\n- %s"
+      comment_failed_merge_pr: "### 合并PR失败 \n - reason: %s"
+      comment_failed_merge_pr_unknown_reason: "未知错误发生, 请联系社区基础设施团队。"
+      label_usage_tip_title: "##### *标签使用技巧*"
+      label_usage_tip_detail: "- **%s**: %s"
+      label_usage_description:
+        - label_name: lgtm
+          description: "合并PR时必要的标签。代码仓管理人员可以通过评论 **`/lgtm`** 来添加标签。PR创建者可以通过评论 **`/lgtm cancel`** 来删除标签，但无法通过评论 **`/lgtm`** 添加标签。"
+        - label_name: approved
+          description: "合并PR时必要的标签。代码仓管理人员可以通过评论 **`/approve`** 来添加标签，通过评论 **`/approve cancel`** 来删除标签。"
+        - label_name: openJiuwen-cla/yes
+          description: "合并PR时的必要标签。PR的每一位代码贡献者必须签署Contributor License Agreement （简称CLA），否则PR将无法合并。在CLA签署成功后，PR的创建者可以通过评论 **`/check-cla`** 触发机器人任务，在机器人检验成功后，会给PR添加相应的cla标签。"
+        - label_name: ci-successful
+          description: "合并PR时的必要标签。代码需要通过CI测试，否则PR将无法合并。可以通过评论 **`/retest`** 重新触发CI。"
+        - label_name: ci-failed
+          description: "合并PR时的必要标签。代码需要通过CI测试，否则PR将无法合并。可以通过评论 **`/retest`** 重新触发CI。"
+      community_robot_id: openJiuwen-bot
+  deployment:
+    podSecurityContext:
+      seccompProfile:
+        localhostProfile: infra-seccomp.json
+        type: Localhost
+    replicas: 1
+    robotUniversalReview:
+      args:
+        - --port=8888
+        - --config-file=/app/conf/config
+        - --handle-path=gitcode-hook
+        - --token-path=/vault/secrets/token
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsUser: 1000
+      resources:
+        limits:
+          cpu: 100m
+          memory: 300Mi
+        requests:
+          cpu: 100m
+          memory: 300Mi
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-token: "0400"
+    vault.hashicorp.com/agent-inject-secret-token: internal/data/infra-test/openjiuwen-robot
+    vault.hashicorp.com/agent-inject-template-token: |
+      {{- with secret "internal/data/infra-test/openjiuwen-robot" -}}
+      {{ .Data.data.token }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: openjiuwen-robot
+    vault.hashicorp.com/tls-skip-verify: "true"
+  NetworkPolicy:
+    enabled: true

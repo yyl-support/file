@@ -1,0 +1,95 @@
+# chartVersion: v1.0.6
+global:
+  appName: portal-mcp
+namespace:
+  enabled: false
+  name: portal-mcp
+replicaCount: 1
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/portal-mcp-test
+  tag: "dev-4ec289c7-20260203153711"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+podLabels:
+  app: portal-mcp
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: portal-mcp
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+env:
+  - name: DET_URL
+    value: https://portal-mcp.test.osinfra.cn/
+serviceAccount:
+  create: true
+  name: portal-mcp
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: "1"
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 4m
+  host: portal-mcp.test.osinfra.cn
+# Service配置
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+secret:
+  enable: true
+  name: portal-mcp-domain-tls
+  path: secrets/data/infra-test/domain-tls
+  ca_crt_key: tls.cert
+  tls_crt_key: tls.cert
+  tls_key_key: tls.key
+istio:
+  enabled: false
+  nslabel: {}

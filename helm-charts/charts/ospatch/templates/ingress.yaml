@@ -1,0 +1,28 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ospatch.fullname" . }}-ingress
+  namespace: {{ .Values.namespace.name }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.ingress.host }}
+    http:
+      paths:
+      {{- range .Values.ingress.paths }}
+      - backend:
+          service:
+            name: {{ include "ospatch.fullname" $ }}
+            port:
+              number: {{ $.Values.ingress.serviceNumber }}
+        path: {{ .path }}
+        pathType: {{ .pathType }}
+      {{- end }}
+  tls:
+  - hosts:
+    - {{ .Values.ingress.host }}
+    secretName: {{ .Values.ingress.tlsSecrets.name }}
+{{- end }}

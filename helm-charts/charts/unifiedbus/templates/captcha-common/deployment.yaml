@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.captcha.name }}-deployment
+  labels:
+    {{- include "unifiedbus.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.captcha.replicaCount }}
+  {{- with .Values.updateStrategy }}
+  strategy: 
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- with .Values.captcha.podLabels }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+        {{- toYaml .Values.captcha.podAnnotations | nindent 8 }}
+      labels:
+        {{- with .Values.captcha.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+     {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.captcha.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.captcha.name }}
+          {{- with .Values.captcha.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.captcha.image.repository }}:{{ .Values.captcha.image.tag }}"
+          imagePullPolicy: {{ .Values.captcha.image.pullPolicy }}
+          env:
+          {{- range .Values.captcha.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+          {{- end }}
+          {{- with .Values.captcha.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.captcha.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.captcha.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.captcha.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.captcha.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

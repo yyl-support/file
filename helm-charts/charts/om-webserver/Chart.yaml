@@ -1,0 +1,7 @@
+apiVersion: v2
+name: om-webserver
+description: Helm chart for om-webserver Service
+version: 1.0.4
+appVersion: "feature-6fda1a"
+maintainers:
+  - name: tfhddd

@@ -1,0 +1,106 @@
+# chartVersion: 1.0.0
+nameOverride: ""
+fullnameOverride: ""
+
+namespace:
+  name: ""  # e.g. apig-discovery
+
+replicaCount: 1
+
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+
+serviceAccount:
+  create: true
+  name: ""  # e.g. apig-discovery
+  automount: false
+
+podSecurityContext: {}
+
+# Vault 注解配置（根据实际 vault 路径修改）
+podAnnotations: {}
+  # vault.hashicorp.com/agent-inject: "true"
+  # vault.hashicorp.com/role: <service-account-name>
+  # vault.hashicorp.com/tls-skip-verify: "true"
+  # vault.hashicorp.com/agent-pre-populate-only: "true"
+  # vault.hashicorp.com/agent-init-first: "true"
+  # vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  # vault.hashicorp.com/agent-run-as-user: "1000"
+  # vault.hashicorp.com/agent-run-as-group: "1000"
+  # vault.hashicorp.com/log-level: "warn"
+
+deployment:
+  name: ""  # e.g. apig-discovery
+  labels: {}
+    # app: apig-discovery
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  image:
+    repository: ""  # e.g. swr.cn-north-4.myhuaweicloud.com/opensourceway/apig-discovery
+    tag: ""  # e.g. main-xxx
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    runAsUser: 1000
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 9000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 9000
+    initialDelaySeconds: 30
+    periodSeconds: 30
+  service:
+    name: http
+    port: 9000
+    targetPort: 9000
+    type: ClusterIP
+    annotations: {}
+
+ingress:
+  enabled: true
+  host: ""  # e.g. apig-discovery.openeuler.org
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  paths:
+    - path: /
+      pathType: Prefix
+  tlsSecrets:
+    enabled: true
+    name: ""  # e.g. domain-tls
+    path: ""  # e.g. secrets/data/<namespace>/domain-tls
+    certKey: tls.cert
+    keyKey: tls.key
+
+# 应用级别的 Secret（通过 SecretDefinition CRD）
+secret: []
+  # - name: app-config
+  #   path: secrets/data/<namespace>/<app>
+  #   keysMap:
+  #     config.yaml: config.yaml
+
+istio:
+  enabled: false
+
+autoscale:
+  enabled: false
+
+pvc:
+  enabled: false

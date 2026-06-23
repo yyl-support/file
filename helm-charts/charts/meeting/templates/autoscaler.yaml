@@ -1,0 +1,58 @@
+{{- if .Values.autoscale.enabled }}
+{{- if .Values.meetingCenter.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.meetingCenter.name }}-autoscaler
+  namespace: {{ .Values.namespace.name }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.meetingCenter.name }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ .Values.meetingCenter.replicas | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: Asia/Shanghai
+    type: cron
+{{- end }}
+
+{{- if .Values.meetingPlatform.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.meetingPlatform.name }}-autoscaler
+  namespace: {{ .Values.namespace.name }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.meetingPlatform.name }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ .Values.meetingPlatform.replicas | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: Asia/Shanghai
+    type: cron
+{{- end }}
+
+{{- if .Values.meetingServer.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.meetingServer.name }}-autoscaler
+  namespace: {{ .Values.namespace.name }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.meetingServer.name }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ .Values.meetingServer.replicas | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: Asia/Shanghai
+    type: cron
+{{- end }}
+{{- end }}

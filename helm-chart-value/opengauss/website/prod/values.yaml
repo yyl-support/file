@@ -1,0 +1,139 @@
+# chartVersion: v1.0.5
+global:
+  appName: website-v2
+namespace:
+  enabled: true
+  name: website
+replicaCount: 4
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 2
+    maxSurge: 2
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website
+  tag: "v2-v1.0.20260618190102"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+podLabels:
+  app: website-v2
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/opengauss/opengauss-website"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/opengauss/opengauss-website" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/opengauss/opengauss-website"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/opengauss/opengauss-website" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/opengauss/opengauss-website"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/opengauss/opengauss-website" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/opengauss/opengauss-website"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/opengauss/opengauss-website" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: opengauss-website
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/log-level: "warn"
+env:
+  - name: DET_URL
+    value: https://opengauss.org
+serviceAccount:
+  create: true
+  name: opengauss-website
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: 1
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 1Gi
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 5
+  periodSeconds: 20
+  successThreshold: 1
+  httpGet:
+    scheme: HTTPS
+    path: /zh/
+    port: 8080
+    httpHeaders:
+      - name: Host
+        value: "opengauss.org"
+  timeoutSeconds: 5
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+  httpGet:
+    scheme: HTTPS
+    path: /zh/
+    port: 8080
+    httpHeaders:
+      - name: Host
+        value: "opengauss.org"
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: opengauss.org
+# Service配置
+service:
+  portName: tls-01
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: opengauss-org-tls
+  path: secrets/data/opengauss/opengauss-website
+  ca_crt_key: server.crt
+  tls_crt_key: server.crt
+  tls_key_key: server.key
+istio:
+  enabled: true
+  nslabel:
+    istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https-website"
+  virtualService:
+    host: opengauss.org
+    http:
+      - route:
+          - destination:
+              host: "website-v2-service.website.svc.cluster.local"
+              port:
+                number: 8080
+        match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE

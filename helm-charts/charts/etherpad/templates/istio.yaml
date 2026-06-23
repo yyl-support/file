@@ -1,0 +1,61 @@
+{{- if .Values.istio.enabled }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.namespace }}-virtualservice
+spec:
+  gateways:
+  - {{ .Values.istio.gateway }}
+  hosts:
+  - {{ .Values.istio.host }}
+  http:
+  {{- range $index, $route := .Values.istio.virtualService.routes }}
+  - route:
+  {{- range $destination := $route.destinations }}
+    - destination:
+        host: {{ $destination.host }}
+        port:
+          number: {{ index $.Values.service.ports 0 "port" }}
+        {{- if $destination.subset }}
+        subset:  {{ $destination.subset }}
+        {{- end }}
+  {{- end }}
+    {{- range $match := $route.match }}
+    match:
+    - {{- toYaml $match | nindent 6 }}
+    {{- end }}
+    rewrite:
+      uri: /
+  {{- end }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{ .Values.namespace }}-destinationrule
+spec:
+  host: {{ include "etherpad.fullname" . }}-service
+  trafficPolicy:
+    portLevelSettings:
+      - port:
+          number: {{ index .Values.service.ports 0 "port" }}
+        tls:
+          mode: {{ .Values.istio.tls.mode }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: {{ .Values.namespace }}-peerauthentication
+spec:
+  mtls:
+    mode: {{ .Values.istio.mtls.mode }}
+  selector:
+    matchLabels:
+      {{- include "etherpad.selectorLabels" . | nindent 6 }}
+{{- end }}

@@ -1,0 +1,110 @@
+namespace: om
+autoscaling:
+  enabled: false
+serviceAccount:
+  create: true
+  name: om
+imageRepository: swr.cn-north-4.myhuaweicloud.com/om/om-collection
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: om
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+deployments:
+  - name: meeting-om-collect
+    enabled: true
+    replicaCount: 1
+    imageTag: meeting_1.5
+    imagePullPolicy: IfNotPresent
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config.ini: "0400"
+      vault.hashicorp.com/agent-inject-secret-config.ini: internal/data/openeuler/om
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/openeuler/om\" -}}  \n{{ .Data.data.Meeting }}\n{{- end }}\n"
+      vault.hashicorp.com/secret-volume-path: /var/lib/om/config
+    configPath: /var/lib/om/config
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      runAsUser: 1001
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1000Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+    volumeMounts: {}
+    volumes:
+      - name: token-vol
+        projected:
+          sources:
+            - serviceAccountToken:
+                audience: api
+                expirationSeconds: 600
+                path: token
+collectData:
+  enabled: false
+  name: meeting-om-collect
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/om/om-collection
+    tag: "0.6.61"
+  replicaCount: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  labels:
+    app: om-collect
+  podAnnotations: {}
+  imagePullSecrets:
+    - name: huawei-swr-image-pull-secret
+  podSecurityContext:
+    seccompProfile:
+      localhostProfile: infra-seccomp.json
+      type: Localhost
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    runAsUser: 1001
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  volumeMounts:
+    - mountPath: /var/lib/om/config.ini
+      name: om-collect-secrets-volume
+      subPath: config_ini
+  volumes:
+    - name: om-collect-secrets-volume
+      secret:
+        secretName: meeting-om-secrets
+secret:
+  enabled: false
+  name: meeting-om-secrets
+  path: ''
+  keysMaps:
+    config_ini:
+      key: ''

@@ -1,0 +1,894 @@
+# chartVersion: 1.0.1
+namespace: openeuler-website-docs
+imagePullSecret: huawei-swr-image-pull-secret
+serviceAccount:
+  create: true
+  name: openeuler-website-docs
+  automount: false
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: openeuler-website-docs
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-abc.txt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-docs
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+volumeMounts: []
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+# 不需要时置空
+# nodeSelector: {}
+nodeSelector: {}
+# 不需要时置空
+# autoscale: {}
+autoscale: {}
+# 不需要时置空
+# tolerations: {}
+tolerations:
+servers:
+  # common的配置必须在第一个
+  - name: openeuler-docs-v2
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openeuler-docs-v2
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-common-v1.0.20260622112538"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler-docs.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-24-03-lts-sp2
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-24-03-lts-sp2
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "24.03-lts-sp2-v1.0.20260622111345"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-24-03-lts-sp3
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-24-03-lts-sp3
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable-24-03-lts-sp3-v1.0.20260622111747"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-25-03
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-25-03
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-25.03-v1.0.20260622110611"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-20-03-lts
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-20-03-lts
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-20-03-lts-v1.0.20260204155701"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-20-03-lts-sp1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-20-03-lts-sp1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-20-03-lts-sp1-v1.0.20260204155516"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-20-03-lts-sp2
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-20-03-lts-sp2
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-20-03-lts-sp2-v1.0.20260204155327"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-20-03-lts-sp3
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-20-03-lts-sp3
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-20-03-lts-sp3-v1.0.20260204155056"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-20-03-lts-sp4
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-20-03-lts-sp4
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-20-03-lts-sp4-v1.0.20260204153830"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-20-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-20-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-20-09-v1.0.20260204155613"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-21-03
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-21-03
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-21-03-v1.0.20260204155420"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-21-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-21-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-21-09-v1.0.20260204155228"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-22-03-lts
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-22-03-lts
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-22-03-lts-v1.0.20260204153258"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-22-03-lts-sp1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-22-03-lts-sp1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-22-03-lts-sp1-v1.0.20260204153949"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-22-03-lts-sp2
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-22-03-lts-sp2
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-22-03-lts-sp2-v1.0.20260204154619"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-22-03-lts-sp3
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-22-03-lts-sp3
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-22-03-lts-sp3-v1.0.20260204153645"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-22-03-lts-sp4
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-22-03-lts-sp4
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-22-03-lts-sp4-v1.0.20260622112201"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-22-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-22-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-22-09-v1.0.20260204154924"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type:
+  - name: openeuler-docs-website-stable2-23-03
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-23-03
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-23-03-v1.0.20260204154753"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-23-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-23-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-23-09-v1.0.20260204154406"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-24-03-lts
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-24-03-lts
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-24-03-lts-v1.0.20260204153428"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-24-03-lts-sp1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-24-03-lts-sp1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-24-03-lts-sp1-v1.0.20260622111000"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-24-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-24-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-24-09-v1.0.20260204154152"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openeuler-docs-website-stable2-25-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: website-stable2-25-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/docs-test
+      tag: "stable2-25.09-v1.0.20260622110216"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://openeuler.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+ingress:
+  enabled: true
+  name: openeuler-website-docs-v2-ingress
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: 'openeuler-docs.test.osinfra.cn'
+secret:
+  enable: true
+  name: openeuler-website-docs-tls
+  path: secrets/data/infra-test/domain-tls
+  crtKey: tls.cert
+  crtKey: tls.cert
+  keyKey: tls.key
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: istio-system/istio-gateway-https
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE
+  vs:
+    name: openeuler-docs-vs
+    host: openeuler-docs.test.osinfra.cn
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: docs-website-common.openeuler-website-docs.svc.cluster.local
+              port:
+                number: 8080
+  dr:
+    - name: openeuler-docs-dr
+      serviceName: docs-website-common
+      port: 8080
+  pa:
+    - name: openeuler-docs-pa
+      podLabels:
+        app: docs-common

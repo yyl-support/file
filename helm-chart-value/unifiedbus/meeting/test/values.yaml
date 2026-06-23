@@ -1,0 +1,346 @@
+#chartVersion: 1.0.11
+namespace:
+  enabled: true
+  name: unifiedbus-meeting
+serviceAccount:
+  create: true
+  name: unifiedbus-meeting
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+image:
+  center:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-center
+    tag: "dev_ubact-d5ad59"
+    imagePullPolicy: IfNotPresent
+  platform:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+    tag: "main-4d5c5f"
+    imagePullPolicy: IfNotPresent
+  enter:
+    tag: dev_ubact-44bc79
+initContainer:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler
+    tag: 22.03-lts-sp3
+podAnnotations:
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: unifiedbus-meeting
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/infra-test/unifiedbus-meeting
+  vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/infra-test/unifiedbus-meeting
+  vault.hashicorp.com/agent-inject-secret-server.key: internal/data/infra-test/unifiedbus-meeting
+  vault.hashicorp.com/agent-inject-template-ca.pem: |
+    {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+    {{ .Data.data.MysqlCA }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+    {{ .Data.data.server_crt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+    {{ .Data.data.server_key }}
+    {{- end }}
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+ingress:
+  enabled: false
+  name: unifiedbus-meeting-server-ingress
+  host: "meeting.unifiedbus.test.osinfra.cn"
+  serviceName: meeting-center
+  serviceNumber: 8080
+# 后端使用ingress路径转发时启用ingressNew
+ingressNew:
+  enabled: true
+  name: meeting-center
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /api/v1/meeting$1
+  host: "unifiedbus.test.osinfra.cn"
+  path: /api-meeting(.*)
+  pathType: Prefix
+  secretName: meeting-server-tls
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: ""
+  # vs:
+  #   http:
+  #     - match:
+  #       - uri:
+  #           prefix: /api-platform/
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-platform.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  #     - match:
+  #       - uri:
+  #           prefix: /
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-center.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  # dr:
+  # - name: meeting-center
+  #   serviceName: meeting-center
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # - name: meeting-platform
+  #   serviceName: meeting-platform
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # pa:
+  # - name: meeting-center
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-center
+  # - name: meeting-platform
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-platform
+meetingCenter:
+  enabled: true
+  name: meeting-center
+  replicas: 1
+  podLabels:
+    app: meeting-center
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  service:
+    type: ClusterIP
+    annotations: {}
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/unifiedbus-meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/infra-test/unifiedbus-meeting
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+      {{ .Data.data.centerConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+      {{ .Data.data.centerSecrets }}
+      {{- end }}
+meetingPlatform:
+  enabled: true
+  name: meeting-platform
+  replicas: 1
+  podLabels:
+    app: meeting-platform
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  service:
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+    type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/unifiedbus-meeting
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/infra-test/unifiedbus-meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/infra-test/unifiedbus-meeting
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+      {{ .Data.data.platformConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |
+      {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+      {{ .Data.data.kafkacrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+      {{ .Data.data.platformSecrets }}
+      {{- end }}
+secret:
+  enabled: true
+  name: meeting-server-tls
+  specKeysMap:
+    ca.crt:
+      path: secrets/data/infra-test/unifiedbus-domain-tls
+      key: tls.cert
+    tls.crt:
+      path: secrets/data/infra-test/unifiedbus-domain-tls
+      key: tls.cert
+    tls.key:
+      path: secrets/data/infra-test/unifiedbus-domain-tls
+      key: tls.key
+cronjobCommon:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsUser: 1000
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/config
+    - name: VAULT_PATH
+      value: /vault/secrets/secrets.yaml
+    - name: MYSQL_TLS_PEM_PATH
+      value: /vault/secrets/ca.pem
+    - name: TLS_CRT_PATH
+      value: /vault/secrets/server.crt
+    - name: TLS_KEY_PATH
+      value: /vault/secrets/server.key
+cronjobs:
+  - enabled: true
+    name: unifiedbus-handle-meeting
+    labels:
+      app: unifiedbus-handle-meeting
+    concurrencyPolicy: Forbid
+    schedule: "*/15 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/unifiedbus-meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/infra-test/unifiedbus-meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python3 manage.py handle_meeting
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+      tag: "main-4d5c5f"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: true
+    name: unifiedbus-handle-recording
+    labels:
+      app: unifiedbus-handle-recording
+    concurrencyPolicy: Forbid
+    schedule: "30 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/unifiedbus-meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/infra-test/unifiedbus-meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python3 manage.py handle_recordings
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+      tag: "main-4d5c5f"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: true
+    name: unifiedbus-updating-sigs
+    labels:
+      app: unifiedbus-updating-sigs
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: true
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/unifiedbus-meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/infra-test/unifiedbus-meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+        {{ .Data.data.centerConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/infra-test/unifiedbus-meeting" -}}
+        {{ .Data.data.centerSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py sync_sig
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-center
+      tag: "dev_ubact-d5ad59"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi

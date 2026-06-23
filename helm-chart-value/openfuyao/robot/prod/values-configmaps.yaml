@@ -1,0 +1,376 @@
+configmaps:
+  - name: configmap-access
+    filename: config.yaml
+    content: |-
+      access:
+        repo_plugins:
+          - org_or_repo:
+              - openFuyao
+            plugin_name:
+              - robot-service-welcome
+              - robot-service-cla
+              - robot-service-lifecycle
+              - robot-service-label
+              - robot-service-review
+              - robot-service-assign
+        plugins:
+          - name: robot-service-welcome
+            endpoint: http://robot-universal-welcome-service.robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Issue Hook"
+          - name: robot-service-cla
+            endpoint: http://robot-universal-cla-service.robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-lifecycle
+            endpoint: http://robot-universal-lifecycle-service.robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+          - name: robot-service-label
+            endpoint: http://robot-universal-label-service.robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-review
+            endpoint: http://robot-universal-review-service.robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-assign
+            endpoint: http://robot-universal-assign-service.robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+              - "Issue Hook"
+
+  - name: configmap-assign
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openFuyao
+          enable_issue_assign: true
+
+      community_robot_id: openFuyao-bot
+      msg_multiple_assignee: "### 注意: \n该 issue 仅可指派一名负责人."
+      msg_assign_repeatedly: "### 注意: \n这个issue已经指派给 ***%s***. 请不要重复指派."
+      msg_not_allow_assign: "### 注意: \n该 issue 不可以指派给 ***%s***. 请指派给本仓库成员."
+      msg_not_allow_unassign: "### 注意: \n无法将***%s***从该issue中移除 .请先解除当前issue的负责人指派."
+      msg_default_assignee: "### 注意: \n本issue需要一个负责人. 当前没有指派任何负责人,我们将指派 ***%s*** 至该issue 的默认责任人."
+
+  - name: configmap-repo-watcher
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openfuyao/community
+      repo_owner:
+        - "openfuyao"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      sig_info_query: "dsfdsafasd5645dd"
+      community_name: "openfuyao"
+      fetch_interval: 3
+      member_manage_enable: false
+      member_manage_module:
+        maintainer_name: 成员
+        committer_name: 成员
+        repo_admin_name: Maintainer
+        repo_owner_name: Owner
+        add_member_to_repo:
+          - openfuyao
+        repo_member_from_enterprise:
+          - dolphin-m
+
+      repo_manage_enable: true
+      repo_setting_module:
+        merge_method: merge
+
+      sig_info_repo_save_dir: "/opt/app/repo/community"
+      sig_info_folder: "sig"
+      git_platform_domain: "atomgit.com"
+      sig_info_repo_owner: "openfuyao"
+      sig_info_repo_name: "community"
+      sig_info_repo_branch: "master"
+      sig_info_repo_clone_depth: "50"
+      startup_to_check_merge_count : "2"
+      org_white_list_to_create:
+        - openfuyao
+
+  - name: configmap-welcome
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openFuyao
+          community_name: openFuyao
+          command_link: https://gitcode.com/openFuyao/community/blob/master/zh/content/robot/%E7%A4%BE%E5%8C%BA%E5%91%BD%E4%BB%A4%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3.md
+          sig_info_link: "[%s](https://gitcode.com/openfuyao/community/blob/master/sig/%s/sig-info.yaml)"
+          welcome_message:
+            - "### 欢迎来到 %s 社区"
+            - "Hey %s , 感谢你对社区的贡献."
+            - "#### 机器人使用手册"
+            - "有关指令的使用，可以点击 **[此处](%s)** 查看详情。开发人员可以在每个PR或Issue下方评论特定指令来触发机器人任务。"
+            - "#### 联系指引"
+            - "有疑问可以联系 SIG: **%s** ,"
+            - "如果希望快速审核您的PR或ISSUE，请先联系维护者: %s ,"
+            - "维护者是： %s ,"
+            - "审核者是： %s ."
+            - "如果您有任何疑问，请联系仓库维护者: %s ."
+
+      user_mark_format: "@"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openfuyao
+      exclude_user:
+        - ""
+        - openFuyao-bot
+
+  - name: configmap-cla
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openFuyao
+          cla_label_yes: openFuyao-cla/yes
+          cla_label_no: openFuyao-cla/no
+          check_url: https://clasign.osinfra.cn/api/v1/individual-signing/67e7c745ea9ceaa8feb65567
+          sign_url: https://clasign.osinfra.cn/sign/67e7c745ea9ceaa8feb65567
+          employee_sign_url: https://clasign.osinfra.cn/sign-cla/67e7c745ea9ceaa8feb65567/employee
+          individual_sign_url: https://clasign.osinfra.cn/sign-cla/67e7c745ea9ceaa8feb65567/individual
+          faq_url: https://gitcode.com/openFuyao/community/blob/master/zh/content/robot/cla%E6%8C%87%E5%AF%BC.md
+          check_by_committer: true
+          lite_pr_committer:
+            email: "@noreply.gitcode.com"
+            email_patch: "noreply@gitee.com"
+            name: GitCode
+
+      user_mark_format: "@"
+      placeholder_committer: ""
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openfuyao
+      community_robot_id: openFuyao-bot
+      placeholder_cla_sign_guide_title: "### CLA 签署引导"
+      placeholder_cla_sign_pass_title: "### CLA 签署成功"
+      comment_command_trigger: "### CLA 签署指导手册  \n\n由于网络问题未能完成 CLA 检查，请通过评论 ***`/check-cla`*** 再次检查。"
+      comment_pr_no_commits: "### CLA 签署指导手册  \n\n此 PR 的 commits 无效，请检查。"
+      comment_some_need_sign: "### CLA 签署引导  \n\n %s , 感谢您的代码贡献。 \n\n以下 Commit(s) 没有签署 **<font color=green>_Contributor License Agreement (CLA)_</font>**。 \n\n%s \n\n如果您需要签署 CLA，[您可以点击此链接去签署 CLA ](%s)。  \n\n如果需要检查邮箱是否配置正确， [可以点击 **<font color=red>_FAQs_</font>** 去查看使用手册](%s) 。 \n\n在完成 CLA 签署或者更新完邮箱后, 需再次评论 ***`/check-cla`*** 来检查 CLA 的签署状态。"
+      comment_update_label_failed: "### CLA 签署指导手册  \n\n添加 CLA 标签失败，请通过评论 ***`/check-cla`*** 再次检查。 :pray: "
+      comment_all_signed: "### CLA 签署成功  \n %s, 感谢您的代码贡献。 所有的代码贡献者都已完成了 CLA 签署。 :+1: "
+      invalid_email: "@@__no_match__"
+      invalid_email_message: "这包含一个无效的邮箱，请检查下！"
+      cla_service_failed_message: "检查CLA是否签署失败！请再次评论下 `/check-cla` "
+      comment_unsigned_title: "| Commit | 原因 |\n|--|--|"
+      comment_unsigned_line: "\n| %s | %s |"
+      not_signed_email_message: "这条 Commit 的邮箱未签署 CLA ！请检查下邮箱是否正确配置。"
+      message_individual_version_behind: "因为个人 CLA 的协议内容已更新，[请点击这里重新查看下协议内容并再次签署](https://clasign.osinfra.cn/sign-cla/67e7c745ea9ceaa8feb65567/individual-update?email=%s)。"
+      message_corporation_version_behind: "因为企业 CLA 的协议内容已更新，请联系 CLA 企业管理员进行处理。"
+      cla_signature_type_corporation: "corporation"
+  
+  - name: configmap-label
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openFuyao
+          auto_remove_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          manual_add_or_remove_pr_label_rules:
+            - label_name: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openfuyao
+      community_robot_id: openFuyao-bot
+      command_reg_exp_key_word: "kind|priority|sig|good"
+      delayed_seconds: 2
+      comment_remove_labels_when_pr_source_code_updated: "###注意:\n 当前PR代码已经发生变化(代码更新或者PR关闭)，所以移除以下标签: %s."
+      comment_label_command_conflict: "### 标签指令手册 \n %s ， 不能使用评论同时添加和删除同一个标签，请检查、改正后再次评论。"
+      comment_update_label_failed: "### 标签指令手册 \n %s ，更新标签 **_%s_** 失败，请稍后再次重试。"
+      comment_add_not_exist_label: "### 标签指令手册 \n %s ，当前仓库或组织中没有 **_%s_** 标签，添加失败，请联系sig组管理员添加标签后再次重试。"
+      comment_add_label_by_self: "### 注意: \n @%s , 您不能给自己检视代码, 请联系仓库 maintainers/committers."
+      comment_add_label_successful: "### \n- 标签 **%s** 已被添加. 这意味着 **%s** 已经检查过代码了. :wave: \n ##### *Tips* \n- 如果PR还没有被合入, 请评论 **`/check-pr`** 进行检查. :smile: "
+      comment_no_permission_for_user_list: "标签 **%s** 只有 **%s** 有权限, 请联系他们."
+      comment_no_permission_for_sig_member: "谢谢您的检视, 您的意见对于我们很重要. 仓库 maintainers 会认真考虑您的意见."
+      comment_no_permission_for_repo_member: "您当前没有添加标签 **%s** 的权限."
+      comment_permission_tip_for_branch_keeper: "The repository's branch is control of maintainer and branch keeper!"
+      comment_pr_no_found_commits: "### 注意  \n PR commit(s) 信息无法获取, 请您认真检查一下!"
+      comment_pr_no_found_code_change: "### 注意  \n PR 代码变化无法获取,  请您认真检查一下!"
+      feedback_comment_prefix: "### 标签指令手册  \n%s"
+      add_label_to_feedback:
+        - "lgtm"
+        - "approved"
+        - "lgtm-"
+
+  - name: configmap-review
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openFuyao
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openFuyao-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openFuyao-bot
+                legal_operate_time: true
+              - label_name: ci-successful
+                need_num: 1
+                legal_operator: openFuyao-bot
+                legal_operate_time: true
+              - label_name: openFuyao-cla/yes
+                need_num: 1
+                legal_operator: openFuyao-bot
+                legal_operate_time: false
+          merge_block_metrics:
+            label_metric:
+              - label_name: ci-failed
+                need_num: 1
+                legal_operator: openFuyao-bot
+                legal_operate_time: false
+
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openfuyao
+      community_robot_id: openFuyao-bot
+      comment_failed_list_pr_operation_logs: "### 注意\n 查询PR操作日志失败。"
+      comment_failed_list_pr_labels: "### 注意\n PR 标签获取失败!"
+      comment_pr_work_in_process: "### 注意\n The PR标签正在被处理中!"
+      comment_pr_no_found_commits: "### 注意  \n PR commit(s) 信息无法获取, 请您认真检查一下!"
+      comment_pr_cannot_merge_reason: "### 合入校验失败\n@%s, 当前PR不可合入，原因如下:\n\n%s"
+      comment_msg_missing_labels: "##### *缺少标签*\n- PR当前没有以下标签: %s。"
+      comment_msg_block_labels: "##### *标签*\n- the **%s** 导致PR无法合入."
+      comment_msg_not_enough_label: "##### *标签没满足合入条件*\n%s"
+      comment_msg_not_enough_label_template: "- PR合入需要以下标签 **%d** **%s**, 但是当前只有**%d**."
+      comment_non_compliance_label_operations: "##### *不合规操作标签说明*\n%s"
+      comment_non_compliance_label_operation_template: "- 标签 **%s** 应该被 **%s** 添加, 但当前是 **%s** 添加的!"
+      comment_failed_merge_pr: "### 合并PR失败 \n - reason: %s"
+      comment_failed_merge_pr_unknown_reason: "未知错误发生, 请联系社区基础设施团队。"
+      comment_allow_label_log_non_compliance: ""
+      label_usage_tip_title: "##### *标签使用技巧*"
+      label_usage_tip_detail: "- **%s**: %s"
+      action_add_label_gitcode: "add label"
+      action_delete_label_gitcode: "delete label"
+      action_commit_update_gitcode: "commit"
+      action_target_branch_change_gitcode: "target_branch"
+      action_reopen_gitcode: "opened"
+      action_add_label_gitee: "add_label"
+      action_delete_label_gitee: "remove_label"
+      label_unresolved_reviews: "unresolved-reviews"
+      label_no_passed_code_owners: "no-pass-all-review"
+      comment_unresolved_reviews: "### 注意\n 当前PR有 **%d** 条评论意见. 其中 **%d** 条未处理完毕. 全部处理完后, 请评论 ***`/check-pr`*** 进行检查. :smile: "
+      comment_no_passed_code_owners: "### 注意\n 当前PR需要 **%d** 来检视. **%d** 没有检视. 如果都检视完毕, 请评论 ***`/check-pr`*** 进行检查. :smile: "
+      comment_not_found_code_owners: "### Notice\n 当前PR没发现codeowners. "
+      comment_can_not_get_frozen_branch_data: "### 注意\n The 当前PR无法获取详情"
+      comment_frozen_branch_users: "The target branch of PR has been frozen and it can be merge only by branch owners: @%s"
+      comment_label_expiry: "标签 %s 已经失效. 请重新评论进行添加."
+      comment_pr_no_found_code_change: "### 注意  \n PR 代码变化无法获取,  请您认真检查一下!"
+      branch_frozen_community: openfuyao
+      release_manage_org: openfuyao
+      release_manage_repo: release-management
+      release_manage_file_path: release-management.yaml
+      release_manage_ref: master
+      comment_failed_list_pr_comments: "### 注意\n 当前PR无法获取评论信息!"
+      pr_merge_feedback_comment_prefix: "### Review Code Feedback \n- The label"
+      pr_merge_feedback_comment_regexp: '- 标签 .* 已经被添加至本PR. 这意味着 \*\*(.*)\*\* 已经检视过该代码. :wave: '
+      label_usage_description:
+        - label_name: lgtm
+          description: "合并PR时必要的标签。代码仓管理人员可以通过评论 **`/lgtm`** 来添加标签。PR创建者可以通过评论 **`/lgtm cancel`** 来删除标签，但无法通过评论 **`/lgtm`** 添加标签。"
+        - label_name: approved
+          description: "合并PR时必要的标签。代码仓管理人员可以通过评论 **`/approve`** 来添加标签，通过评论 **`/approve cancel`** 来删除标签。"
+        - label_name: openFuyao-cla/yes
+          description: "合并PR时的必要标签。PR的每一位代码贡献者必须签署Contributor License Agreement （简称CLA），否则PR将无法合并。在CLA签署成功后，PR的创建者可以通过评论 **`/check-cla`** 触发机器人任务，在机器人检验成功后，会给PR添加相应的cla标签。"
+        - label_name: ci-successful
+          description: "合并PR时的必要标签。代码需要通过CI测试，否则PR将无法合并。可以通过评论 **`/retest`** 重新触发CI。"
+        - label_name: ci-failed
+          description: "合并PR时的必要标签。代码需要通过CI测试，否则PR将无法合并。可以通过评论 **`/retest`** 重新触发CI。"
+
+  - name: configmap-lifecycle
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openFuyao
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openfuyao
+      community_robot_id: openFuyao-bot
+      event_state_opened: opened
+      issue_action_reopen: reopen
+      event_state_closed: closed
+      issue_action_close: close
+      comment_no_permission_close_issue: "### 注意 \n@%s ，您不能操作关闭此 Issue，因为您不是此 Issue 的创建者或仓库管理员，也不是sig组成员。"
+      comment_no_permission_reopen_issue: "### 注意 \n@%s ，您不能操作打开此 Issue，因为您不是此 Issue 的创建者或仓库管理员，也不是sig组成员。"
+      comment_list_linking_pull_requests_failure: "### 注意 \n@%s ， 此 Issue 关联 PR 失败，请重新关联"
+      comment_no_permission_close_pr: "### 注意 \n@%s ， 您不能操作关闭此 PR，因为您不是此 PR 的创建者或仓库管理员，也不是sig组成员。"
+      comment_not_close_issue: "### 注意 \n@%s ，此 issue 当前受CVE服务管控，无法直接关闭，请输入指令 **/check-issue** 核验"
+      comment_issue_has_open_pr: "### 注意 \n@%s ， 此 Issue 关联了开启的 PR，不能关闭。"

@@ -1,0 +1,76 @@
+{{- range .Values.deployments }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  {{- with .labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .replicaCount }}
+  selector:
+    matchLabels:
+      {{- toYaml .podLabels | nindent 6 }}
+  strategy:
+    {{- toYaml .strategy | nindent 4 }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .podAnnotations | nindent 8 }}
+      labels:
+        {{- toYaml .podLabels | nindent 8 }}
+    spec:
+      serviceAccountName: {{ $.Values.serviceAccount.name }}
+      imagePullSecrets:
+      - name: {{ $.Values.imagePullSecret }}
+      {{- with .podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      containers:
+        - name: {{ .name }}
+          image: "{{ .image.repository }}:{{ .image.tag }}"
+          imagePullPolicy: {{ .image.pullPolicy }}
+          env:
+          - name: APPLICATION_PATH
+            value: {{ .applicationPath }}
+          resources:
+            {{- toYaml .resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              {{- toYaml .heathCheckPath | nindent 14 }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              {{- toYaml .heathCheckPath | nindent 14 }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          ports:
+            - containerPort: {{ .containerPort }}
+              name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+      - name: token-vol
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+{{- end }}

@@ -1,0 +1,81 @@
+{{- if .Values.ingress.main.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.ingress.main.name }}
+  {{- with .Values.ingress.main.annotations }}
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.ingress.host }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.website.name }}-service
+            port:
+              number: {{ $.Values.website.service.port }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.secretName }}
+{{- end }}
+
+{{- range .Values.ingress.subpaths }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .name }}
+  {{- with .annotations }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ $.Values.ingress.host }}
+    http:
+      paths:
+      - path: {{ .path }}
+        pathType: {{ .pathType }}
+        backend:
+          service:
+            name: {{ .serviceName }}
+            port:
+              number: {{ .servicePort }}
+  tls:
+  - hosts:
+      - {{ $.Values.ingress.host }}
+    secretName: {{ $.Values.ingress.secretName }}
+{{- end }}
+
+{{- if .Values.ingress.rewrite.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.ingress.rewrite.name }}
+  {{- with .Values.ingress.rewrite.annotations }}
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.ingress.rewrite.host }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.rewrite.host }}
+      secretName: {{ .Values.ingress.secretName }}
+{{- end }}

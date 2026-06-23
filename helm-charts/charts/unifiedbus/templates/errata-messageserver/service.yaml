@@ -1,0 +1,21 @@
+{{- if .Values.erratamsg.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.erratamsg.name }}-service
+  labels:
+    {{- with .Values.erratamsg.podLabels }}
+    {{- toYaml . | nindent 4}}
+    {{- end }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.erratamsg.service.port }}
+      targetPort: {{ .Values.erratamsg.service.targetPort }}
+      protocol: TCP
+      name: http-port
+  {{- with .Values.erratamsg.podLabels }}
+  selector:
+    {{- toYaml . | nindent 4}}
+  {{- end }}
+{{- end }}

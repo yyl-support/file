@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.exim4.name }}
+  {{- with .Values.exim4.deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.exim4.replicas }}
+  selector:
+    {{- with .Values.exim4.podLabels }}
+    matchLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  serviceName: mail-suit-service
+  template:
+    metadata:
+      {{- if .Values.istio.enabled }}
+      annotations:
+        {{- toYaml .Values.istio.exim4Annotation | nindent 8 }}
+      {{- end }}
+      {{- with .Values.exim4.podLabels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- if .Values.exim4.nodeSelector }}
+      nodeSelector: {{- toYaml .Values.exim4.nodeSelector | nindent 8 }}
+      {{- end }}
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          exec tini -- exim -bd -v;
+        image: "{{ .Values.exim4.image.repository }}:{{ .Values.exim4.image.tag }}"
+        imagePullPolicy: {{ .Values.exim4.image.imagePullPolicy }}
+        name: {{ .Values.exim4.name }}
+        env:
+        {{- range .Values.exim4.env.secretRef.keys }}
+        - name: {{ .name }}
+          valueFrom:
+            secretKeyRef:
+              key: {{ .key }}
+              name: {{ $.Values.exim4.env.secretRef.name }}
+        {{- end }}
+        {{- with .Values.exim4.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts: {{- toYaml .Values.exim4.volumeMounts | nindent 8 }}
+      volumes:
+        {{- toYaml .Values.exim4.volumes | nindent 6 }}
+  updateStrategy:
+    type: RollingUpdate

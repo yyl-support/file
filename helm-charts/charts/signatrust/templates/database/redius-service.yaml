@@ -1,0 +1,17 @@
+{{- if .Values.database.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.database.redis.name }}
+  namespace: {{ .Values.namespace }}
+  annotations: {{ include "signatrust.annotations" . | indent 4 }}
+spec:
+  type: {{ .Values.database.redis.type }}
+  ports:
+    - name: {{ .Values.database.redis.port.name }}
+      protocol: {{ .Values.database.redis.port.protocol }}
+      port: {{ .Values.database.redis.port.port }}
+      targetPort: {{ .Values.database.redis.port.targetPort }}
+  selector:
+    component: {{ .Values.database.redis.component }}
+{{- end }}

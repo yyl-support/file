@@ -1,0 +1,44 @@
+{{- if .Values.cronjob.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.cronjob.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  schedule: {{ .Values.cronjob.schedule }}
+  concurrencyPolicy: {{ .Values.cronjob.policy }}
+  startingDeadlineSeconds: 180
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            {{- toYaml .Values.cronjob.annotations | nindent 12 }}
+          labels:
+            app: easysearch-import-refactor
+        spec:
+          serviceAccount: {{ .Values.serviceAccount.name }}
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            {{- toYaml .Values.imagePullSecret | nindent 12 }}  
+          automountServiceAccountToken: false
+          containers:
+          - image: "{{.Values.cronjob.image.repository}}:{{.Values.cronjob.image.tag}}"
+            imagePullPolicy: IfNotPresent 
+            name: refactor
+            env:
+              {{- toYaml .Values.cronjob.env | nindent 14 }}
+            resources:
+              {{- toYaml .Values.cronjob.resources | nindent 14 }}
+            securityContext:
+              {{- toYaml .Values.containerSecurityContext | nindent 14 }}
+          volumes:
+          - name: token-vol
+            projected:
+              sources:
+              - serviceAccountToken:
+                  audience: api
+                  expirationSeconds: 600
+                  path: token
+{{- end }}

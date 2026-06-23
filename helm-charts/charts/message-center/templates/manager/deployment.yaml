@@ -1,0 +1,46 @@
+{{- if .Values.managerDeployment.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.managerDeployment.name }}
+  namespace: {{ .Values.namespace }}
+  {{- with .Values.deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.managerDeployment.app }}
+  replicas: {{ .Values.managerDeployment.replicaCount }}
+  strategy:
+    {{- toYaml .Values.managerDeployment.strategy | nindent 4 }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.managerDeployment.podAnnotations | nindent 8 }}
+      labels:
+        app: {{ .Values.managerDeployment.app }}
+    spec:
+      serviceAccount: {{ .Values.serviceAccount.name }}
+      imagePullSecrets:
+      - name: {{ .Values.imagePullSecrets.name }}
+      automountServiceAccountToken: false
+      containers:
+      - name: server
+        image: {{ .Values.managerDeployment.image.repository }}:{{ .Values.managerDeployment.image.tag }}
+        imagePullPolicy: {{ .Values.managerDeployment.image.pullPolicy }}
+        args:
+        {{- toYaml .Values.managerDeployment.args | nindent 8 }}
+        livenessProbe:
+          {{- toYaml .Values.managerDeployment.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.managerDeployment.readinessProbe | nindent 10 }}
+        resources:
+          {{- toYaml .Values.managerDeployment.resources | nindent 10 }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+      volumes:
+      {{- toYaml .Values.volumes | nindent 6 }}
+{{- end }}

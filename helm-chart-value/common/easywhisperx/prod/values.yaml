@@ -1,0 +1,135 @@
+# Default values for easywisperx.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# chartVersion: 1.0.0
+replicaCount: 1
+strategy:
+  type: Recreate
+namespace: easywhisperx
+image:
+  repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/easywhisperx-server
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "a39a4398-20260616143701"
+imagePullSecrets:
+  - name: huawei-swr-instance-image-pull-secret
+nameOverride: "easywhisperx"
+fullnameOverride: "easywhisperx"
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "easywhisperx"
+podAnnotations:
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/role: 'easywhisperx'
+  vault.hashicorp.com/agent-inject-perms-config.ini: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-inject-secret-config.ini: 'internal/data/infra-common/easywhisperx'
+  vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/infra-common/easywhisperx\" -}}  \n{{ .Data.data.config }}\n{{- end }}\n"
+  vault.hashicorp.com/secret-volume-path: "/app/easywhisperx/config"
+podSecurityContext:
+  fsGroup: 1000
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+  name: easywisperx
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: easywhisperx.osinfra.cn
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: easywhisperx-tls
+      hosts:
+        - easywhisperx.osinfra.cn
+secret:
+  enabled: true
+  name: easywhisperx-tls
+  path: secrets/data/infra-common/osinfra-cn
+  keysMap:
+    ca.crt: server.cert
+    tls.crt: server.cert
+    tls.key: server.key
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 1
+    memory: 2Gi
+    # volcano.sh/gpu-mem.128Mi: 240
+  requests:
+    cpu: 0.5
+    memory: 1Gi
+    # volcano.sh/gpu-mem.128Mi: 240
+autoscale:
+  enabled: false
+  # start: "30 8 * * *"
+  # end: "55 23 * * *"
+nodeSelector: {}
+tolerations: []
+affinity: {}
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  tcpSocket:
+    port: 8000
+  timeoutSeconds: 5
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  tcpSocket:
+    port: 8000
+  timeoutSeconds: 5
+pvc:
+  enabled: true
+  name: easywhisperx-data-pvc
+  accessModes: ReadWriteOnce
+  storage: 2Gi
+  storageClassName: csi-disk
+  volumeMode: Filesystem
+volumeMounts:
+  - name: data
+    mountPath: /home/appuser/.cache/huggingface/hub
+    subPath: whisperhub
+  - name: data
+    mountPath: /home/appuser/.cache/torch
+    subPath: torch
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+  - name: data
+    persistentVolumeClaim:
+      claimName: easywhisperx-data-pvc

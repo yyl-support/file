@@ -1,0 +1,45 @@
+{{- if .Values.istio.enabled }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.mailweb.name }}-virtualservice
+spec:
+  gateways:
+  - {{ .Values.istio.gateway }}
+  hosts:
+  - {{ .Values.host }}
+  {{- with .Values.istio.http }}
+  http:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{ .Values.mailweb.name }}-destinationrule
+spec:
+  host: {{ .Values.mailweb.service.name}}
+  trafficPolicy:
+    portLevelSettings:
+      - port:
+          number: {{ .Values.mailweb.service.portNumber }}
+        tls:
+          mode: {{ .Values.istio.tls.mode }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: {{ .Values.mailweb.name }}-peerauthentication
+spec:
+  mtls:
+    mode: {{ .Values.istio.mtlsMode }}
+  selector:
+    matchLabels: {{- toYaml .Values.mailweb.podLabels | nindent 6 }}
+{{- end }}

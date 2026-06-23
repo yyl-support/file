@@ -1,0 +1,69 @@
+label:
+  enabled: true
+  configmap:
+    name: configmap-label
+    config: |-
+      config_items:
+        - repos:
+            - testmyai
+          clear_labels:
+            - ci_successful
+
+      sig_info_url: "https://magicapi.test.osinfra.cn/stat/sig/detail/info"
+      community_name: openjiuwen
+      user_mark_format: "@"
+      squash_commit_label: stat/needs-squash
+      comment_command_trigger: "### 标签指令手册 \n由于网络问题未能完成标签操作，请稍后再次重试。"
+      comment_remove_labels_when_pr_source_code_updated: "### 消息通知  \n此 PR 有新的代码提交需要再次审视, 以下标签已被移除：**_%s_** 。"
+      comment_label_command_conflict: "### 标签指令手册 \n %s ， 不能使用评论同时添加和删除同一个标签，请检查、改正后再次评论。"
+      comment_update_label_failed: "### 标签指令手册 \n %s ，更新标签 **_%s_** 失败，请稍后再次重试。"
+      comment_add_not_exist_label: "### 标签指令手册 \n %s ，当前仓库或组织中没有 **_%s_** 标签，添加失败，请联系sig组管理员添加标签后再次重试。"
+      remove_pr_label_delayed_seconds: 2
+      community_robot_id: openJiuwen-bot
+  deployment:
+    podSecurityContext:
+      seccompProfile:
+        localhostProfile: infra-seccomp.json
+        type: Localhost
+    replicas: 1
+    robotUniversalLabel:
+      args:
+        - --port=8888
+        - --config-file=/app/conf/config
+        - --handle-path=gitcode-hook
+        - --token-path=/vault/secrets/token
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsUser: 1000
+      resources:
+        limits:
+          cpu: 100m
+          memory: 300Mi
+        requests:
+          cpu: 100m
+          memory: 300Mi
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-token: "0400"
+    vault.hashicorp.com/agent-inject-secret-token: internal/data/infra-test/openjiuwen-robot
+    vault.hashicorp.com/agent-inject-template-token: |
+      {{- with secret "internal/data/infra-test/openjiuwen-robot" -}}
+      {{ .Data.data.token }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: openjiuwen-robot
+    vault.hashicorp.com/tls-skip-verify: "true"
+  NetworkPolicy:
+    enabled: true

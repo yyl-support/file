@@ -1,0 +1,115 @@
+{{- if .Values.autoscale.enabled }}
+{{- if .Values.collectDeployment.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.collectDeployment.name }}-autoscaler
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.collectDeployment.name }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ .Values.collectDeployment.replicaCount | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: Asia/Shanghai
+    type: cron
+{{- end }}
+
+{{- if .Values.collectCronDeployment.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.collectCronDeployment.name }}-autoscaler
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.collectCronDeployment.name }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ .Values.collectCronDeployment.replicaCount | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: Asia/Shanghai
+    type: cron
+{{- end }}
+
+{{- if .Values.collectGithookDeployment.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.collectGithookDeployment.name }}-autoscaler
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.collectGithookDeployment.name }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ .Values.collectGithookDeployment.replicaCount | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: Asia/Shanghai
+    type: cron
+{{- end }}
+
+{{- if .Values.managerDeployment.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.managerDeployment.name }}-autoscaler
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.managerDeployment.name }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ .Values.managerDeployment.replicaCount | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: Asia/Shanghai
+    type: cron
+{{- end }}
+
+{{- if .Values.pushDeployment.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.pushDeployment.name }}-autoscaler
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.pushDeployment.name }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ .Values.pushDeployment.replicaCount | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: Asia/Shanghai
+    type: cron
+{{- end }}
+
+{{- if .Values.transferDeployment.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.transferDeployment.name }}-autoscaler
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.transferDeployment.name }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ .Values.transferDeployment.replicaCount | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: Asia/Shanghai
+    type: cron
+{{- end }}
+{{- end }}

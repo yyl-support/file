@@ -1,0 +1,52 @@
+repoWatcher:
+  enabled: false
+  configmap:
+    name: configmap-repowatcher
+    config: 
+  deployment:
+    podSecurityContext:
+      seccompProfile:
+        localhostProfile: infra-seccomp.json
+        type: Localhost
+    replicas: 1
+    robotUniversalLifecycle:
+      args:
+        - --port=8888
+        - --config-file=/app/conf/config
+        - --handle-path=gitcode-hook
+        - --token-path=/vault/secrets/token
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsUser: 1000
+      resources:
+        limits:
+          cpu: 100m
+          memory: 300Mi
+        requests:
+          cpu: 100m
+          memory: 300Mi
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-token: "0400"
+    vault.hashicorp.com/agent-inject-secret-token: internal/data/infra-test/openjiuwen-robot
+    vault.hashicorp.com/agent-inject-template-token: |
+      {{- with secret "internal/data/infra-test/openjiuwen-robot" -}}
+      {{ .Data.data.token }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: openjiuwen-robot
+    vault.hashicorp.com/tls-skip-verify: "true"
+  NetworkPolicy:
+    enabled: true

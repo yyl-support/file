@@ -1,0 +1,74 @@
+{{- if .Values.welcome.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.community.name }}-summary-welcome-deployment
+  namespace: {{ .Values.namespace.name }}
+spec:
+  replicas: {{ .Values.welcome.replicaCount }}
+  {{- with .Values.welcome.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    {{- with .Values.welcome.podLabels }}
+    matchLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  template:
+    metadata:
+      {{- with .Values.welcome.podAnnotations }}
+      annotations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.welcome.podLabels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      imagePullSecrets:
+      - name: {{ .Values.welcome.image.pullSecret }}
+      serviceAccount: {{ .Values.serviceAccount.name }}
+      {{- with .Values.welcome.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      containers:
+      - name: {{ .Values.welcome.name }}
+        image: {{ .Values.welcome.image.repository }}:{{ .Values.welcome.image.tag }}
+        imagePullPolicy: {{ .Values.welcome.image.pullPolicy }}
+        {{- range .Values.welcome.env }}
+        env:
+        - name: {{ .name }}
+          value: {{ .value }}
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.welcome.service.targetPort }}
+          name: http
+          protocol: TCP
+        {{- with .Values.welcome.livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.welcome.readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.welcome.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.welcome.volumeMounts }}
+        volumeMounts:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.welcome.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with .Values.welcome.volumes }}
+      volumes:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+{{- end }}

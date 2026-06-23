@@ -1,0 +1,17 @@
+{{- range .Values.services }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  type: {{ .type }}
+  ports:
+    - name: {{ .portName }}
+      port: {{ .port }}
+      protocol: TCP
+      targetPort: {{ .targetPort }}
+  selector:
+    {{- toYaml .podLabels | nindent 4 }}
+{{- end }}

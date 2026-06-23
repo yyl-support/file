@@ -1,0 +1,15 @@
+{{- if .Values.client.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s-volume" .Values.client.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations: 
+    everest.io/disk-volume-type: SSD
+spec:
+  accessModes: {{ toYaml .Values.client.pvc.accessModes | nindent 2 }}
+  resources:
+    requests:
+      storage: {{ .Values.client.pvc.size }}
+  storageClassName: {{ .Values.client.pvc.storageClassName }}
+{{- end }}

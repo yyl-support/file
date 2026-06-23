@@ -1,0 +1,78 @@
+{{- if .Values.client.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.client.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+{{ include "signatrust.annotations" . | indent 4 }}
+spec:
+  {{- if not .Values.global.autoscaler.enabled }}
+  replicas: {{ .Values.client.replicas }}
+  {{- with $.Values.client.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  selector:
+    matchLabels:
+      component: {{ .Values.client.name }}
+  template:
+    metadata:
+      labels:
+        component: {{ .Values.client.name }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.client.image.pullSecret }}
+      automountServiceAccountToken: false
+      containers:
+        - name: {{ .Values.client.name }}
+          image: "{{ .Values.client.image.repository }}:{{ .Values.client.image.tag }}"
+          imagePullPolicy: {{ .Values.client.image.pullPolicy }}
+
+          env:
+            - name: {{ .Values.client.env.name }}
+              value: {{ .Values.client.env.value | quote }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.client.resources.requests.cpu }}
+              memory: {{ .Values.client.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.client.resources.limits.cpu }}
+              memory: {{ .Values.client.resources.limits.memory }}
+
+          command:
+{{- range .Values.client.command }}
+            - {{ . | quote }}
+{{- end }}
+
+          volumeMounts:
+            - name: config-volume
+              mountPath: {{ .Values.client.mounts.config.mountPath }}
+              subPath: {{ .Values.client.mounts.config.subPath }}
+            - name: secret
+              mountPath: {{ .Values.client.mounts.certCrt.mountPath }}
+              subPath: {{ .Values.client.mounts.certCrt.subPath }}
+            - name: secret
+              mountPath: {{ .Values.client.mounts.certKey.mountPath }}
+              subPath: {{ .Values.client.mounts.certKey.subPath }}
+            - name: client-volume
+              mountPath: {{ .Values.client.mounts.data.mountPath }}
+
+          securityContext:
+            allowPrivilegeEscalation: {{ .Values.client.securityContext.allowPrivilegeEscalation }}
+            runAsUser: {{ .Values.client.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.client.securityContext.runAsGroup }}
+
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ .Values.client.volumes.configMapName }}
+        - name: client-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.client.volumes.pvcName }}
+        - name: secret
+          secret:
+            secretName: {{ .Values.client.volumes.secretName }}
+{{- end }}

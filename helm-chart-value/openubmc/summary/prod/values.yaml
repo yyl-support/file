@@ -1,0 +1,263 @@
+# 1.0.0
+namespace:
+  name: openubmc-summary
+community:
+  name: openubmc
+serviceAccount:
+  name: community-summary
+  automount: false
+imagePullSecret: huawei-swr-image-pull-secret
+tls:
+  enable: true
+  secret:
+    path: secrets/data/openubmc/openubmc-cn-tls
+    ca: tls.cert
+    key: tls.key
+welcome:
+  enabled: false
+  name: welcome
+  replicaCount: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  podLabels:
+    app: openubmc-summary-welcome
+  podAnnotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+    vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-abc.txt: internal/data/openubmc/openubmc-website
+    vault.hashicorp.com/agent-inject-secret-dhparam.pem: internal/data/openubmc/openubmc-website
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/openubmc/openubmc-website
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/openubmc/openubmc-website
+    vault.hashicorp.com/agent-inject-template-abc.txt: |
+      {{- with secret "internal/data/openubmc/openubmc-website" -}}
+      {{ .Data.data.certificatePassword }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+      {{- with secret "internal/data/openubmc/openubmc-website" -}}
+      {{ .Data.data.dhparamPem }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/openubmc/openubmc-website" -}}
+      {{ .Data.data.ServerCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/openubmc/openubmc-website" -}}
+      {{ .Data.data.ServerKey }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/role: community-summary
+    vault.hashicorp.com/secret-volume-path: /etc/nginx/cert/
+  podSecurityContext:
+  image:
+    pullSecret: huawei-swr-image-pull-secret
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/summary-welcome-prod
+    tag: 2025-6115fc
+    pullPolicy: IfNotPresent
+  env:
+  service:
+    portName: tls-1
+    port: 8080
+    targetPort: 8080
+    type: ClusterIP
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1000Mi
+    requests:
+      cpu: "1"
+      memory: 1000Mi
+  volumeMounts:
+  securityContext:
+  volumes:
+  ingress:
+    enabled: false
+    annotations:
+    host: summary-welcome.openubmc.cn
+    className: nginx
+oauth:
+  - provider: gitcode
+    replicaCount: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      k8s-app: openubmc-oauth2-proxy
+    podAnnotations:
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/openubmc/oauth2-proxy
+      tag: 9afd647d7b62b5699dfbe1cada880e4b8658318e
+      pullPolicy: Always
+    args:
+      - --provider=gitcode
+      - --email-domain=*
+      - --proxy-prefix=/oauth2
+      - --skip-validate-email=true
+      - --skip-auth-regex=^/agreement_zh.html
+      - --skip-auth-regex=^/agreement_en.html
+      - --upstream=http://openubmc-summary-website-service.openubmc-summary.svc.cluster.local:8080
+      - --http-address=0.0.0.0:4180
+      - --cookie-expire=6h0m0s
+      - --set-xauthrequest=true
+      - --custom-templates-dir=/bin/static/login
+      - --custom-templates-sign-in=ubmc.html
+    env:
+      - name: OAUTH2_PROXY_CLIENT_ID
+        value: openubmc_client_id
+      - name: OAUTH2_PROXY_CLIENT_SECRET
+        value: openubmc_client_secret
+      - name: OAUTH2_PROXY_COOKIE_SECRET
+        value: openubmc_cookie_secret
+    secret:
+      name: openubmc-oauth-secrets
+      path: secrets/data/openubmc/summary
+    service:
+      port: 4180
+      targetPort: 4180
+      type: ClusterIP
+    livenessProbe:
+      failureThreshold: 3
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      tcpSocket:
+        port: 4180
+      timeoutSeconds: 5
+    readinessProbe:
+      failureThreshold: 3
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      tcpSocket:
+        port: 4180
+      timeoutSeconds: 5
+    resources:
+      limits:
+        cpu: 1
+        memory: 1Gi
+      requests:
+        cpu: 1
+        memory: 1Gi
+    volumeMounts:
+    securityContext:
+    volumes:
+    ingress:
+      annotations:
+      host: summary.openubmc.cn
+      className: nginx
+website:
+  enabled: true
+  name: summary-website
+  replicaCount: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  podLabels:
+    app: openubmc-summary
+  podAnnotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+    vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-abc.txt: internal/data/openubmc/openubmc-website
+    vault.hashicorp.com/agent-inject-secret-dhparam.pem: internal/data/openubmc/openubmc-website
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/openubmc/openubmc-website
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/openubmc/openubmc-website
+    vault.hashicorp.com/agent-inject-template-abc.txt: |
+      {{- with secret "internal/data/openubmc/openubmc-website" -}}
+      {{ .Data.data.certificatePassword }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+      {{- with secret "internal/data/openubmc/openubmc-website" -}}
+      {{ .Data.data.dhparamPem }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/openubmc/openubmc-website" -}}
+      {{ .Data.data.ServerCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/openubmc/openubmc-website" -}}
+      {{ .Data.data.ServerKey }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: community-summary
+    vault.hashicorp.com/secret-volume-path: /etc/nginx/cert/
+  podSecurityContext:
+  image:
+    pullSecret: huawei-swr-image-pull-secret
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/summary
+    tag: v1.0.20251231170806
+  env:
+  service:
+    portName: tls-1
+    port: 8080
+    targetPort: 8080
+    type: ClusterIP
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  resources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 2
+      memory: 2Gi
+  volumeMounts:
+  securityContext:
+  volumes:
+    - name: token-vol
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token

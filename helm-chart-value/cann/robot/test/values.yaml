@@ -1,0 +1,113 @@
+# chartVersion: v2.0.5
+namespace:
+  enabled: false
+  name: cann-robot
+serviceAccount:
+  create: true
+  name: cann-robot
+podAnnotations:
+  # traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0  # 开启istio时添加该行
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/role: cann-robot
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+istio:
+  enabled: false
+  nslabel: {}
+ingress:
+  host: "hook-delivery-ascend.test.osinfra.cn"
+  backends:
+    - name: robot-issue-manage
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /$2
+      port: 8888
+      path: /cann-issue-manage(/|$)(.*)
+      pathType: ImplementationSpecific
+secret:
+  enabled: true
+  name: "test-osinfra-cn-tls"
+  path: "secrets/data/infra-test/domain-tls"
+  crtKey: "tls.cert"
+  keyKey: "tls.key"
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /vault/secrets; chown -R 1000:1000 /vault/secrets; chmod g-s /vault/secrets; ls -ld /vault/secrets
+    image: 'swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3'
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+readinessProbe: # 默认值
+  failureThreshold: 3
+  httpGet:
+    path: /
+    port: 8888
+    scheme: HTTP
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+livenessProbe: # 默认值
+  failureThreshold: 3
+  httpGet:
+    path: /
+    port: 8888
+    scheme: HTTP
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+deployments:
+  - name: robot-issue-manage
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-issue-manage
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config.yaml: internal/data/infra-test/cann-robot
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/cann-robot\" -}}  \n{{ .Data.data.issueManage }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/vault/secrets/config.yaml
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-issue-manage
+      tag: "issue-347-194b31"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+    volumeMounts: []
+    volumes: []
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP

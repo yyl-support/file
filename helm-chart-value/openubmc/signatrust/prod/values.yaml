@@ -1,0 +1,485 @@
+# chart version: 4.0.1
+global:
+  namespace: signatrust
+  autoscaler:
+    enabled: false
+  commonAnnotations: {}
+  tolerations:
+    - key: "autoscale"
+      operator: "Exists"
+      effect: "NoSchedule"
+secret:
+  name: signatrust-secrets
+  type: Opaque
+  data: {}
+  secretdefine:
+    control-server-toml:
+      path: secrets/data/openubmc/signatrust-prod
+      key: control-server-toml
+    server-crt:
+      path: secrets/data/openubmc/openubmc-cn-tls
+      key: tls.cert
+    server-key:
+      path: secrets/data/openubmc/openubmc-cn-tls
+      key: tls.key
+    ca-root-pem:
+      path: secrets/data/openubmc/signatrust-prod
+      key: ca-root-pem
+    MYSQL_DATABASE:
+      path: secrets/data/openubmc/signatrust-prod
+      key: MYSQL_DATABASE
+    MYSQL_PASSWORD:
+      path: secrets/data/openubmc/signatrust-prod
+      key: MYSQL_PASSWORD
+    MYSQL_USER:
+      path: secrets/data/openubmc/signatrust-prod
+      key: MYSQL_USER
+    MYSQL_ROOT_PASSWORD:
+      path: secrets/data/openubmc/signatrust-prod
+      key: MYSQL_ROOT_PASSWORD
+    DATABASE_URL:
+      path: secrets/data/openubmc/signatrust-prod
+      key: DATABASE_URL
+    ca-crt:
+      path: secrets/data/openubmc/openubmc-cn-tls
+      key: tls.cert
+    ca-key:
+      path: secrets/data/openubmc/openubmc-cn-tls
+      key: tls.key
+ingress:
+  enabled: true
+  className: nginx
+  host: signatrust.openubmc.cn
+  secretName: signatrust-tls
+  path: /api
+  pathtype: Prefix
+  annotations: {}
+  hosts: []
+  tls: []
+  backend:
+    serviceName: signatrust-control-server-service
+    servicePort: 8080
+# APP Service Configuration
+app:
+  enabled: true
+  name: website
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  commonAnnotations: {}
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/signatrust/signatrust-app
+    tag: 16dec00dd61f7283863ed6e0a3f533c9ede46f08
+    pullPolicy: IfNotPresent
+    pullSecret: huawei-swr-image-pull-secret
+  ingress:
+    className: nginx
+    host: signatrust.openubmc.cn
+    secretName: website-tls
+    path: /
+    pathtype: Prefix
+    backend:
+      serviceName: website-service
+      servicePort: 80
+  deployment:
+    autoscaler: "true"
+  probes:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1000Mi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  service:
+    type: ClusterIP
+    name: http-port
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+# Client Service Configuration
+client:
+  name: signatrust-client
+  enabled: true
+  replicas: 1
+  strategy:
+    type: Recreate
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/signatrust/signatrust-client
+    tag: be75d2c81eecd4b0a20ef9d0987ac19ab3cf505c
+    pullPolicy: Always
+    pullSecret: huawei-swr-image-pull-secret
+  configmap:
+    name: signatrust-client-configmap
+    data:
+      client: |
+        working_dir = "/app/data/"
+        worker_threads = 8
+        buffer_size = 20480
+        max_concurrency = 100
+        [server]
+        domain_name = "signatrust.openubmc.cn"
+        type = "dns"
+        server_address = "signatrust-data-server-service.signatrust.svc.cluster.local"
+        server_port = "8088"
+  pvc:
+    name: signatrust-client-volume
+    storageClassName: csi-disk
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2000Mi
+    limits:
+      cpu: 1000m
+      memory: 2000Mi
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+  env:
+    name: RUST_LOG
+    value: debug
+  command:
+    - /bin/sh
+    - -c
+    - |
+      mkdir -p /Users/tommylike/Work/codes/rust-projects/signatrust/.data/tempdir
+      sleep 100000000
+  volumes:
+    configMapName: signatrust-client-configmap
+    pvcName: signatrust-client-volume
+    secretName: signatrust-secrets
+  mounts:
+    config:
+      mountPath: /app/config/client.toml
+      subPath: client.toml
+    certCrt:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/client/server.crt
+      subPath: ca-crt
+    certKey:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/client/server.key
+      subPath: ca-key
+    data:
+      mountPath: /app/data/
+# ControlAdmin Service Configuration
+controlAdmin:
+  name: signatrust-control-admin
+  enabled: true
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  commonAnnotations: {}
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/signatrust/signatrust-control-admin
+    tag: 31e9434185e20a6d591417ac7ef066418f776f5d
+    pullPolicy: Always
+    pullSecret: huawei-swr-image-pull-secret
+  service:
+    type: ClusterIP
+    name: http-port
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1000Mi
+    limits:
+      cpu: 1000m
+      memory: 1000Mi
+  deployment:
+    autoscaler: "true"
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+  command:
+    - sleep
+    - "1000000"
+  ports:
+    containerPort: 8080
+    name: http
+    protocol: TCP
+  env:
+    name: RUST_LOG
+    value: debug
+  mounts:
+    controlServer:
+      mountPath: /app/config/server.toml
+      subPath: control-server-toml
+    srvcrt:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/server/server.crt
+      subPath: server-crt
+    key:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/server/server.key
+      subPath: server-key
+    rootcrt:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/server/ca_root.pem
+      subPath: ca-root-pem
+  volumes:
+    secretName: signatrust-secrets
+# ControlServer Service Configuration
+controlServer:
+  name: signatrust-control-server
+  enabled: true
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/signatrust/signatrust-control-server
+    tag: be75d2c81eecd4b0a20ef9d0987ac19ab3cf505c
+    pullPolicy: Always
+    pullSecret: huawei-swr-image-pull-secret
+  service:
+    type: ClusterIP
+    name: http-port
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  deployment:
+    autoscaler: "true"
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1000Mi
+    limits:
+      cpu: 1000m
+      memory: 1000Mi
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+  env:
+    - name: RUST_LOG
+      value: debug
+  container:
+    command:
+      - /app/control-server
+    ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+  probes:
+    liveness:
+      path: /api/health/
+      port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /api/health/
+      port: 8080
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      failureThreshold: 3
+  mounts:
+    controlServer:
+      mountPath: /app/config/server.toml
+      subPath: control-server-toml
+    srvcrt:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/server/server.crt
+      subPath: server-crt
+    key:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/server/server.key
+      subPath: server-key
+    rootcrt:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/server/ca_root.pem
+      subPath: ca-root-pem
+  volumes:
+    secretName: signatrust-secrets
+  initContainers:
+    - name: init-mysql
+      image: swr.cn-north-4.myhuaweicloud.com/openubmc/signatrust/busybox:1.28
+      command:
+        - sh
+        - -c
+        - until nslookup 192.168.1.193; do echo "waiting for mysql service"; sleep 2; done;
+    - name: prepare-table
+      image: swr.cn-north-4.myhuaweicloud.com/openubmc/signatrust/rust-sqlx:latest
+      command:
+        - /bin/sh
+        - -c
+        - |
+          git clone https://gitee.com/openeuler/signatrust
+          cd signatrust
+          git checkout $CONTROL_SERVER_TAG
+          sqlx database create
+          sqlx migrate run
+      env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: signatrust-secrets
+              key: DATABASE_URL
+        - name: CONTROL_SERVER_TAG
+          value: 722fefdf307fa73c683795f9531cf2ef99448914
+# database Service Configuration
+database:
+  enabled: false
+  name: signatrust-database
+  host: 192.168.1.193
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/signatrust/mysql
+    tag: "8.0"
+    pullPolicy: Always
+    pullSecret: huawei-swr-image-pull-secret
+  service:
+    name: db
+    port: 3306
+    protocol: TCP
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1000Mi
+    limits:
+      cpu: 1000m
+      memory: 1000Mi
+  pvc:
+    name: database-volume
+    storageClassName: csi-disk
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    mountPath: /var/lib/mysql
+  probes:
+    liveness:
+      port: 3306
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    readiness:
+      port: 3306
+      initialDelaySeconds: 20
+      failureThreshold: 3
+      periodSeconds: 5
+      timeoutSeconds: 10
+  strategy:
+    type: Recreate
+  env:
+    - name: MYSQL_DATABASE
+      key: MYSQL_DATABASE
+    - name: MYSQL_PASSWORD
+      key: MYSQL_PASSWORD
+    - name: MYSQL_USER
+      key: MYSQL_USER
+    - name: MYSQL_ROOT_PASSWORD
+      key: MYSQL_ROOT_PASSWORD
+  volumes:
+    secretName: signatrust-secrets
+  mounts:
+    mysql:
+      mountPath: /var/lib/mysql
+  redis:
+    name: redis
+    component: signatrust-redis
+    type: ClusterIP
+    port:
+      name: http
+      protocol: TCP
+      port: 6379
+      targetPort: 6379
+  database:
+    name: signatrust-database
+    component: signatrust-database
+    type: ClusterIP
+    clusterIP: None
+    port:
+      name: database
+      port: 3306
+      targetPort: 3306
+# DataServer Service Configuration
+dataServer:
+  enabled: true
+  name: signatrust-data-server
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openubmc/signatrust/signatrust-data-server
+    tag: 2e19d0dcc601708908cac322cb9077471b94836d
+    pullPolicy: Always
+    pullSecret: huawei-swr-image-pull-secret
+  service:
+    type: ClusterIP
+    ports:
+      - name: tcp-1
+        port: 8088
+        protocol: TCP
+        targetPort: 8088
+  LoadBalancer:
+    enabled: true
+    annotations:
+      kubernetes.io/elb.class: union
+      kubernetes.io/elb.id: c59904ee-c772-4bcb-8a12-770fd080c79b
+      kubernetes.io/elb.lb-algorithm: ROUND_ROBIN
+    type: LoadBalancer
+    ports:
+      - name: tcp-1
+        port: 8089
+        protocol: TCP
+        targetPort: 8088
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1000Mi
+    limits:
+      cpu: 8000m
+      memory: 8000Mi
+  nodeSelector:
+    autoscaler: "true"
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+  env:
+    - name: RUST_LOG
+      value: debug
+  container:
+    name: data-server
+    command:
+      - /app/data-server
+    ports:
+      - containerPort: 8088
+        name: http
+        protocol: TCP
+  initContainers:
+    - name: init-mysql
+      image: swr.cn-north-4.myhuaweicloud.com/openubmc/signatrust/busybox:1.28
+      command:
+        - sh
+        - -c
+        - until nslookup 192.168.1.193; do echo "waiting for mysql service"; sleep 2; done;
+  mounts:
+    controlServer:
+      mountPath: /app/config/server.toml
+      subPath: control-server-toml
+    srvcrt:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/server/server.crt
+      subPath: server-crt
+    key:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/server/server.key
+      subPath: server-key
+    rootcrt:
+      mountPath: /Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/server/ca_root.pem
+      subPath: ca-root-pem
+  volumes:
+    secretName: signatrust-secrets

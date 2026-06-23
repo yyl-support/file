@@ -1,0 +1,122 @@
+namespace: om-webserver
+serviceAccount:
+  create: true
+  name: om-webserver
+imagePullSecret: huawei-swr-image-pull-secret
+deployments:
+  - name: om-webserver
+    replicaCount: 2
+    podLabels:
+      app: om-webserver
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podAnnotations:
+      vault.hashicorp.com/agent-inject: "true"
+      vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+      vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+      vault.hashicorp.com/agent-inject-secret-application.properties: internal/data/openubmc/om-webserver
+      vault.hashicorp.com/agent-inject-secret-redis.crt: internal/data/openubmc/om-webserver
+      vault.hashicorp.com/agent-inject-secret-tls.pfx: internal/data/openubmc/om-webserver
+      vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/openubmc/om-webserver\" -}}  \n{{ .Data.data.Omwebserver }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/openubmc/om-webserver\" -}}  \n{{ .Data.data.redisCA }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/openubmc/om-webserver\" -}}  \n{{ base64Decode .Data.data.serverpfx }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-pre-populate-only: "true"
+      vault.hashicorp.com/agent-run-as-group: "1001"
+      vault.hashicorp.com/agent-run-as-user: "1001"
+      vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+      vault.hashicorp.com/role: om-webserver
+      vault.hashicorp.com/secret-volume-path: /var/lib/om-webserver/
+      vault.hashicorp.com/tls-skip-verify: "true"
+      vault.hashicorp.com/log-level: "warn"
+    applicationPath: /var/lib/om-webserver/application.properties
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/openubmc/om-webserver
+      tag: "release-om-webserver-20260430-208e28"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2000Mi
+      requests:
+        cpu: 500m
+        memory: 1000Mi
+    heathCheckPath:
+      path: /oneid/checkOmService
+      port: 8080
+      scheme: HTTPS
+    containerPort: 8080
+ingress: []
+# 格式示例
+
+# ingress:
+
+#   - name: om-webserver-ingress
+
+#     annotations:
+
+#       nginx.ingress.kubernetes.io/limit-rps: "400"
+
+#     host: omapi.openubmc.cn
+
+#     serviceName: om-webserver-service
+
+#     servicePort: 8080
+
+#     path: /
+
+#     pathType: Prefix
+
+#     secretName: openubmc-domain-tls
+services:
+  - name: om-webserver-service
+    type: ClusterIP
+    port: 8080
+    portName: tls-1
+    targetPort: 8080
+    podLabels:
+      app: om-webserver
+secrets: []
+# 格式示例
+
+# secrets:
+
+#   - name: openubmc-domain-tls
+
+#     path: secrets/data/openubmc/openubmc-cn-tls
+
+#     certKey: tls.cert
+
+#     keyKey: tls.key
+istio:
+  enabled: true
+  nslabel:
+    istio-injection: enabled
+  gateway: istio-system/istio-gateway-https
+  vs:
+    name: om-webserver-virtualservice
+    host: omapi.openubmc.cn
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: om-webserver-service.om-webserver.svc.cluster.local
+              port:
+                number: 8080
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE
+  dr:
+    - name: destinationrule-om-webserver
+      serviceName: om-webserver-service
+      port: 8080
+  pa:
+    - name: peerauthentication-om-webserver-disable-mtls
+      podLabels:
+        app: om-webserver

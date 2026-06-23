@@ -1,0 +1,4 @@
+# Test dependencies (not installed in production)
+pytest==7.4.4
+pytest-cov==4.1.0
+pytest-mock==3.12.0

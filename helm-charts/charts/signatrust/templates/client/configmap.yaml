@@ -1,0 +1,10 @@
+{{- if .Values.client.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-configmap" .Values.client.name }}
+  namespace: {{ .Values.global.namespace }}
+data:
+  client.toml: |-
+{{ .Values.client.configmap.data.client | nindent 4 }}
+{{- end }}

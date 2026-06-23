@@ -1,0 +1,110 @@
+{{- range .Values.deployments }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  {{- with $.Values.deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .replicaCount }}
+  strategy:
+    {{- toYaml .strategy  | nindent 4 }}
+  selector:
+    matchLabels:
+      app: {{ .name }}
+  template:
+    metadata:
+    {{- if .podAnnotations }}
+      annotations:
+        {{- toYaml $.Values.podAnnotations | nindent 8 }}
+        {{- toYaml .podAnnotations | nindent 8 }}
+    {{- end }}
+      labels:
+        app: {{ .name }}
+    spec:
+      serviceAccount: {{ $.Values.serviceAccount.name }}
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      containers:
+        - name: om-collect
+          env:
+            - name: APPLICATION_PATH
+              value: "{{ .configPath }}"
+          securityContext:
+            {{- toYaml .containerSecurityContext | nindent 12 }}
+          image: "{{ $.Values.imageRepository }}:{{ .imageTag }}"
+          imagePullPolicy: {{ .imagePullPolicy }}
+          resources:
+            {{- toYaml .resources | nindent 12 }}
+          {{- if .volumeMounts }}
+          volumeMounts:
+            {{- toYaml .volumeMounts | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- toYaml .volumes | nindent 6 }}
+{{- end }}
+
+{{- if .Values.collectData.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.collectData.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.collectData.replicaCount }}
+  {{- end }}
+  {{- with .Values.collectData.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    {{- with .Values.collectData.labels }}
+    matchLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  template:
+    metadata:
+      {{- with .Values.collectData.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.collectData.labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.collectData.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.collectData.podSecurityContext | nindent 8 }}
+      automountServiceAccountToken: false
+      containers:
+        - name: om-collect
+          securityContext:
+            {{- toYaml .Values.collectData.containerSecurityContext | nindent 12 }}
+          image: "{{ .Values.collectData.image.repository }}:{{ .Values.collectData.image.tag }}"
+          imagePullPolicy: {{ .Values.collectData.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.collectData.resources | nindent 12 }}
+          {{- if .Values.collectData.volumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.collectData.volumeMounts | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- toYaml .Values.collectData.volumes | nindent 6 }}
+{{- end }}

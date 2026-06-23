@@ -1,0 +1,83 @@
+captcha:
+  name: captcha-common
+  replicaCount: 1
+  image:
+    repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/captcha-common
+    tag: tfh-f32ba9
+    pullPolicy: IfNotPresent
+  podLabels: 
+    app: captcha-common
+  podAnnotations:
+    vault.hashicorp.com/agent-run-as-user: "1001"
+    vault.hashicorp.com/agent-run-as-group: "1001"
+    vault.hashicorp.com/agent-inject-secret-application.properties: 'internal/data/hifloat/backend-server'
+    vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+    vault.hashicorp.com/agent-inject-template-application.properties: |  
+      {{- with secret "internal/data/hifloat/backend-server" -}}  
+      {{ .Data.data.captchaConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-secret-redis.crt: 'internal/data/hifloat/backend-server'
+    vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-redis.crt: |  
+      {{- with secret "internal/data/hifloat/backend-server" -}}  
+      {{ .Data.data.RedisCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-secret-tls.pfx: 'internal/data/hifloat/domain-tls'
+    vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+    vault.hashicorp.com/agent-inject-template-tls.pfx: |  
+      {{- with secret "internal/data/hifloat/domain-tls" -}}  
+      {{ base64Decode .Data.data.tlspfx }}
+      {{- end }}
+  initContainers:
+    - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /vault/secrets/; chown -R 1001:1001 /vault/secrets/; chmod g-s /vault/secrets/; ls -ld /vault/secrets/
+      image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+      imagePullPolicy: IfNotPresent
+      name: init-hifloat
+  env:
+  - name: APPLICATION_PATH
+    value: /vault/secrets/application.properties
+  args: {}
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsUser: 1001
+    capabilities:
+      drop:
+        - ALL
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: "0.5"
+      memory: 500Mi
+  volumeMounts: {}
+  volumes:
+  - name: token-vol
+    projected:
+      sources:
+      - serviceAccountToken:
+          audience: api
+          expirationSeconds: 600
+          path: token
+  service:
+    port: 8080
+    targetPort: 8080

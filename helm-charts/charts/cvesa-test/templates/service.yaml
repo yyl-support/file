@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cvesa.fullname" . }}-service
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+    - name: {{ .Values.service.ports.name }}
+      port: {{ .Values.service.ports.port }}
+      protocol: {{ .Values.service.ports.protocol }}
+      targetPort: {{ .Values.service.ports.targetPort }}
+  selector:
+    {{- include "cvesa.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.service.type }}

@@ -1,0 +1,78 @@
+{{- if .Values.controlAdmin.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.controlAdmin.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+{{ include "signatrust.annotations" . | indent 4 }}
+spec:
+  {{- if not .Values.global.autoscaler.enabled }}
+  replicas: {{ .Values.controlAdmin.replicas }}
+  {{- with $.Values.controlAdmin.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  selector:
+    matchLabels:
+      component: {{ .Values.controlAdmin.name }}
+  template:
+    metadata:
+      labels:
+        component: {{ .Values.controlAdmin.name }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.controlAdmin.image.pullSecret }}
+      automountServiceAccountToken: false
+      containers:
+        - name: {{ .Values.controlAdmin.name }}
+          image: "{{ .Values.controlAdmin.image.repository }}:{{ .Values.controlAdmin.image.tag }}"
+          imagePullPolicy: {{ .Values.controlAdmin.image.pullPolicy }}
+
+          command:
+{{- range .Values.controlAdmin.command }}
+            - {{ . | quote }}
+{{- end }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.controlAdmin.resources.requests.cpu }}
+              memory: {{ .Values.controlAdmin.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.controlAdmin.resources.limits.cpu }}
+              memory: {{ .Values.controlAdmin.resources.limits.memory }}
+
+          ports:
+            - containerPort: {{ .Values.controlAdmin.ports.containerPort }}
+              name: {{ .Values.controlAdmin.ports.name }}
+              protocol: {{ .Values.controlAdmin.ports.protocol }}
+
+          env:
+            - name: {{ .Values.controlAdmin.env.name }}
+              value: {{ .Values.controlAdmin.env.value | quote }}
+
+          volumeMounts:
+            - name: secret
+              mountPath: {{ .Values.controlAdmin.mounts.controlServer.mountPath }}
+              subPath: {{ .Values.controlAdmin.mounts.controlServer.subPath }}
+            - name: secret
+              mountPath: {{ .Values.controlAdmin.mounts.srvcrt.mountPath }}
+              subPath: {{ .Values.controlAdmin.mounts.srvcrt.subPath }}
+            - name: secret
+              mountPath: {{ .Values.controlAdmin.mounts.key.mountPath }}
+              subPath: {{ .Values.controlAdmin.mounts.key.subPath }}
+            - name: secret
+              mountPath: {{ .Values.controlAdmin.mounts.rootcrt.mountPath }}
+              subPath: {{ .Values.controlAdmin.mounts.rootcrt.subPath }}
+
+          securityContext:
+            allowPrivilegeEscalation: {{ .Values.controlAdmin.securityContext.allowPrivilegeEscalation }}
+            runAsUser: {{ .Values.controlAdmin.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.controlAdmin.securityContext.runAsGroup }}
+
+      volumes:
+        - name: secret
+          secret:
+            secretName: {{ .Values.controlAdmin.volumes.secretName }}
+{{- end }}

@@ -1,0 +1,16 @@
+{{- with .Values.meetingCenter }}
+{{- if .enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}
+  annotations:
+    {{- toYaml .service.annotations | nindent 4 }}
+spec:
+  type: {{ .service.type }}
+  selector:
+    {{- toYaml .podLabels | nindent 4 }}
+  ports:
+  {{- .service.ports | toYaml | nindent 2 }}
+{{- end }}
+{{- end }}

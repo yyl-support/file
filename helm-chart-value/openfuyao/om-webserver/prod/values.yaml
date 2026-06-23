@@ -1,0 +1,72 @@
+# 全局配置
+global:
+  namespace: omwebserver
+  appName: omwebserver
+  appSubName: om-webserver
+# 副本配置
+replicaCount: 3
+revisionHistoryLimitCount: 10
+# 镜像配置
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/openfuyao/om-webserver-prod
+  tag: release-om-webserver20260130-b05b82
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+containers:
+  applicationPath: "/var/lib/om-webserver/application.properties"
+  containerPort: 8080
+  portsName: om-webserver
+# 资源限制
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2000Mi
+  requests:
+    cpu: 500m
+    memory: 1000Mi
+probeHttpGet:
+  path: /oneid/checkOmService
+  port: 8080
+  scheme: HTTPS
+# Vault配置
+vault:
+  runAsUser: "1001"
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  host: omapi.openfuyao.cn
+  backendProtocol: "HTTPS"
+  limitConnections: "400"
+  limitRPS: "400"
+  port: 80
+# Service配置
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+secret:
+  ca_crt_path: secrets/data/openfuyao/openfuyao-cn-tls
+  ca_crt_key: server.crt
+  tls_crt_path: secrets/data/openfuyao/openfuyao-cn-tls
+  tls_crt_key: server.crt
+  tls_key_path: secrets/data/openfuyao/openfuyao-cn-tls
+  tls_key_key: server.key
+podAnnotations:
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/role: 'omwebserver'
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+  vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+  vault.hashicorp.com/agent-inject-secret-tls.pfx: 'internal/data/openfuyao/omwebserver'
+  vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/openfuyao/omwebserver\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-secret-application.properties: 'internal/data/openfuyao/omwebserver'
+  vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/openfuyao/omwebserver\" -}}  \n{{ .Data.data.application }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+  vault.hashicorp.com/agent-inject-secret-redis.crt: 'internal/data/openfuyao/omwebserver'
+  vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/openfuyao/omwebserver\" -}}  \n{{ .Data.data.redis }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/secret-volume-path: "/var/lib/om-webserver"

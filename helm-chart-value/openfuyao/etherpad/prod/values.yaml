@@ -1,0 +1,158 @@
+#chartVersion: 1.0.7
+deployment:
+  replicaCount: 1
+  labels:
+    app: control-etherpad
+  strategy: 
+    type: Recreate
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/openfuyao/etherpad
+    pullPolicy: IfNotPresent
+    tag: "main-383f61"
+  imagePullSecrets:
+    - name: huawei-swr-image-pull-secret
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-apikey.txt: "0400"
+    vault.hashicorp.com/agent-inject-perms-credentials.json: "0400"
+    vault.hashicorp.com/agent-inject-secret-apikey.txt: internal/data/openfuyao/etherpad
+    vault.hashicorp.com/agent-inject-secret-credentials.json: internal/data/openfuyao/etherpad
+    vault.hashicorp.com/agent-inject-template-apikey.txt: "{{- with secret \"internal/data/openfuyao/etherpad\"
+      -}}  \n{{ .Data.data.apikey }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-credentials.json: "{{- with secret
+      \"internal/data/openfuyao/etherpad\" -}}  \n{{ .Data.data.config }}\n{{-
+      end }}\n"
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "5001"
+    vault.hashicorp.com/agent-run-as-user: "5001"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/log-level: warn
+    vault.hashicorp.com/role: etherpad
+    vault.hashicorp.com/tls-skip-verify: "true"
+  containerName: etherpad-lite
+  ports:
+    - containerPort: 9001
+      name: https
+      protocol: TCP
+
+
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "openfuyao-etherpad"  
+
+namespace: etherpad
+serviceAccount:
+  create: true
+  name: etherpad
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+secretDefinitions:
+  etherpad-openfuyao-tls:
+    enabled: true
+    keysMap:
+      ca.crt:
+        key: server.crt
+        path: secrets/data/openfuyao/openfuyao-cn-tls
+      tls.crt:
+        key: server.crt
+        path: secrets/data/openfuyao/openfuyao-cn-tls
+      tls.key:
+        key: server.key
+        path: secrets/data/openfuyao/openfuyao-cn-tls
+
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  ports:
+    - name: ether-http
+      port: 9001
+      protocol: TCP
+      targetPort: 9001
+  type: ClusterIP
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "false"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ^~ /admin {
+        deny all;
+      }
+      location ^~ /stats {
+        deny all;
+      }
+  hosts:
+    - host: etherpad.openfuyao.cn
+      paths:
+        - path: /
+          pathType: Prefix
+          portNumber: 9001
+  tlsHosts:
+    - host: etherpad.openfuyao.cn
+      secretsName: etherpad-openfuyao-tls
+
+istio:
+  enabled: false
+  nslabel: {}
+#     istio-injection: enabled
+#   gateway: "istio-system/istio-gateway-https"
+#   host: 
+#   virtualService:
+#     routes:
+#       - destinations:
+#           - host: ""
+#         match:
+#         - uri:
+#             prefix: /
+#   tls:
+#     mode: DISABLE
+#   mtls:
+#     mode: DISABLE
+resources:
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  requests:
+    cpu: "1"
+    memory: 1Gi
+
+pvc:
+  etherpad-data-vol:
+    enabled: true
+    annotations:
+      everest.io/disk-volume-type: SSD
+      everest.io/set-disk-tags: 'true'
+      pv.kubernetes.io/bind-completed: "yes"
+      pv.kubernetes.io/bound-by-controller: "yes"
+      volume.beta.kubernetes.io/storage-provisioner: everest-csi-provisioner
+      volume.kubernetes.io/storage-provisioner: everest-csi-provisioner
+    accessModes:
+      - ReadWriteOnce
+    storage: 10Gi
+    storageClassName: csi-disk
+    volumeName: pvc-f20c81f0-a6f5-4bf3-ad8a-a9f895f448b8
+    volumeMode: Filesystem
+
+# Additional volumes on the output Deployment definition.
+volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: etherpad-data-vol
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  - mountPath: /opt/etherpad-lite/var
+    name: data-volume
+    subPath: data

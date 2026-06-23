@@ -1,0 +1,65 @@
+lifecycle:
+  enabled: true
+  configmap:
+    name: configmap-lifecycle
+    config: |-
+      config_items:
+        - repos:
+            - testmyai
+
+      sig_info_url: "https://magicapi.test.osinfra.cn/stat/sig/detail/info"
+      community_name: openjiuwen
+      event_state_opened: opened
+      event_state_closed: closed
+      comment_no_permission_operate_issue: "### 注意 \n@%s ，您不能操作（%s）此 Issue，因为您不是此 Issue 的创建者或仓库管理员，也不是sig组成员。"
+      comment_issue_needs_link_pr: "### 注意 \n@%s ，关闭此 Issue 的前提条件是关联了 PR。"
+      comment_list_linking_pull_requests_failure: "### 注意 \n@%s ， 此 Issue 关联 PR 失败，请重新关联"
+      comment_no_permission_operate_pr: "### 注意 \n@%s ， 您不能操作（%s）此 PR，因为您不是此 PR 的创建者或仓库管理员，也不是sig组成员。"
+      community_robot_id: openJiuwen-bot
+  deployment:
+    podSecurityContext:
+      seccompProfile:
+        localhostProfile: infra-seccomp.json
+        type: Localhost
+    replicas: 1
+    robotUniversalLifecycle:
+      args:
+        - --port=8888
+        - --config-file=/app/conf/config
+        - --handle-path=gitcode-hook
+        - --token-path=/vault/secrets/token
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsUser: 1000
+      resources:
+        limits:
+          cpu: 100m
+          memory: 300Mi
+        requests:
+          cpu: 100m
+          memory: 300Mi
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-token: "0400"
+    vault.hashicorp.com/agent-inject-secret-token: internal/data/infra-test/openjiuwen-robot
+    vault.hashicorp.com/agent-inject-template-token: |
+      {{- with secret "internal/data/infra-test/openjiuwen-robot" -}}
+      {{ .Data.data.token }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: openjiuwen-robot
+    vault.hashicorp.com/tls-skip-verify: "true"
+  NetworkPolicy:
+    enabled: true

@@ -1,0 +1,29 @@
+name: Spell Check
+
+on:
+  push:
+    branches: ["main", "fy_dev"]
+    paths:
+      - "**.yaml"
+      - "**.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "**.yaml"
+      - "**.yml"
+
+jobs:
+  codespell:
+    name: Check for spelling errors
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run codespell
+        uses: codespell-project/actions-codespell@v2
+        with:
+          check_filenames: true
+          # 忽略一些常见的 K8s/Helm 缩写或特定术语
+          ignore_words_list: nd,hpa,vpa,istio,cann,CANN,ThirdParty
+          skip: .git

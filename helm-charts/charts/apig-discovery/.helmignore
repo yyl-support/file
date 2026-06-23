@@ -1,0 +1,46 @@
+# Patterns to ignore when building packages.
+# This supports shell glob matching, relative path matching must
+# be escaped by wrapping with a single backslash.
+# Common patterns:
+# *.swp
+# .DS_Store
+# *.tmp
+# *.bak
+# *.orig
+# *~
+# .git
+# .github
+# .idea
+# .vscode
+# tests
+
+# Helm chart files
+*.tgz
+
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# CI files
+.github
+.travis.yml
+.circleci
+
+# Test files
+tests/
+test/
+*_test.go
+
+# Documentation
+README.md
+README*
+CHANGELOG.md
+CHANGELOG*
+LICENSE
+LICENSE*
+
+# Development files
+.env
+.env.*
+*.log

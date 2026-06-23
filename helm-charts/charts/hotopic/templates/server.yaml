@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hotopic-server-deployment
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hotopic-server
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:        
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+        {{- toYaml .Values.backendServer.podAnnotations | nindent 8 }}
+        vault.hashicorp.com/agent-run-as-user: "1000"
+        vault.hashicorp.com/agent-run-as-group: "1000"
+      labels:
+        app: hotopic-server
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      serviceAccount: {{ .Values.serviceAccount.name }}
+      imagePullSecrets:
+      - name: huawei-swr-image-pull-secret
+      securityContext:
+        seccompProfile:
+          type: Localhost
+          localhostProfile: infra-seccomp.json
+      automountServiceAccountToken: false
+      containers:
+      - image: "{{ .Values.backendServer.image.repository }}:{{ .Values.backendServer.image.tag }}"
+        imagePullPolicy: IfNotPresent
+        args:
+        - --config-file=/vault/secrets/conf.yaml
+        - --port=8080
+        - --rm-cfg=true
+        - --enable_debug
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 5
+        name: server
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        volumeMounts:
+          - name: volume-data
+            mountPath: /opt/data
+      volumes:
+      - name: token-vol
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+      - name: volume-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.backendServer.pvcName }}

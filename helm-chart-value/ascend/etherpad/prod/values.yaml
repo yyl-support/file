@@ -1,0 +1,141 @@
+#chartVersion: 1.0.7
+deployment:
+  replicaCount: 1
+  labels:
+    app: control-etherpad
+  strategy: 
+    type: Recreate
+  image:
+    repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/etherpad
+    pullPolicy: IfNotPresent
+    tag: "main-b6e6d4"
+  imagePullSecrets:
+    - name: huawei-swr-image-pull-secret
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-apikey.txt: "0400"
+    vault.hashicorp.com/agent-inject-perms-credentials.json: "0400"
+    vault.hashicorp.com/agent-inject-secret-apikey.txt: internal/data/ascend/etherpad
+    vault.hashicorp.com/agent-inject-secret-credentials.json: internal/data/ascend/etherpad
+    vault.hashicorp.com/agent-inject-template-apikey.txt: "{{- with secret \"internal/data/ascend/etherpad\"
+      -}}  \n{{ .Data.data.apikey }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-credentials.json: "{{- with secret
+      \"internal/data/ascend/etherpad\" -}}  \n{{ .Data.data.config }}\n{{-
+      end }}\n"
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "5001"
+    vault.hashicorp.com/agent-run-as-user: "5001"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/log-level: warn
+    vault.hashicorp.com/role: ascend-etherpad
+    vault.hashicorp.com/tls-skip-verify: "true"
+  containerName: etherpad-lite
+  ports:
+    - containerPort: 9001
+      name: https
+      protocol: TCP
+
+
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "ascend-etherpad"  
+
+namespace: ascend-etherpad
+serviceAccount:
+  create: true
+  name: ascend-etherpad
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+secretDefinitions:
+  ascend-osinfra-cn-tls:
+    enabled: true
+    keysMap:
+      ca.crt:
+        key: server_crt
+        path: secrets/data/ascend/ascend-osinfra-cn-tls
+      tls.crt:
+        key: server_crt
+        path: secrets/data/ascend/ascend-osinfra-cn-tls
+      tls.key:
+        key: server_key
+        path: secrets/data/ascend/ascend-osinfra-cn-tls
+
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  ports:
+    - name: tcp-1
+      port: 9001
+      protocol: TCP
+      targetPort: 9001
+  type: ClusterIP
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "false"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ^~ /admin {
+        deny all;
+      }
+      location ^~ /stats {
+        deny all;
+      }
+  hosts:
+    - host: etherpad.ascend.osinfra.cn
+      paths:
+        - path: /
+          pathType: Prefix
+          portNumber: 9001
+  tlsHosts:
+    - host: etherpad.ascend.osinfra.cn
+      secretsName: ascend-osinfra-cn-tls
+
+istio:
+  enabled: false
+  nslabel: {}
+resources:
+  limits:
+    cpu: "2"
+    memory: 4000Mi
+  requests:
+    cpu: "1"
+    memory: 1000Mi
+
+pvc:
+  etherpad-data-vol:
+    enabled: true
+    annotations:
+      everest.io/disk-volume-type: GPSSD
+    labels:
+      failure-domain.beta.kubernetes.io/region: cn-southwest-2
+      failure-domain.beta.kubernetes.io/zone: cn-southwest-2d
+    accessModes:
+      - ReadWriteOnce
+    storage: 10Gi
+    storageClassName: csi-disk
+    volumeName: "pvc-7612c089-4fd5-4020-8685-1e310c407f07"
+    volumeMode: Filesystem
+
+# Additional volumes on the output Deployment definition.
+volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: etherpad-data-vol
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  - mountPath: /opt/etherpad-lite/var
+    name: data-volume

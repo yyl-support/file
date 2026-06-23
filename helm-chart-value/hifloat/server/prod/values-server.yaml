@@ -1,0 +1,102 @@
+server:
+  name: hifloat-server
+  replicaCount: 0
+  deployment:
+    replicaCount: 0
+    updateStrategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+  statefulset:
+    replicaCount: 1
+    updateStrategy:
+      type: RollingUpdate
+  image:
+    repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/hifloat-website-backend
+    tag: "50dbe431-20260609193700"
+    pullPolicy: IfNotPresent
+  podLabels:
+    app: hifloat-server
+  podAnnotations:
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/hifloat/backend-server'
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/hifloat/backend-server\" -}}  \n{{ .Data.data.server }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-secret-mongo.crt: 'internal/data/hifloat/backend-server'
+    vault.hashicorp.com/agent-inject-perms-mongo.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-mongo.crt: "{{- with secret \"internal/data/hifloat/backend-server\" -}}  \n{{ .Data.data.mongoCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-secret-redis.crt: 'internal/data/hifloat/backend-server'
+    vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/hifloat/backend-server\" -}}  \n{{ .Data.data.RedisCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-secret-mq.crt: 'internal/data/hifloat/backend-server'
+    vault.hashicorp.com/agent-inject-perms-mq.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-mq.crt: "{{- with secret \"internal/data/hifloat/backend-server\" -}}  \n{{ .Data.data.kafkaCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-perms-pg.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-pg.crt: 'internal/data/hifloat/backend-server'
+    vault.hashicorp.com/agent-inject-template-pg.crt: "{{- with secret \"internal/data/hifloat/backend-server\" -}}  \n{{ .Data.data.PgCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-secret-server.crt: 'internal/data/hifloat/domain-tls'
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-server.crt: "{{- with secret \"internal/data/hifloat/domain-tls\" -}}  \n{{ .Data.data.ServerCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-secret-server.key: 'internal/data/hifloat/domain-tls'
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-template-server.key: "{{- with secret \"internal/data/hifloat/domain-tls\" -}}  \n{{ .Data.data.ServerKeyOrigin }}\n{{- end }}\n"
+  args:
+    - --config-file=/vault/secrets/conf.yaml
+    - --port=8080
+    - --enable-debug=true
+    - --tls-key=/vault/secrets/server.key
+    - --tls-cert=/vault/secrets/server.crt
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+  livenessProbe:
+    failureThreshold: 3
+    httpGet:
+      path: /internal/v1/heartbeat
+      port: 8080
+      scheme: HTTPS
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    httpGet:
+      path: /internal/v1/heartbeat
+      port: 8080
+      scheme: HTTPS
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: "0.5"
+      memory: 500Mi
+  volumeMounts:
+    - name: volume-data
+      mountPath: /opt/data
+  volumes:
+    - name: token-vol
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+    - name: volume-data
+      persistentVolumeClaim:
+        claimName: hifloat-server-data
+  service:
+    port: 8080
+    targetPort: 8080
+image:
+  tag: 5ee28d9a-20260429150218

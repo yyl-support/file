@@ -1,0 +1,58 @@
+{{- if .Values.app.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-deployment" .Values.app.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+{{ toYaml .Values.app.commonAnnotations | indent 4 }}
+spec:
+  {{- if not .Values.global.autoscaler.enabled }}
+  replicas: {{ .Values.app.replicas }}
+  {{- with $.Values.app.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.app.image.pullSecret }}
+      automountServiceAccountToken: false
+      containers:
+        - name: {{ .Values.app.name }}
+          image: "{{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}"
+          imagePullPolicy: {{ .Values.app.image.pullPolicy }}
+
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.app.service.targetPort }}
+            initialDelaySeconds: {{ .Values.app.probes.initialDelaySeconds }}
+            periodSeconds: {{ .Values.app.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.app.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.app.probes.failureThreshold }}
+            successThreshold: {{ .Values.app.probes.successThreshold }}
+
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.app.service.targetPort }}
+            initialDelaySeconds: {{ .Values.app.probes.initialDelaySeconds }}
+            periodSeconds: {{ .Values.app.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.app.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.app.probes.failureThreshold }}
+            successThreshold: {{ .Values.app.probes.successThreshold }}
+
+          resources:
+            limits:
+              cpu: {{ .Values.app.resources.limits.cpu }}
+              memory: {{ .Values.app.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.app.resources.requests.cpu }}
+              memory: {{ .Values.app.resources.requests.memory }}
+{{- end }}

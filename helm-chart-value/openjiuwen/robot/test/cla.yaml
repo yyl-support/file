@@ -1,0 +1,86 @@
+cla:
+  enabled: true
+  configmap:
+    name: configmap-cla
+    config: |-
+      config_items:
+        - repos:
+            - testmyai
+          cla_label_yes: openJiuwen-cla/yes
+          cla_label_no: openJiuwen-cla/no
+          check_url: https://clasign.osinfra.cn/api/v1/individual-signing/68ee0908765718ad08bab9ee
+          sign_url: https://clasign.osinfra.cn/sign/68ee0908765718ad08bab9ee
+          faq_url: https://gitcode.com/testmyai/community/blob/master/zh/content/robot/cla%E6%8C%87%E5%AF%BC.md
+          check_by_committer: true
+          lite_pr_committer:
+            email: "@noreply.gitcode.com"
+            name: GitCode
+
+      user_mark_format: "@"
+      placeholder_committer: ""
+      placeholder_cla_sign_guide_title: "### CLA 签署引导"
+      placeholder_cla_sign_pass_title: "### CLA 签署成功"
+      comment_command_trigger: "### CLA 签署指导手册  \n\n由于网络问题未能完成 CLA 检查，请通过评论 ***`/check-cla`*** 再次检查。"
+      comment_pr_no_commits: "### CLA 签署指导手册  \n\n此 PR 的 commits 无效，请检查。"
+      comment_some_need_sign: "### CLA 签署引导  \n\n %s , 感谢您的代码贡献。 \n\n以下 Commit(s) 没有签署 **<font color=green>_Contributor License Agreement (CLA)_</font>**。 \n\n%s \n\n如果您需要签署 CLA，[您可以点击此链接去签署 CLA ](%s)。  \n\n如果需要检查邮箱是否配置正确， [可以点击 **<font color=red>_FAQs_</font>** 去查看使用手册](%s) 。 \n\n在完成 CLA 签署或者更新完邮箱后, 需再次评论 ***`/check-cla`*** 来检查 CLA 的签署状态。"
+      comment_update_label_failed: "### CLA 签署指导手册  \n\n添加 CLA 标签失败，请通过评论 ***`/check-cla`*** 再次检查。 :pray: "
+      comment_all_signed: "### CLA 签署成功  \n %s, 感谢您的代码贡献。 所有的代码贡献者都已完成了 CLA 签署。 :+1: "
+      sig_info_url: "https://magicapi.test.osinfra.cn/stat/sig/detail/info"
+      community_name: openjiuwen
+      community_robot_id: openJiuwen-bot
+      invalid_email: "@noreply.gitcode.com"
+      invalid_email_message: "这包含一个无效的邮箱，请检查下！"
+      cla_service_failed_message: "检查CLA是否签署失败！请再次评论下 `/check-cla` "
+      comment_unsigned_title: "| Commit | 原因 |\n|--|--|"
+      comment_unsigned_line: "\n| %s | %s |"
+      not_signed_email_message: "这条 Commit 的邮箱未签署 CLA ！请检查下邮箱是否正确配置。"
+      message_individual_version_behind: "因为个人 CLA 的协议内容已更新，[请点击这里重新查看下协议内容并再次签署](https://clasign.osinfra.cn/sign-cla/68ee0908765718ad08bab9ee/individual-update?email=%s)。"
+      message_corporation_version_behind: "因为企业 CLA 的协议内容已更新，请联系 CLA 企业管理员进行处理。"
+      cla_signature_type_corporation: "corporation"
+  deployment:
+    podSecurityContext:
+      seccompProfile:
+        localhostProfile: infra-seccomp.json
+        type: Localhost
+    replicas: 1
+    robotUniversalCla:
+      args:
+        - --port=8888
+        - --config-file=/app/conf/config
+        - --handle-path=gitcode-hook
+        - --token-path=/vault/secrets/token
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsUser: 1000
+      resources:
+        limits:
+          cpu: 100m
+          memory: 300Mi
+        requests:
+          cpu: 100m
+          memory: 300Mi
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-token: "0400"
+    vault.hashicorp.com/agent-inject-secret-token: internal/data/infra-test/openjiuwen-robot
+    vault.hashicorp.com/agent-inject-template-token: |
+      {{- with secret "internal/data/infra-test/openjiuwen-robot" -}}
+      {{ .Data.data.token }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: openjiuwen-robot
+    vault.hashicorp.com/tls-skip-verify: "true"
+  NetworkPolicy:
+    enabled: true

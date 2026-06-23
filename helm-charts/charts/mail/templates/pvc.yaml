@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.mailcore.pvc.name }}
+  labels:
+  {{- include "mail.labels" . | nindent 4 }}
+spec:
+  accessModes:
+  - {{ .Values.mailcore.pvc.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.mailcore.pvc.storage | quote }}
+  storageClassName: {{ .Values.mailcore.pvc.storageClass | quote }}
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.exim4.pvc.name }}
+  labels:
+  {{- include "mail.labels" . | nindent 4 }}
+spec:
+  accessModes:
+  - {{ .Values.exim4.pvc.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.exim4.pvc.storage | quote }}
+  storageClassName: {{ .Values.exim4.pvc.storageClass | quote }}
+  volumeMode: Filesystem

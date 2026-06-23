@@ -1,0 +1,97 @@
+# chartVersion: v1.0.7
+global:
+  appName: openfuyao-website
+namespace:
+  enabled: false
+  name: openfuyao-website
+replicaCount: 1
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openfuyao/website-test
+  tag: "master-7eb290"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+podLabels:
+  app: openfuyao-website
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/infra-test/openfuyao-domain-tls"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/openfuyao-domain-tls" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/infra-test/openfuyao-domain-tls"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/openfuyao-domain-tls" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/infra-test/openfuyao-domain-tls"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/infra-test/openfuyao-domain-tls" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/infra-test/openfuyao-domain-tls"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/infra-test/openfuyao-domain-tls" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: openfuyao-website
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+env:
+  - name: DET_URL
+    value: https://openfuyao.test.osinfra.cn/zh/
+serviceAccount:
+  create: true
+  name: openfuyao-website
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: "50m"
+    memory: 50Mi
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 4m
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: openfuyao.test.osinfra.cn
+# Service配置
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: openfuyao-domain-tls
+  path: secrets/data/infra-test/openfuyao-domain-tls
+  ca_crt_key: tls.cert
+  tls_crt_key: tls.cert
+  tls_key_key: tls.key
+istio:
+  enabled: false
+  nslabel: {}

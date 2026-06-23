@@ -1,0 +1,275 @@
+#chartVersion: 1.0.14
+namespace:
+  enabled: false
+  name: opengauss-meetingserver-v2
+serviceAccount:
+  create: true
+  name: opengauss-meetingserver
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+image:
+  center:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-center
+    tag: main-66504e
+    imagePullPolicy: IfNotPresent
+  platform:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+    tag: fix_mindspore-eaa947
+    imagePullPolicy: IfNotPresent
+initContainer:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler
+    tag: 22.03-lts-sp3
+podAnnotations:
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: opengauss-meetingserver-v2
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/infra-test/opengauss-meeting
+  vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/infra-test/opengauss-meeting
+  vault.hashicorp.com/agent-inject-secret-server.key: internal/data/infra-test/opengauss-meeting
+  vault.hashicorp.com/agent-inject-template-ca.pem: |
+    {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+    {{ .Data.data.MysqlCA }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+    {{ .Data.data.serverCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+    {{ .Data.data.serverKey }}
+    {{- end }}
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+ingress:
+  enabled: true
+  name: meeting-center
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: "opengauss-meeting-center.test.osinfra.cn"
+  serviceName: meeting-center
+  serviceNumber: 8080
+# 后端使用ingress路径转发时启用ingressNew
+ingressNew:
+  enabled: false
+  # name: meeting-center
+  # annotations:
+  #   nginx.ingress.kubernetes.io/rewrite-target: /api/v1/meeting$1
+  # host: "opengauss-meeting-center.test.osinfra.cn"
+  # path: /(.*)
+  # pathType: Prefix
+  # secretName: meeting-server-tls
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: ""
+meetingCenter:
+  enabled: true
+  name: meeting-center
+  replicas: 1
+  # deploymentLabels:
+  #   virtual-kubelet.io/burst-to-cci: enforce
+  podLabels:
+    app: meeting-center
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+  service:
+    type: ClusterIP
+    annotations: {}
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/opengauss-meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/infra-test/opengauss-meeting
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+      {{ .Data.data.centerConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+      {{ .Data.data.centerSecrets }}
+      {{- end }}
+meetingPlatform:
+  enabled: true
+  name: meeting-platform
+  replicas: 1
+  # deploymentLabels:
+  #   virtual-kubelet.io/burst-to-cci: enforce
+  podLabels:
+    app: meeting-platform
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  service:
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+    type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/opengauss-meeting
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/infra-test/opengauss-meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/infra-test/opengauss-meeting
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+      {{ .Data.data.platformConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |
+      {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+      {{ .Data.data.kafkacrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+      {{ .Data.data.platformSecrets }}
+      {{- end }}
+meetingServer:
+  enabled: false
+secret:
+  enabled: true
+  name: meetingserver-tls
+  specKeysMap:
+    ca.crt:
+      path: secrets/data/infra-test/domain-tls
+      key: tls.cert
+    tls.crt:
+      path: secrets/data/infra-test/domain-tls
+      key: tls.cert
+    tls.key:
+      path: secrets/data/infra-test/domain-tls
+      key: tls.key
+cronjobCommon:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsUser: 1000
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/config
+    - name: VAULT_PATH
+      value: /vault/secrets/secrets.yaml
+    - name: MYSQL_TLS_PEM_PATH
+      value: /vault/secrets/ca.pem
+    - name: TLS_CRT_PATH
+      value: /vault/secrets/server.crt
+    - name: TLS_KEY_PATH
+      value: /vault/secrets/server.key
+cronjobs:
+  - enabled: true
+    name: opengauss-handle-meeting
+    labels:
+      app: opengauss-handle-meeting
+      # virtual-kubelet.io/burst-to-cci: enforce
+    concurrencyPolicy: Forbid
+    schedule: "*/15 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/opengauss-meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/infra-test/opengauss-meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python3 manage.py handle_meeting
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+      tag: fix_mindspore-eaa947
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: true
+    name: opengauss-handle-recording
+    labels:
+      app: opengauss-handle-recording
+      # virtual-kubelet.io/burst-to-cci: enforce
+    concurrencyPolicy: Forbid
+    schedule: "30 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/opengauss-meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/infra-test/opengauss-meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/infra-test/opengauss-meeting" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python3 manage.py handle_recordings
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+      tag: fix_mindspore-eaa947
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi

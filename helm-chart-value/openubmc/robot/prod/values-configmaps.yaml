@@ -1,0 +1,1180 @@
+configmaps:
+  - name: configmap-universal-access
+    filename: config.yaml
+    content: |-
+      access:
+        repo_plugins:
+          - org_or_repo:
+              - openUBMC
+            plugin_name:
+              - robot-service-welcome
+              - robot-service-cla
+              - robot-service-lifecycle
+              - robot-service-label
+              - robot-service-review
+              - robot-service-associate
+              - robot-service-assign
+              - robot-service-issue-workflow
+      
+        plugins:
+          - name: robot-service-welcome
+            endpoint: http://robot-universal-welcome-service.robot-openubmc.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Issue Hook"
+          - name: robot-service-cla
+            endpoint: http://robot-universal-cla-service.robot-openubmc.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-lifecycle
+            endpoint: http://robot-universal-lifecycle-service.robot-openubmc.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Issue Hook"
+              - "Note Hook"
+          - name: robot-service-label
+            endpoint: http://robot-universal-label-service.robot-openubmc.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+              - "Issue Hook"
+              - "Merge Request Hook"
+          - name: robot-service-review
+            endpoint: http://robot-universal-review-service.robot-openubmc.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-associate
+            endpoint: http://robot-universal-associate-service.robot-openubmc.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-assign
+            endpoint: http://robot-universal-assign-service.robot-openubmc.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Issue Hook"
+              - "Note Hook"
+          - name: robot-service-issue-workflow
+            endpoint: http://robot-universal-issue-workflow-service.robot-openubmc.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Issue Hook"
+              - "Note Hook"
+  - name: configmap-universal-assign
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openUBMC/ansible_plugin
+            - openUBMC/cmdlets_plugin
+            - openUBMC/nagios_plugin
+            - openUBMC/zabbix_plugin
+          enable_issue_assign: true
+          default_assignee: "Bitter_Jing"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/libmcpp
+            - openUBMC/rootfs_user
+            - openUBMC/devmon
+          enable_issue_assign: true
+          default_assignee: "chendanming"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/release_management
+          enable_issue_assign: true
+          default_assignee: "fangzhengbo"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/bios
+            - openUBMC/pcie_device
+            - openUBMC/manufacture
+            - openUBMC/lsw
+          enable_issue_assign: true
+          default_assignee: "huangjiapei"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/rack_mgmt
+          enable_issue_assign: true
+          default_assignee: "linxin2036"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/QA
+          enable_issue_assign: true
+          default_assignee: "openUBMC-liuyujie"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/webui
+          enable_issue_assign: true
+          default_assignee: "sameeen"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/thermal_mgmt
+            - openUBMC/power_mgmt
+            - openUBMC/vpd
+            - openUBMC/network_adapter
+            - openUBMC/storage
+            - openUBMC/chassis
+            - openUBMC/component_drivers
+            - openUBMC/general_hardware
+          enable_issue_assign: true
+          default_assignee: "WeberChen"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/conan_index
+            - openUBMC/qemu
+            - openUBMC/manifest
+            - openUBMC/bingo
+            - openUBMC/hica
+          enable_issue_assign: true
+          default_assignee: "xuhaijun"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/rackmount
+            - openUBMC/observability
+            - openUBMC/profile_schema
+            - openUBMC/libirc
+          enable_issue_assign: true
+          default_assignee: "ZanthoxylumLeaf"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/bmc_datasync
+            - openUBMC/sensor
+            - openUBMC/active_standby_mgmt
+            - openUBMC/fructrl
+            - openUBMC/frudata
+            - openUBMC/mdb_interface
+          enable_issue_assign: true
+          default_assignee: "zhangbaocun"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/community
+            - openUBMC/openubmc-ci
+            - openUBMC/infrastructure
+          enable_issue_assign: true
+          default_assignee: "zhongjun2"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/spdm
+            - openUBMC/account
+          enable_issue_assign: true
+          default_assignee: "loopvoid"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/web_online_help
+          enable_issue_assign: true
+          default_assignee: "zstlanlanbenming"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/docs
+          enable_issue_assign: true
+          default_assignee: "zybwh"
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+        - repos:
+            - openUBMC/bus_tools
+          enable_issue_assign: true
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+        
+        - repos:
+            - openUBMC/ccf_openubmc
+            - openUBMC/libipmi
+            - openUBMC/sensor_mgmt
+            - openUBMC/event_mgmt
+            - openUBMC/ipmi_mgmt
+            - openUBMC/bmc_upgrade_mgmt
+            - openUBMC/qemu_mockup
+            - openUBMC/openubmc_dsl_rulepack
+            - openUBMC/skills-marketplace
+            - openUBMC/iam_lite
+            - openUBMC/compute_mgmt
+            - openUBMC/bcal
+            - openUBMC/dcmid
+            - openUBMC/vnc_proxy
+            - openUBMC/irc_client
+            - openUBMC/lcd_console
+            - openUBMC/libroute_mapper
+            - openUBMC/openubmc_profiles
+            - openUBMC/libsoc_adapter_aspeed
+            - openUBMC/yocto_soc
+            - openUBMC/bmcstudio_community_workbench
+            - openUBMC/obmc_dbus_proxy
+            - openUBMC/obmc_logging_adapter
+          enable_issue_assign: true
+          enable_issue_auto_add_to_dashboard: true
+          board_association:
+            branch_extraction:
+              pattern: 版本分支\s+(openUBMC.*)
+            branch_mapping:
+              "openUBMC main": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+              "openUBMC LTS": "openUBMC 25.12 LTS {issue_type}看板"
+              "default": "openUBMC {year_short}.{quarter_end_month} {issue_type}看板"
+      
+      community_robot_id: openUBMC-robot
+      msg_multiple_assignee: "### 注意 \nIssue 只能指派一个负责人。"
+      msg_assign_repeatedly: "### 注意 \n此 Issue 的负责人已经是 ***%s***。"
+      msg_not_allow_assign: "### 注意 \n此 Issue 的负责人不能设置为 ***%s***。因为他不是仓库或组织成员"
+      msg_not_allow_unassign: "### 注意 \n ***%s*** 不能取消其负责人。"
+      msg_default_assignee: "### 注意 \n此 Issue 需要负责人。 如果没有指派时， ***%s*** 是默认的负责人"
+  - name: configmap-universal-associate
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openUBMC
+          enable_check_associate_issue: true
+          associate_issue_rules:
+            org:
+              - "openUBMC"
+            org_label: needs-issue
+            org_issue_state_limit: true
+            org_issue_limit_state: "open"
+            org_issue_limit_workflow_state:
+              - issue_type: 需求
+                state: 已接纳,开发中,转测中,待验收
+            org_comment_command_check_label: /check-issue
+            org_comment_command_remove_label: /remove-needs-issue
+            org_remove_label_permission: true
+            org_comment_remove_label_no_permission: "### 注意 \n只有仓库的管理人员才可以强制删除 **needs-issue** 标签。"
+            org_comment_label_block_feedback: "### 关联 Issue 通知 \n @%s , 提交的PR需要关联issue，指导链接：https://forum.openubmc.cn/t/topic/208 \n如果已经关联了issue, 但是**needs-issue**标签仍然存在，你可以在评论 **`/check-issue`** 来移除它。"
+            org_comment_state_mismatch_feedback: "### Issue状态不符合预期 \n PR关联的Issue状态不符合预期， 请检查关联的Issue并确保至少有一个在允许的状态中。允许的Issue状态: %s。"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openubmc
+      community_robot_id: openUBMC-robot
+      placeholder_linking_issue_notice_title: "### 关联 Issue 通知"
+      placeholder_linking_pr_notice_title: "### 关联PR通知"
+  - name: configmap-universal-cla
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+          - openUBMC
+          cla_label_yes: openUBMC-cla/yes
+          cla_label_no: openUBMC-cla/no
+          check_url: https://clasign.osinfra.cn/api/v1/individual-signing/gitee_openubmc-1732941016829438030
+          sign_url: https://clasign.osinfra.cn/sign/gitee_openubmc-1732941016829438030
+          employee_sign_url: https://clasign.osinfra.cn/sign-cla/gitee_openubmc-1732941016829438030/employee
+          individual_sign_url: https://clasign.osinfra.cn/sign-cla/gitee_openubmc-1732941016829438030/individual
+          faq_url: https://gitcode.com/openUBMC/infrastructure/blob/main/docs/robot/cla_faq.md
+          check_by_committer: true
+          lite_pr_committer:
+            email: "@noreply.gitcode.com"
+            email_patch: "noreply@gitee.com"
+            name: GitCode
+      user_mark_format: "@"
+      placeholder_committer: ""
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openubmc
+      community_robot_id: openUBMC-bot
+      placeholder_cla_sign_guide_title: "### CLA 签署引导"
+      placeholder_cla_sign_pass_title: "### CLA 签署成功"
+      comment_command_trigger: "### CLA 签署指导手册  \n\n由于网络问题未能完成 CLA 检查，请通过评论 ***`/check-cla`*** 再次检查。"
+      comment_pr_no_commits: "### CLA 签署指导手册  \n\n此 PR 的 commits 无效，请检查。"
+      comment_some_need_sign: "### CLA 签署引导  \n\n %s , 感谢您的代码贡献。 \n\n以下 Commit(s) 没有签署 **<font color=green>_Contributor License Agreement (CLA)_</font>**。 \n\n%s \n\n如果您需要签署 CLA，[您可以点击此链接去签署 CLA ](%s)。  \n\n如果需要检查邮箱是否配置正确， [可以点击 **<font color=red>_FAQs_</font>** 去查看使用手册](%s) 。 \n\n在完成 CLA 签署或者更新完邮箱后, 需再次评论 ***`/check-cla`*** 来检查 CLA 的签署状态。"
+      comment_update_label_failed: "### CLA 签署指导手册  \n\n添加 CLA 标签失败，请通过评论 ***`/check-cla`*** 再次检查。 :pray: "
+      comment_all_signed: "### CLA 签署成功  \n %s, 感谢您的代码贡献。 所有的代码贡献者都已完成了 CLA 签署。 :+1: "
+      invalid_email: "@noreply.gitcode.com"
+      invalid_email_message: "这包含一个无效的邮箱，请检查下！"
+      cla_service_failed_message: "检查CLA是否签署失败！请再次评论下 `/check-cla` "
+      comment_unsigned_title: "| Commit | 原因 |\n|--|--|"
+      comment_unsigned_line: "\n| %s | %s |"
+      not_signed_email_message: "这条 Commit 的邮箱未签署 CLA ！请检查下邮箱是否正确配置。"
+      message_individual_version_behind: "因为个人 CLA 的协议内容已更新，[请点击这里重新查看下协议内容并再次签署](https://clasign.osinfra.cn/sign-cla/gitee_openubmc-1732941016829438030/individual-update?email=%s)。"
+      message_corporation_version_behind: "因为企业 CLA 的协议内容已更新，请联系 CLA 企业管理员进行处理。"
+      cla_signature_type_corporation: "corporation" 
+  - name: configmap-universal-label
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openUBMC
+          auto_remove_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          manual_add_or_remove_pr_label_rules:
+            - label_name: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openubmc
+      community_robot_id: openUBMC-bot
+      command_reg_exp_key_word: "kind|priority|sig|good"
+      delayed_seconds: 2
+      comment_remove_labels_when_pr_source_code_updated: "###注意:\n 当前PR代码已经发生变化(代码更新或者PR关闭)，所以移除以下标签: %s."
+      comment_label_command_conflict: "### 标签指令手册 \n %s ， 不能使用评论同时添加和删除同一个标签，请检查、改正后再次评论。"
+      comment_update_label_failed: "### 标签指令手册 \n %s ，更新标签 **_%s_** 失败，请稍后再次重试。"
+      comment_add_not_exist_label: "### 标签指令手册 \n %s ，当前仓库或组织中没有 **_%s_** 标签，添加失败，请联系sig组管理员添加标签后再次重试。"
+      comment_add_label_by_self: "### 注意: \n @%s , 您不能给自己检视代码, 请联系仓库 maintainers/committers."
+      comment_add_label_successful: "### \n- 标签 **%s** 已被添加. 这意味着 **%s** 已经检查过代码了. :wave: \n ##### *Tips* \n- 如果PR还没有被合入, 请评论 **`/check-pr`** 进行检查. :smile: "
+      comment_no_permission_for_user_list: "标签 **%s** 只有 **%s** 有权限, 请联系他们."
+      comment_no_permission_for_sig_member: "谢谢您的检视, 您的意见对于我们很重要. 仓库 maintainers 会认真考虑您的意见."
+      comment_no_permission_for_repo_member: "您当前没有添加标签 **%s** 的权限."
+      comment_permission_tip_for_branch_keeper: "The repository's branch is control of maintainer and branch keeper!"
+      comment_pr_no_found_commits: "### 注意  \n PR commit(s) 信息无法获取, 请您认真检查一下!"
+      comment_pr_no_found_code_change: "### 注意  \n PR 代码变化无法获取,  请您认真检查一下!"
+      feedback_comment_prefix: "### 标签指令手册  \n%s"
+      add_label_to_feedback:
+        - "lgtm"
+        - "approved"
+        - "lgtm-"
+  - name: configmap-universal-lifecycle
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openUBMC
+          close_issue_checklist:
+            comment_command_lines:
+              - "/close"
+            allow_issue_type_list:
+              - "任务"
+            allow_workflow_list:
+              - "任务/待办的,进行中/已完成"
+            close_workflow_list:
+              - "已完成"
+              - "已修复"
+              - "已拒绝"
+            linked_pr_all_merged_or_closed: true
+          reopen_issue_checklist:
+            comment_command_lines:
+              - "/reopen"
+            allow_workflow_list:
+              - "任务/已拒绝,已完成,进行中/待办的"
+              - "缺陷/修复中,已挂起,已修复,已拒绝/待修复"
+              - "需求/开发中,转测中,待验收,已完成/已接纳"
+          close_pr_checklist:
+            comment_command_lines:
+              - "/close"
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openubmc
+      community_robot_id: openUBMC-bot
+      event_state_opened: opened
+      issue_action_reopen: reopen
+      event_state_closed: closed
+      issue_action_close: close
+      comment_no_permission_close_issue: "### 注意 \n@%s ，您不能关闭此 Issue，因为您不是此 Issue 的创建者或仓库管理员，也不是sig组成员。"
+      comment_no_permission_reopen_issue: "### 注意 \n@%s ，您不能重新打开此 Issue，因为您不是此 Issue 的创建者或仓库管理员，也不是sig组成员。"
+      comment_list_linking_pull_requests_failure: "### 注意 \n@%s ， 此 Issue 关联 PR 失败，请重新关联"
+      comment_no_permission_close_pr: "### 注意 \n@%s ， 您不能操作（%s）此 PR，因为您不是此 PR 的创建者或仓库管理员，也不是sig组成员。"
+      comment_not_close_issue: "### 注意 \n@%s ， 因为需求和缺陷Issue处于管控中，不能直接关闭，请联系 [sig-QA](https://gitcode.com/openUBMC/community/blob/main/sigs/sig-QA/sig-info.yaml) 的 Maintainer / Committer"
+      comment_issue_has_open_pr: "### 注意 \n@%s ， 此 Issue 关联了开启的 PR，请先处理 PR 合入后，再关闭 Issue。"
+      comment_issue_needs_link_pr: "### 注意 \n@%s ，关闭此 Issue 的前提条件是关联了 PR。"
+  - name: configmap-universal-review
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openUBMC
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: true
+              - label_name: ci-successful
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: true
+              - label_name: openUBMC-cla/yes
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: false
+            need_review_questions_fixed: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: needs-issue
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: false
+              - label_name: unresolved-reviews
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: false
+
+        - repos:
+            - openUBMC/community
+            - openUBMC/openubmc-ci
+            - openUBMC/nginx
+            - openUBMC/conan-auth-proxy
+            - openUBMC/qemu
+            - openUBMC/software-center-config
+            - openUBMC/release_management
+            - openUBMC/QA
+            - openUBMC/devmon
+            - openUBMC/libmcpp
+            - openUBMC/bmcstudio_dsl
+            - openUBMC/bmcstudio_wsl
+            - openUBMC/bmcstudio_ssh
+            - openUBMC/bmcstudio_core
+            - openUBMC/bmcstudio
+            - openUBMC/.gitcode
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: true
+              - label_name: openUBMC-cla/yes
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: false
+            need_review_questions_fixed: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: needs-issue
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: false
+              - label_name: unresolved-reviews
+                need_num: 1
+                legal_operator: openUBMC-robot
+                legal_operate_time: false
+            
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openubmc
+      community_robot_id: openUBMC-robot
+      comment_failed_list_pr_operation_logs: "### 注意\n 查询PR操作日志失败。"
+      comment_failed_list_pr_labels: "### 注意\n PR 标签获取失败!"
+      comment_pr_work_in_process: "### 注意\n The PR标签正在被处理中!"
+      comment_pr_no_found_commits: "### 注意  \n PR commit(s) 信息无法获取, 请您认真检查一下!"
+      comment_pr_cannot_merge_reason: "### 合入校验失败\n@%s, 当前PR不可合入，原因如下:\n\n%s"
+      comment_msg_missing_labels: "##### *缺少标签*\n- PR当前没有以下标签: %s。"
+      comment_msg_block_labels: "##### *标签*\n- the **%s** 导致PR无法合入."
+      comment_msg_not_enough_label: "##### *标签没满足合入条件*\n%s"
+      comment_msg_not_enough_label_template: "- PR合入需要以下标签 **%d** **%s**, 但是当前只有**%d**."
+      comment_non_compliance_label_operations: "##### *不合规操作标签说明*\n%s"
+      comment_non_compliance_label_operation_template: "- 标签 **%s** 应该被 **%s** 添加, 但当前是 **%s** 添加的!"
+      comment_failed_merge_pr: "### 合并PR失败 \n - reason: %s"
+      comment_failed_merge_pr_unknown_reason: "未知错误发生, 请联系社区基础设施团队。"
+      comment_allow_label_log_non_compliance: ""
+      label_usage_tip_title: "##### *标签使用技巧*"
+      label_usage_tip_detail: "- **%s**: %s"
+      action_add_label_gitcode: "add label"
+      action_delete_label_gitcode: "delete label"
+      action_commit_update_gitcode: "commit"
+      action_target_branch_change_gitcode: "target_branch"
+      action_reopen_gitcode: "opened"
+      action_add_label_gitee: "add_label"
+      action_delete_label_gitee: "remove_label"
+      label_unresolved_reviews: "unresolved-reviews"
+      label_no_passed_code_owners: "no-pass-all-review"
+      comment_unresolved_reviews: "### 注意\n 当前PR有 **%d** 条评论意见. 其中 **%d** 条未处理完毕. 全部处理完后, 请评论 ***`/check-pr`*** 进行检查. :smile: "
+      comment_no_passed_code_owners: "### 注意\n 当前PR需要 **%d** 来检视. **%d** 没有检视. 如果都检视完毕, 请评论 ***`/check-pr`*** 进行检查. :smile: "
+      comment_not_found_code_owners: "### Notice\n 当前PR没发现codeowners. "
+      comment_can_not_get_frozen_branch_data: "### 注意\n The 当前PR无法获取详情"
+      comment_frozen_branch_users: "The target branch of PR has been frozen and it can be merge only by branch owners: @%s"
+      comment_label_expiry: "标签 %s 已经失效. 请重新评论进行添加."
+      comment_pr_no_found_code_change: "### 注意  \n PR 代码变化无法获取,  请您认真检查一下!"
+      branch_frozen_community: openfuyao
+      release_manage_org: openfuyao
+      release_manage_repo: release-management
+      release_manage_file_path: release-management.yaml
+      release_manage_ref: master
+      comment_failed_list_pr_comments: "### 注意\n 当前PR无法获取评论信息!"
+      pr_merge_feedback_comment_prefix: "### Review Code Feedback \n- The label"
+      pr_merge_feedback_comment_regexp: '- 标签 .* 已经被添加至本PR. 这意味着 \*\*(.*)\*\* 已经检视过该代码. :wave: '
+      label_usage_description:
+        - label_name: lgtm
+          description: "合并PR时必要的标签。代码仓管理人员可以通过评论 **`/lgtm`** 来添加标签。PR创建者可以通过评论 **`/lgtm cancel`** 来删除标签，但无法通过评论 **`/lgtm`** 添加标签。"
+        - label_name: approved
+          description: "合并PR时必要的标签。代码仓管理人员可以通过评论 **`/approve`** 来添加标签，通过评论 **`/approve cancel`** 来删除标签。"
+        - label_name: openUBMC-cla/yes
+          description: "合并PR时的必要标签。PR的每一位代码贡献者必须签署Contributor License Agreement （简称CLA），否则PR将无法合并。在CLA签署成功后，PR的创建者可以通过评论 **`/check-cla`** 触发机器人任务，在机器人检验成功后，会给PR添加相应的cla标签。"
+        - label_name: ci-successful
+          description: "合并PR时的必要标签。代码需要通过CI测试，否则PR将无法合并。可以通过评论 **`/retest`** 重新触发CI。"
+        - label_name: ci-failed
+          description: "合并PR时的必要标签。代码需要通过CI测试，否则PR将无法合并。可以通过评论 **`/retest`** 重新触发CI。"
+        - label_name: needs-issue
+          description: "PR需要关联issue，指导链接：https://forum.openubmc.cn/t/topic/208 。如果已经关联了issue, 但是**needs-issue**标签仍然存在，你可以在评论 **`/check-issue`** 来移除它。"
+        - label_name: unresolved-reviews
+          description: "当前PR仍有未解决的评审意见，需要解决这些评审意见，PR才能合入。如果所有评审意见都已解决，可通过评论 **`/check-pr`** 手动尝试合并 PR。"
+  - name: configmap-universal-welcome
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openUBMC
+          community_name: openUBMC
+          command_link: https://gitcode.com/openUBMC/infrastructure/blob/main/docs/robot/command_zh.md
+          sig_info_link: "[%s](https://gitcode.com/openUBMC/community/blob/main/sigs/%s/sig-info.yaml)"
+          welcome_message:
+            - "### 欢迎来到 %s 社区"
+            - "Hey %s , 感谢你对社区的贡献."
+            - "#### 机器人使用手册"
+            - "有关指令的使用，可以点击 **[说明文档](%s) 或 [论坛](https://discuss.openubmc.cn/t/topic/4975)** 查看详情。开发人员可以在每个PR或Issue下方评论特定指令来触发机器人任务。"
+            - "#### 联系指引"
+            - "有疑问可以联系 SIG: **%s** ,"
+            - "如果希望快速审核您的PR或ISSUE，请先联系维护者: %s ,"
+            - "维护者是： %s ,"
+            - "优秀贡献者是： %s ."
+            - "如果您有任何疑问，请联系仓库维护者: %s ."
+      user_mark_format: "@"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/detail/info"
+      community_name: openubmc
+      exclude_user:
+        - ""
+        - openUBMC-robot
+
+  - name: configmap-issue-workflow
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openUBMC/infrastructure
+            - openUBMC/openubmc-ci
+            - openUBMC/website
+            - openUBMC/website-backend
+            - openUBMC/nginx
+            - openUBMC/conan-auth-proxy
+            - openUBMC/software-center
+            - openUBMC/software-center-importer
+          sig_info_link_template: "[%s](https://gitcode.com/openUBMC/community/blob/main/sigs/%s/sig-info.yaml)"
+          workflow_permissions:
+            - issue_type: "需求"
+              prev_workflow: "待办的"
+              next_workflow: "已接纳"
+              comment_command: "/todo2accepted"
+              permission_sig_groups:
+                - sig_name: "infrastructure"
+                  sig_role: "maintainer"
+            - issue_type: "需求"
+              prev_workflow: "已接纳"
+              next_workflow: "开发中"
+              comment_command: "/accepted2developing"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "需求"
+              prev_workflow: "开发中"
+              next_workflow: "转测中"
+              comment_command: "/developing2testing"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "需求"
+              prev_workflow: "转测中"
+              next_workflow: "待验收"
+              comment_command: "/testing2UAT"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "需求"
+              prev_workflow: "待验收"
+              next_workflow: "已完成"
+              comment_command: "/UAT2done"
+              permission_sig_groups:
+                - sig_name: "infrastructure"
+                  sig_role: "maintainer,committer"
+
+            - issue_type: "需求"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "需求"
+              prev_workflow: "待办的"
+              next_workflow: "已挂起"
+              comment_command: "/todo2suspended"
+              permission_sig_groups:
+                - sig_name: "infrastructure"
+                  sig_role: "maintainer"
+            - issue_type: "需求"
+              prev_workflow: "已挂起"
+              next_workflow: "已接纳"
+              comment_command: "/suspended2accepted"
+              permission_sig_groups:
+                - sig_name: "infrastructure"
+                  sig_role: "maintainer"
+
+            - issue_type: "需求"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "需求"
+              prev_workflow: "待办的"
+              next_workflow: "已拒绝"
+              comment_command: "/todo2rejected"
+              permission_sig_groups:
+                - sig_name: "infrastructure"
+                  sig_role: "maintainer"
+            - issue_type: "需求"
+              prev_workflow: "已拒绝"
+              next_workflow: "已接纳"
+              comment_command: "/rejected2accepted"
+              permission_sig_groups:
+                - sig_name: "infrastructure"
+                  sig_role: "maintainer"
+
+            - issue_type: "缺陷"
+              prev_workflow: "待修复"
+              next_workflow: "修复中"
+              comment_command: "/todo2fixing"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "缺陷"
+              prev_workflow: "修复中"
+              next_workflow: "待验收"
+              comment_command: "/fixing2UAT"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "缺陷"
+              prev_workflow: "待验收"
+              next_workflow: "已修复"
+              comment_command: "/UAT2done"
+              permission_sig_groups:
+                - sig_name: "infrastructure"
+                  sig_role: "maintainer,committer"
+
+            - issue_type: "缺陷"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "缺陷"
+              prev_workflow: "待修复"
+              next_workflow: "已挂起"
+              comment_command: "/todo2suspended"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+
+            - issue_type: "缺陷"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "缺陷"
+              prev_workflow: "待修复"
+              next_workflow: "已拒绝"
+              comment_command: "/todo2rejected"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+        - repos:
+            - openUBMC/docs
+          sig_info_link_template: "[%s](https://gitcode.com/openUBMC/community/blob/main/sigs/%s/sig-info.yaml)"
+          workflow_permissions:
+            - issue_type: "需求"
+              prev_workflow: "待办的"
+              next_workflow: "已接纳"
+              comment_command: "/todo2accepted"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+            - issue_type: "需求"
+              prev_workflow: "已接纳"
+              next_workflow: "开发中"
+              comment_command: "/accepted2developing"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "需求"
+              prev_workflow: "开发中"
+              next_workflow: "转测中"
+              comment_command: "/developing2testing"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "需求"
+              prev_workflow: "转测中"
+              next_workflow: "待验收"
+              comment_command: "/testing2UAT"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "需求"
+              prev_workflow: "待验收"
+              next_workflow: "已完成"
+              comment_command: "/UAT2done"
+              permission_sig_groups:
+                - sig_name: "sig-docs"
+                  sig_role: "maintainer,committer"
+                - sig_name: "sig-QA"
+                  sig_role: "maintainer,committer"
+
+            - issue_type: "需求"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "需求"
+              prev_workflow: "待办的"
+              next_workflow: "已挂起"
+              comment_command: "/todo2suspended"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+            - issue_type: "需求"
+              prev_workflow: "已挂起"
+              next_workflow: "已接纳"
+              comment_command: "/suspended2accepted"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+
+            - issue_type: "需求"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "需求"
+              prev_workflow: "待办的"
+              next_workflow: "已拒绝"
+              comment_command: "/todo2rejected"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+            - issue_type: "需求"
+              prev_workflow: "已拒绝"
+              next_workflow: "已接纳"
+              comment_command: "/rejected2accepted"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+
+            - issue_type: "缺陷"
+              prev_workflow: "待修复"
+              next_workflow: "修复中"
+              comment_command: "/todo2fixing"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "缺陷"
+              prev_workflow: "修复中"
+              next_workflow: "待验收"
+              comment_command: "/fixing2UAT"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "缺陷"
+              prev_workflow: "待验收"
+              next_workflow: "已修复"
+              comment_command: "/UAT2done"
+              permission_sig_groups:
+                - sig_name: "sig-docs"
+                  sig_role: "maintainer,committer"
+                - sig_name: "sig-QA"
+                  sig_role: "maintainer,committer"
+
+            - issue_type: "缺陷"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "缺陷"
+              prev_workflow: "待修复"
+              next_workflow: "已挂起"
+              comment_command: "/todo2suspended"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+
+            - issue_type: "缺陷"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "缺陷"
+              prev_workflow: "待修复"
+              next_workflow: "已拒绝"
+              comment_command: "/todo2rejected"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"    
+        - repos:
+            - openUBMC
+          sig_info_link_template: "[%s](https://gitcode.com/openUBMC/community/blob/main/sigs/%s/sig-info.yaml)"
+          workflow_permissions:
+            - issue_type: "需求"
+              prev_workflow: "待办的"
+              next_workflow: "已接纳"
+              comment_command: "/todo2accepted"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+            - issue_type: "需求"
+              prev_workflow: "已接纳"
+              next_workflow: "开发中"
+              comment_command: "/accepted2developing"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "需求"
+              prev_workflow: "开发中"
+              next_workflow: "转测中"
+              comment_command: "/developing2testing"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "需求"
+              prev_workflow: "转测中"
+              next_workflow: "待验收"
+              comment_command: "/testing2UAT"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "需求"
+              prev_workflow: "待验收"
+              next_workflow: "已完成"
+              comment_command: "/UAT2done"
+              permission_sig_groups:
+                - sig_name: "sig-QA"
+                  sig_role: "maintainer,committer"
+
+            - issue_type: "需求"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "需求"
+              prev_workflow: "待办的"
+              next_workflow: "已挂起"
+              comment_command: "/todo2suspended"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+            - issue_type: "需求"
+              prev_workflow: "已挂起"
+              next_workflow: "已接纳"
+              comment_command: "/suspended2accepted"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+
+            - issue_type: "需求"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "需求"
+              prev_workflow: "待办的"
+              next_workflow: "已拒绝"
+              comment_command: "/todo2rejected"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+            - issue_type: "需求"
+              prev_workflow: "已拒绝"
+              next_workflow: "已接纳"
+              comment_command: "/rejected2accepted"
+              permission_sig_groups:
+                - sig_name: "sig-release-management"
+                  sig_role: "maintainer"
+
+            - issue_type: "缺陷"
+              prev_workflow: "待修复"
+              next_workflow: "修复中"
+              comment_command: "/todo2fixing"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "缺陷"
+              prev_workflow: "修复中"
+              next_workflow: "待验收"
+              comment_command: "/fixing2UAT"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+            - issue_type: "缺陷"
+              prev_workflow: "待验收"
+              next_workflow: "已修复"
+              comment_command: "/UAT2done"
+              permission_sig_groups:
+                - sig_name: "sig-QA"
+                  sig_role: "maintainer,committer"
+
+            - issue_type: "缺陷"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "缺陷"
+              prev_workflow: "待修复"
+              next_workflow: "已挂起"
+              comment_command: "/todo2suspended"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+
+            - issue_type: "缺陷"
+              comment_command: "" # 表格格式，忽略
+
+            - issue_type: "缺陷"
+              prev_workflow: "待修复"
+              next_workflow: "已拒绝"
+              comment_command: "/todo2rejected"
+              permission_repo_roles:
+                - "openUBMC_Maintainer"
+                - "openUBMC_Committer"
+                - "openUBMC_Contributor"
+                - "Owner"
+                - "Maintainer"
+
+      community_name: "openubmc"
+      community_robot_id: "openUBMC-robot"
+      issue_workflow_introduction_command: "/issue-workflow-help"
+      comment_can_not_get_permission_config_yaml: "找不到配置文件"
+      comment_can_parse_permission_config_yaml: "配置文件数据有误"
+      comment_issue_workflow_introduction_title: "## Issue 工作流介绍  \n 社区的需求和缺陷的工作流状态处于纳管中。 \n| 类型 | 上个状态 | 下个状态 | 评论命令 | 谁可以操作 |\n|:--:|:--:|:--:|:--|:--|"
+      comment_issue_workflow_introduction_template: "| %s | %s | %s | %s | %s |"
+      comment_issue_workflow_no_match_perv_status: "## Issue 工作流提示  \n 命令 **%s** 是把 **%s** 更改为 **%s** ，但当前Issue的工作流状态是 **%s** ，请先更改成 **%s** 。"
+      comment_issue_workflow_no_permission: "## Issue 工作流提示  \n 您暂无Issue的工作流 **%s** 更改为 **%s** 的操作权限，请联系有权限的成员。"
+      issue_workflow_feedback_comment_prefix: "## Issue 工作流提示  "
+      issue_workflow_permission_user_template: "账号ID: %s"
+      issue_workflow_permission_role_template: "仓库成员角色: %s"
+      issue_workflow_permission_sig_group_template: "SIG组: %s"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"

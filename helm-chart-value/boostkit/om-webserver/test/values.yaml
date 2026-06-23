@@ -1,0 +1,117 @@
+#版本1.0.4
+namespace: boostkit-omwebserver
+serviceAccount:
+  create: true
+  name: boostkit-omwebserver
+imagePullSecret: huawei-swr-image-pull-secret
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+deployments:
+  - name: boostkit-omwebserver
+    replicaCount: 1
+    labels:
+      virtual-kubelet.io/burst-to-cci: enforce
+    podLabels:
+      app: boostkit-omwebserver
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podAnnotations:
+      vault.hashicorp.com/agent-inject: "true"
+      vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+      vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+      vault.hashicorp.com/agent-inject-secret-application.properties: internal/data/infra-test/boostkit-omwebserver
+      vault.hashicorp.com/agent-inject-secret-redis.crt: internal/data/infra-test/boostkit-omwebserver
+      vault.hashicorp.com/agent-inject-secret-tls.pfx: internal/data/infra-test/boostkit-omwebserver
+      vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/infra-test/boostkit-omwebserver\" -}}  \n{{ .Data.data.application }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/infra-test/boostkit-omwebserver\" -}}  \n{{ .Data.data.redis }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/infra-test/boostkit-omwebserver\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-pre-populate-only: "true"
+      vault.hashicorp.com/agent-run-as-group: "1001"
+      vault.hashicorp.com/agent-run-as-user: "1001"
+      vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+      vault.hashicorp.com/role: boostkit-omwebserver
+      vault.hashicorp.com/secret-volume-path: /var/lib/om-webserver
+      vault.hashicorp.com/tls-skip-verify: "true"
+      vault.hashicorp.com/log-level: "warn"
+    applicationPath: /var/lib/om-webserver/application.properties
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/om-webserver-test
+      tag: "feature-add-statue-cache-redirect-5c07bf"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1000Mi
+      requests:
+        cpu: "1"
+        memory: 1000Mi
+    heathCheckPath:
+      path: /oneid/checkOmService
+      port: 8080
+      scheme: HTTPS
+    containerPort: 8080
+# ingress: {}
+# 格式示例
+ingress:
+  - name: boostkit-om-webserver
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+      nginx.ingress.kubernetes.io/limit-connections: "20"
+      nginx.ingress.kubernetes.io/limit-rps: "400"
+      nginx.ingress.kubernetes.io/proxy-body-size: 2m
+    host: id.hikunpeng.test.osinfra.cn
+    serviceName: om-webserver-service
+    servicePort: 8080
+    path: /oneid
+    pathType: Prefix
+    secretName: domain-tls
+services:
+  - name: om-webserver-service
+    type: ClusterIP
+    port: 8080
+    portName: srv
+    targetPort: 8080
+    podLabels:
+      app: boostkit-omwebserver
+# secrets: {}
+# 格式示例
+secrets:
+  - name: domain-tls
+    path: secrets/data/infra-test/boostkit-domain-tls
+    certKey: tls.cert
+    keyKey: tls.key
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: istio-system/istio-gateway-https
+  vs:
+    name: om-webserver-virtualservice
+    host:
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host:
+              port:
+                number:
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE
+  dr:
+    - name: destinationrule-om-webserver
+      serviceName: om-webserver-service
+      port: 80
+  pa:
+    - name: peerauthentication-om-webserver-disable-mtls
+      podLabels:
+        app: om-webserver

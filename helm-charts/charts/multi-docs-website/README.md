@@ -1,0 +1,494 @@
+# multi-docs-website
+
+![Version: 1.0.2](https://img.shields.io/badge/Version-1.0.2-informational?style=flat-square) ![AppVersion: latest](https://img.shields.io/badge/AppVersion-latest-informational?style=flat-square)
+
+## 📖 服务介绍 (Service Overview)
+
+> **社区官网文档**
+
+### 依赖
+1. Kubernetes 1.21+
+2. Helm 3.12.0+
+
+### 核心功能
+* 静态资源展示
+
+### 底层组件
+该服务在启动和运行过程中依赖：
+* **nginx**: [存放前端静态资源]
+* **vault**: [挂载nginx所需的ssl相关配置文件]
+
+### 维护者
+
+| 名称        | 邮箱 | Github ID |
+|-----------|------|-----------|
+| zhengkaiwen | 1181874008@qq.com | rosecoffe |
+
+### Helm chart values说明
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| autoscale.metadata.desiredReplicas | string | `"1"` |  |
+| autoscale.metadata.end | string | `"55 23 * * *"` |  |
+| autoscale.metadata.start | string | `"30 8 * * *"` |  |
+| autoscale.metadata.timezone | string | `"Asia/Shanghai"` |  |
+| imagePullSecret | string | `"huawei-hk-swr-image-pull-secret"` |  |
+| ingress.annotations."nginx.ingress.kubernetes.io/backend-protocol" | string | `"HTTPS"` |  |
+| ingress.className | string | `"nginx"` |  |
+| ingress.enabled | bool | `false` |  |
+| ingress.host | string | `""` |  |
+| initContainers[0].command[0] | string | `"/bin/bash"` |  |
+| initContainers[0].command[1] | string | `"-c"` |  |
+| initContainers[0].command[2] | string | `"chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/"` |  |
+| initContainers[0].image | string | `"swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3"` |  |
+| initContainers[0].imagePullPolicy | string | `"IfNotPresent"` |  |
+| initContainers[0].name | string | `"init-openeuler"` |  |
+| istio.dr[0].name | string | `"opengauss-docs-dr"` |  |
+| istio.dr[0].port | int | `8080` |  |
+| istio.dr[0].serviceName | string | `"docs-website-common"` |  |
+| istio.enabled | bool | `true` |  |
+| istio.gateway | string | `"istio-system/istio-gateway-https"` |  |
+| istio.mtlsMode | string | `"DISABLE"` |  |
+| istio.nslabel.istio-injection | string | `"enabled"` |  |
+| istio.pa[0].name | string | `"opengauss-docs-pa"` |  |
+| istio.pa[0].podLabels.app | string | `"docs-common"` |  |
+| istio.tlsMode | string | `"SIMPLE"` |  |
+| istio.vs.host | string | `"opengauss-docs.test.osinfra.cn"` |  |
+| istio.vs.http[0].match[0].uri.prefix | string | `"/"` |  |
+| istio.vs.http[0].rewrite.uri | string | `"/"` |  |
+| istio.vs.http[0].route[0].destination.host | string | `"docs-website-common.opengauss-docs.svc.cluster.local"` |  |
+| istio.vs.http[0].route[0].destination.port.number | int | `8080` |  |
+| istio.vs.name | string | `"opengauss-docs-vs"` |  |
+| namespace | string | `"opengauss-docs"` |  |
+| nodeSelector.node | string | `"autoscale"` |  |
+| podAnnotations."vault.hashicorp.com/agent-init-first" | string | `"true"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject" | string | `"true"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-command-abc.txt" | string | `"if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo \"service not running skip\"; fi\n"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-perms-abc.txt" | string | `"0400"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-perms-dhparam.pem" | string | `"0400"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-perms-server.crt" | string | `"0400"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-perms-server.key" | string | `"0400"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-secret-abc.txt" | string | `"internal/data/infra-test/test-osinfra-cn-tls-ssl"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-secret-dhparam.pem" | string | `"internal/data/infra-test/test-osinfra-cn-tls-ssl"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-secret-server.crt" | string | `"internal/data/infra-test/test-osinfra-cn-tls-ssl"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-secret-server.key" | string | `"internal/data/infra-test/test-osinfra-cn-tls-ssl"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-template-abc.txt" | string | `"{{- with secret \"internal/data/infra-test/test-osinfra-cn-tls-ssl\" -}}\n{{ .Data.data.certificatePassword }}\n{{- end }}\n"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-template-dhparam.pem" | string | `"{{- with secret \"internal/data/infra-test/test-osinfra-cn-tls-ssl\" -}}\n{{ .Data.data.dhparamPem }}\n{{- end }}\n"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-template-server.crt" | string | `"{{- with secret \"internal/data/infra-test/test-osinfra-cn-tls-ssl\" -}}\n{{ .Data.data.ServerCrt }}\n{{- end }}\n"` |  |
+| podAnnotations."vault.hashicorp.com/agent-inject-template-server.key" | string | `"{{- with secret \"internal/data/infra-test/test-osinfra-cn-tls-ssl\" -}}\n{{ .Data.data.ServerKey }}\n{{- end }}\n"` |  |
+| podAnnotations."vault.hashicorp.com/agent-pre-populate-only" | string | `"true"` |  |
+| podAnnotations."vault.hashicorp.com/agent-run-as-group" | string | `"1000"` |  |
+| podAnnotations."vault.hashicorp.com/agent-run-as-user" | string | `"1000"` |  |
+| podAnnotations."vault.hashicorp.com/agent-service-account-token-volume-name" | string | `"token-vol"` |  |
+| podAnnotations."vault.hashicorp.com/log-level" | string | `"warn"` |  |
+| podAnnotations."vault.hashicorp.com/role" | string | `"opengauss-docs"` |  |
+| podAnnotations."vault.hashicorp.com/secret-volume-path" | string | `"/etc/nginx/cert/"` |  |
+| podAnnotations."vault.hashicorp.com/template-static-secret-render-interval" | string | `"5s"` |  |
+| podAnnotations."vault.hashicorp.com/tls-skip-verify" | string | `"true"` |  |
+| podSecurityContext.seccompProfile.localhostProfile | string | `"infra-seccomp.json"` |  |
+| podSecurityContext.seccompProfile.type | string | `"Localhost"` |  |
+| secret.ca_crt_key | string | `"tls.cert"` |  |
+| secret.enable | bool | `false` |  |
+| secret.name | string | `"tls-secrets"` |  |
+| secret.path | string | `"secrets/data/infra-test/domain-tls"` |  |
+| secret.tls_crt_key | string | `"tls.cert"` |  |
+| secret.tls_key_key | string | `"tls.key"` |  |
+| securityContext.allowPrivilegeEscalation | bool | `false` |  |
+| securityContext.capabilities.drop[0] | string | `"ALL"` |  |
+| securityContext.runAsUser | int | `1000` |  |
+| servers[0].env[0].name | string | `"DET_URL"` |  |
+| servers[0].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[0].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[0].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[0].image.tag | string | `"common-v1.0.20251125202043"` |  |
+| servers[0].name | string | `"docs-website-common"` |  |
+| servers[0].podLabels.app | string | `"docs-common"` |  |
+| servers[0].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[0].probeHttpGet.port | int | `8080` |  |
+| servers[0].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[0].replicaCount | int | `1` |  |
+| servers[0].resources.limits.cpu | int | `1` |  |
+| servers[0].resources.limits.memory | string | `"1Gi"` |  |
+| servers[0].resources.requests.cpu | int | `1` |  |
+| servers[0].resources.requests.memory | string | `"1Gi"` |  |
+| servers[0].service.port | int | `8080` |  |
+| servers[0].service.portName | string | `"tls-1"` |  |
+| servers[0].service.targetPort | int | `8080` |  |
+| servers[0].service.type | string | `"ClusterIP"` |  |
+| servers[0].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[0].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[0].strategy.type | string | `"RollingUpdate"` |  |
+| servers[10].env[0].name | string | `"DET_URL"` |  |
+| servers[10].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[10].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[10].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[10].image.tag | string | `"3-0-0-v1.0.20251016203933"` |  |
+| servers[10].name | string | `"docs-website-3-0-0"` |  |
+| servers[10].podLabels.app | string | `"docs-3-0-0"` |  |
+| servers[10].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[10].probeHttpGet.port | int | `8080` |  |
+| servers[10].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[10].replicaCount | int | `1` |  |
+| servers[10].resources.limits.cpu | int | `1` |  |
+| servers[10].resources.limits.memory | string | `"1Gi"` |  |
+| servers[10].resources.requests.cpu | int | `1` |  |
+| servers[10].resources.requests.memory | string | `"1Gi"` |  |
+| servers[10].service.port | int | `8080` |  |
+| servers[10].service.portName | string | `"tls-1"` |  |
+| servers[10].service.targetPort | int | `8080` |  |
+| servers[10].service.type | string | `"ClusterIP"` |  |
+| servers[10].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[10].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[10].strategy.type | string | `"RollingUpdate"` |  |
+| servers[11].env[0].name | string | `"DET_URL"` |  |
+| servers[11].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[11].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[11].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[11].image.tag | string | `"2-1-0-v1.0.20251016204351"` |  |
+| servers[11].name | string | `"docs-website-2-1-0"` |  |
+| servers[11].podLabels.app | string | `"docs-2-1-0"` |  |
+| servers[11].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[11].probeHttpGet.port | int | `8080` |  |
+| servers[11].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[11].replicaCount | int | `1` |  |
+| servers[11].resources.limits.cpu | int | `1` |  |
+| servers[11].resources.limits.memory | string | `"1Gi"` |  |
+| servers[11].resources.requests.cpu | int | `1` |  |
+| servers[11].resources.requests.memory | string | `"1Gi"` |  |
+| servers[11].service.port | int | `8080` |  |
+| servers[11].service.portName | string | `"tls-1"` |  |
+| servers[11].service.targetPort | int | `8080` |  |
+| servers[11].service.type | string | `"ClusterIP"` |  |
+| servers[11].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[11].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[11].strategy.type | string | `"RollingUpdate"` |  |
+| servers[12].env[0].name | string | `"DET_URL"` |  |
+| servers[12].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[12].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[12].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[12].image.tag | string | `"2-0-1-v1.0.20251016204625"` |  |
+| servers[12].name | string | `"docs-website-2-0-1"` |  |
+| servers[12].podLabels.app | string | `"docs-2-0-1"` |  |
+| servers[12].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[12].probeHttpGet.port | int | `8080` |  |
+| servers[12].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[12].replicaCount | int | `1` |  |
+| servers[12].resources.limits.cpu | int | `1` |  |
+| servers[12].resources.limits.memory | string | `"1Gi"` |  |
+| servers[12].resources.requests.cpu | int | `1` |  |
+| servers[12].resources.requests.memory | string | `"1Gi"` |  |
+| servers[12].service.port | int | `8080` |  |
+| servers[12].service.portName | string | `"tls-1"` |  |
+| servers[12].service.targetPort | int | `8080` |  |
+| servers[12].service.type | string | `"ClusterIP"` |  |
+| servers[12].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[12].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[12].strategy.type | string | `"RollingUpdate"` |  |
+| servers[13].env[0].name | string | `"DET_URL"` |  |
+| servers[13].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[13].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[13].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[13].image.tag | string | `"2-0-0-v1.0.20251016204849"` |  |
+| servers[13].name | string | `"docs-website-2-0-0"` |  |
+| servers[13].podLabels.app | string | `"docs-2-0-0"` |  |
+| servers[13].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[13].probeHttpGet.port | int | `8080` |  |
+| servers[13].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[13].replicaCount | int | `1` |  |
+| servers[13].resources.limits.cpu | int | `1` |  |
+| servers[13].resources.limits.memory | string | `"1Gi"` |  |
+| servers[13].resources.requests.cpu | int | `1` |  |
+| servers[13].resources.requests.memory | string | `"1Gi"` |  |
+| servers[13].service.port | int | `8080` |  |
+| servers[13].service.portName | string | `"tls-1"` |  |
+| servers[13].service.targetPort | int | `8080` |  |
+| servers[13].service.type | string | `"ClusterIP"` |  |
+| servers[13].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[13].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[13].strategy.type | string | `"RollingUpdate"` |  |
+| servers[14].env[0].name | string | `"DET_URL"` |  |
+| servers[14].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[14].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[14].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[14].image.tag | string | `"1-1-0-v1.0.20251016205111"` |  |
+| servers[14].name | string | `"docs-website-1-1-0"` |  |
+| servers[14].podLabels.app | string | `"docs-1-1-0"` |  |
+| servers[14].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[14].probeHttpGet.port | int | `8080` |  |
+| servers[14].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[14].replicaCount | int | `1` |  |
+| servers[14].resources.limits.cpu | int | `1` |  |
+| servers[14].resources.limits.memory | string | `"1Gi"` |  |
+| servers[14].resources.requests.cpu | int | `1` |  |
+| servers[14].resources.requests.memory | string | `"1Gi"` |  |
+| servers[14].service.port | int | `8080` |  |
+| servers[14].service.portName | string | `"tls-1"` |  |
+| servers[14].service.targetPort | int | `8080` |  |
+| servers[14].service.type | string | `"ClusterIP"` |  |
+| servers[14].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[14].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[14].strategy.type | string | `"RollingUpdate"` |  |
+| servers[15].env[0].name | string | `"DET_URL"` |  |
+| servers[15].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[15].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[15].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[15].image.tag | string | `"1-0-1-v1.0.20251118194921"` |  |
+| servers[15].name | string | `"docs-website-1-0-1"` |  |
+| servers[15].podLabels.app | string | `"docs-1-0-1"` |  |
+| servers[15].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[15].probeHttpGet.port | int | `8080` |  |
+| servers[15].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[15].replicaCount | int | `1` |  |
+| servers[15].resources.limits.cpu | int | `1` |  |
+| servers[15].resources.limits.memory | string | `"1Gi"` |  |
+| servers[15].resources.requests.cpu | int | `1` |  |
+| servers[15].resources.requests.memory | string | `"1Gi"` |  |
+| servers[15].service.port | int | `8080` |  |
+| servers[15].service.portName | string | `"tls-1"` |  |
+| servers[15].service.targetPort | int | `8080` |  |
+| servers[15].service.type | string | `"ClusterIP"` |  |
+| servers[15].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[15].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[15].strategy.type | string | `"RollingUpdate"` |  |
+| servers[16].env[0].name | string | `"DET_URL"` |  |
+| servers[16].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[16].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[16].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[16].image.tag | string | `"1-0-0-v1.0.20251016205459"` |  |
+| servers[16].name | string | `"docs-website-1-0-0"` |  |
+| servers[16].podLabels.app | string | `"docs-1-0-0"` |  |
+| servers[16].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[16].probeHttpGet.port | int | `8080` |  |
+| servers[16].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[16].replicaCount | int | `1` |  |
+| servers[16].resources.limits.cpu | int | `1` |  |
+| servers[16].resources.limits.memory | string | `"1Gi"` |  |
+| servers[16].resources.requests.cpu | int | `1` |  |
+| servers[16].resources.requests.memory | string | `"1Gi"` |  |
+| servers[16].service.port | int | `8080` |  |
+| servers[16].service.portName | string | `"tls-1"` |  |
+| servers[16].service.targetPort | int | `8080` |  |
+| servers[16].service.type | string | `"ClusterIP"` |  |
+| servers[16].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[16].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[16].strategy.type | string | `"RollingUpdate"` |  |
+| servers[1].env[0].name | string | `"DET_URL"` |  |
+| servers[1].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[1].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[1].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[1].image.tag | string | `"latest-v1.0.20251125093653"` |  |
+| servers[1].name | string | `"docs-website-latest"` |  |
+| servers[1].podLabels.app | string | `"docs-latest"` |  |
+| servers[1].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[1].probeHttpGet.port | int | `8080` |  |
+| servers[1].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[1].replicaCount | int | `1` |  |
+| servers[1].resources.limits.cpu | int | `1` |  |
+| servers[1].resources.limits.memory | string | `"1Gi"` |  |
+| servers[1].resources.requests.cpu | int | `1` |  |
+| servers[1].resources.requests.memory | string | `"1Gi"` |  |
+| servers[1].service.port | int | `8080` |  |
+| servers[1].service.portName | string | `"tls-1"` |  |
+| servers[1].service.targetPort | int | `8080` |  |
+| servers[1].service.type | string | `"ClusterIP"` |  |
+| servers[1].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[1].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[1].strategy.type | string | `"RollingUpdate"` |  |
+| servers[2].env[0].name | string | `"DET_URL"` |  |
+| servers[2].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[2].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[2].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[2].image.tag | string | `"7-0-0-RC2-v1.0.20251016170210"` |  |
+| servers[2].name | string | `"docs-website-7-0-0-rc2"` |  |
+| servers[2].podLabels.app | string | `"docs-700-RC2"` |  |
+| servers[2].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[2].probeHttpGet.port | int | `8080` |  |
+| servers[2].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[2].replicaCount | int | `1` |  |
+| servers[2].resources.limits.cpu | int | `1` |  |
+| servers[2].resources.limits.memory | string | `"1Gi"` |  |
+| servers[2].resources.requests.cpu | int | `1` |  |
+| servers[2].resources.requests.memory | string | `"1Gi"` |  |
+| servers[2].service.port | int | `8080` |  |
+| servers[2].service.portName | string | `"tls-1"` |  |
+| servers[2].service.targetPort | int | `8080` |  |
+| servers[2].service.type | string | `"ClusterIP"` |  |
+| servers[2].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[2].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[2].strategy.type | string | `"RollingUpdate"` |  |
+| servers[3].env[0].name | string | `"DET_URL"` |  |
+| servers[3].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[3].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[3].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[3].image.tag | string | `"7-0-0-RC1-v1.0.20251016200407"` |  |
+| servers[3].name | string | `"docs-website-7-0-0-rc1"` |  |
+| servers[3].podLabels.app | string | `"docs-7-0-0-RC1"` |  |
+| servers[3].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[3].probeHttpGet.port | int | `8080` |  |
+| servers[3].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[3].replicaCount | int | `1` |  |
+| servers[3].resources.limits.cpu | int | `1` |  |
+| servers[3].resources.limits.memory | string | `"1Gi"` |  |
+| servers[3].resources.requests.cpu | int | `1` |  |
+| servers[3].resources.requests.memory | string | `"1Gi"` |  |
+| servers[3].service.port | int | `8080` |  |
+| servers[3].service.portName | string | `"tls-1"` |  |
+| servers[3].service.targetPort | int | `8080` |  |
+| servers[3].service.type | string | `"ClusterIP"` |  |
+| servers[3].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[3].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[3].strategy.type | string | `"RollingUpdate"` |  |
+| servers[4].env[0].name | string | `"DET_URL"` |  |
+| servers[4].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[4].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[4].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[4].image.tag | string | `"6-0-0-v1.0.20251016201007"` |  |
+| servers[4].name | string | `"docs-website-6-0-0"` |  |
+| servers[4].podLabels.app | string | `"docs-6-0-0"` |  |
+| servers[4].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[4].probeHttpGet.port | int | `8080` |  |
+| servers[4].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[4].replicaCount | int | `1` |  |
+| servers[4].resources.limits.cpu | int | `1` |  |
+| servers[4].resources.limits.memory | string | `"1Gi"` |  |
+| servers[4].resources.requests.cpu | int | `1` |  |
+| servers[4].resources.requests.memory | string | `"1Gi"` |  |
+| servers[4].service.port | int | `8080` |  |
+| servers[4].service.portName | string | `"tls-1"` |  |
+| servers[4].service.targetPort | int | `8080` |  |
+| servers[4].service.type | string | `"ClusterIP"` |  |
+| servers[4].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[4].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[4].strategy.type | string | `"RollingUpdate"` |  |
+| servers[5].env[0].name | string | `"DET_URL"` |  |
+| servers[5].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[5].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[5].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[5].image.tag | string | `"6-0-0-RC1-v1.0.20251016201539"` |  |
+| servers[5].name | string | `"docs-website-6-0-0-rc1"` |  |
+| servers[5].podLabels.app | string | `"docs-6-0-0-RC1"` |  |
+| servers[5].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[5].probeHttpGet.port | int | `8080` |  |
+| servers[5].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[5].replicaCount | int | `1` |  |
+| servers[5].resources.limits.cpu | int | `1` |  |
+| servers[5].resources.limits.memory | string | `"1Gi"` |  |
+| servers[5].resources.requests.cpu | int | `1` |  |
+| servers[5].resources.requests.memory | string | `"1Gi"` |  |
+| servers[5].service.port | int | `8080` |  |
+| servers[5].service.portName | string | `"tls-1"` |  |
+| servers[5].service.targetPort | int | `8080` |  |
+| servers[5].service.type | string | `"ClusterIP"` |  |
+| servers[5].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[5].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[5].strategy.type | string | `"RollingUpdate"` |  |
+| servers[6].env[0].name | string | `"DET_URL"` |  |
+| servers[6].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[6].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[6].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[6].image.tag | string | `"5-0-0-v1.0.20251016202543"` |  |
+| servers[6].name | string | `"docs-website-5-0-0"` |  |
+| servers[6].podLabels.app | string | `"docs-5-0-0"` |  |
+| servers[6].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[6].probeHttpGet.port | int | `8080` |  |
+| servers[6].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[6].replicaCount | int | `1` |  |
+| servers[6].resources.limits.cpu | int | `1` |  |
+| servers[6].resources.limits.memory | string | `"1Gi"` |  |
+| servers[6].resources.requests.cpu | int | `1` |  |
+| servers[6].resources.requests.memory | string | `"1Gi"` |  |
+| servers[6].service.port | int | `8080` |  |
+| servers[6].service.portName | string | `"tls-1"` |  |
+| servers[6].service.targetPort | int | `8080` |  |
+| servers[6].service.type | string | `"ClusterIP"` |  |
+| servers[6].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[6].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[6].strategy.type | string | `"RollingUpdate"` |  |
+| servers[7].env[0].name | string | `"DET_URL"` |  |
+| servers[7].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[7].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[7].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[7].image.tag | string | `"5-1-0-v1.0.20251016202049"` |  |
+| servers[7].name | string | `"docs-website-5-1-0"` |  |
+| servers[7].podLabels.app | string | `"docs-5-1-0"` |  |
+| servers[7].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[7].probeHttpGet.port | int | `8080` |  |
+| servers[7].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[7].replicaCount | int | `1` |  |
+| servers[7].resources.limits.cpu | int | `1` |  |
+| servers[7].resources.limits.memory | string | `"1Gi"` |  |
+| servers[7].resources.requests.cpu | int | `1` |  |
+| servers[7].resources.requests.memory | string | `"1Gi"` |  |
+| servers[7].service.port | int | `8080` |  |
+| servers[7].service.portName | string | `"tls-1"` |  |
+| servers[7].service.targetPort | int | `8080` |  |
+| servers[7].service.type | string | `"ClusterIP"` |  |
+| servers[7].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[7].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[7].strategy.type | string | `"RollingUpdate"` |  |
+| servers[8].env[0].name | string | `"DET_URL"` |  |
+| servers[8].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[8].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[8].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[8].image.tag | string | `"3-1-1-v1.0.20251016203029"` |  |
+| servers[8].name | string | `"docs-website-3-1-1"` |  |
+| servers[8].podLabels.app | string | `"docs-3-1-1"` |  |
+| servers[8].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[8].probeHttpGet.port | int | `8080` |  |
+| servers[8].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[8].replicaCount | int | `1` |  |
+| servers[8].resources.limits.cpu | int | `1` |  |
+| servers[8].resources.limits.memory | string | `"1Gi"` |  |
+| servers[8].resources.requests.cpu | int | `1` |  |
+| servers[8].resources.requests.memory | string | `"1Gi"` |  |
+| servers[8].service.port | int | `8080` |  |
+| servers[8].service.portName | string | `"tls-1"` |  |
+| servers[8].service.targetPort | int | `8080` |  |
+| servers[8].service.type | string | `"ClusterIP"` |  |
+| servers[8].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[8].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[8].strategy.type | string | `"RollingUpdate"` |  |
+| servers[9].env[0].name | string | `"DET_URL"` |  |
+| servers[9].env[0].value | string | `"https://opengauss-docs.test.osinfra.cn/"` |  |
+| servers[9].image.pullPolicy | string | `"IfNotPresent"` |  |
+| servers[9].image.repository | string | `"swr.ap-southeast-1.myhuaweicloud.com/infra-hk/opengauss/docs-test"` |  |
+| servers[9].image.tag | string | `"3-1-0-v1.0.20251016203503"` |  |
+| servers[9].name | string | `"docs-website-3-1-0"` |  |
+| servers[9].podLabels.app | string | `"docs-3-1-0"` |  |
+| servers[9].probeHttpGet.path | string | `"/error.html"` |  |
+| servers[9].probeHttpGet.port | int | `8080` |  |
+| servers[9].probeHttpGet.scheme | string | `"HTTPS"` |  |
+| servers[9].replicaCount | int | `1` |  |
+| servers[9].resources.limits.cpu | int | `1` |  |
+| servers[9].resources.limits.memory | string | `"1Gi"` |  |
+| servers[9].resources.requests.cpu | int | `1` |  |
+| servers[9].resources.requests.memory | string | `"1Gi"` |  |
+| servers[9].service.port | int | `8080` |  |
+| servers[9].service.portName | string | `"tls-1"` |  |
+| servers[9].service.targetPort | int | `8080` |  |
+| servers[9].service.type | string | `"ClusterIP"` |  |
+| servers[9].strategy.rollingUpdate.maxSurge | int | `1` |  |
+| servers[9].strategy.rollingUpdate.maxUnavailable | int | `0` |  |
+| servers[9].strategy.type | string | `"RollingUpdate"` |  |
+| serviceAccount.automount | bool | `false` |  |
+| serviceAccount.create | bool | `true` |  |
+| serviceAccount.name | string | `"opengauss-docs"` |  |
+| tolerations[0].effect | string | `"NoSchedule"` |  |
+| tolerations[0].key | string | `"autoscale"` |  |
+| tolerations[0].operator | string | `"Exists"` |  |
+| volumeMounts | list | `[]` |  |
+| volumes[0].name | string | `"token-vol"` |  |
+| volumes[0].projected.sources[0].serviceAccountToken.audience | string | `"api"` |  |
+| volumes[0].projected.sources[0].serviceAccountToken.expirationSeconds | int | `600` |  |
+| volumes[0].projected.sources[0].serviceAccountToken.path | string | `"token"` |  |
+
+## 变更历史
+
+## 1.0.0 - 2025-8-25
+
+### 说明
+- 初始版本发布
+
+## 1.0.3 - 2026-1-26
+
+### 说明
+- 增加deployment labels

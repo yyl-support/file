@@ -1,0 +1,66 @@
+{{- if .Values.database.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.database.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations: {{ include "signatrust.annotations" . | indent 2 }}
+spec:
+  replicas: {{ .Values.database.replicaCount }}
+  strategy:
+    type: {{ .Values.database.strategy.type }}
+  selector:
+    matchLabels:
+      component: {{ .Values.database.name }}
+  template:
+    metadata:
+      labels:
+        component: {{ .Values.database.name }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.database.image.pullSecret }}
+      tolerations:
+        {{- toYaml .Values.global.tolerations | nindent 8 }}
+      containers:
+        - name: {{ .Values.database.name }}
+          image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
+          imagePullPolicy: {{ .Values.database.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.database.service.port }}
+              name: {{ .Values.database.service.name }}
+              protocol: {{ .Values.database.service.protocol }}
+          resources:
+            requests:
+              cpu: {{ .Values.database.resources.requests.cpu }}
+              memory: {{ .Values.database.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.database.resources.limits.cpu }}
+              memory: {{ .Values.database.resources.limits.memory }}
+          env:
+{{- range .Values.database.env }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.database.volumes.secretName }}
+                  key: {{ .key }}
+{{- end }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.database.probes.liveness.port }}
+            initialDelaySeconds: {{ .Values.database.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.database.probes.liveness.periodSeconds }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.database.probes.readiness.port }}
+            initialDelaySeconds: {{ .Values.database.probes.readiness.initialDelaySeconds }}
+            failureThreshold: {{ .Values.database.probes.readiness.failureThreshold }}
+            periodSeconds: {{ .Values.database.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.database.probes.readiness.timeoutSeconds }}
+          volumeMounts:
+            - mountPath: {{ .Values.database.mounts.mysql.mountPath }}
+              name: database-volume
+      volumes:
+        - name: database-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.database.pvc.name }}
+{{- end }}

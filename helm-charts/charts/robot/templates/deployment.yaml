@@ -1,0 +1,82 @@
+{{- range .Values.deployments }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  {{- with $.Values.deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .replicas }}
+  strategy:
+    {{- toYaml .strategy | nindent 4 }}
+  selector:
+    matchLabels: 
+      {{- toYaml .labels | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- toYaml .labels | nindent 8 }}
+      {{- if .podAnnotations }}
+      annotations:
+        {{- toYaml $.Values.podAnnotations | nindent 8 }}
+        {{- toYaml .podAnnotations | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - image: "{{ .image.repository }}:{{ .image.tag }}"
+        imagePullPolicy: {{ .image.pullPolicy }}
+        {{- if .args }}
+        args: {{- toYaml .args | nindent 8 }}
+        {{- end }}
+        {{- if .env }}
+        env: {{- toYaml .env | nindent 8 }}
+        {{- end }}
+        livenessProbe:
+        {{- if .livenessProbe }}
+          {{- toYaml .livenessProbe | nindent 10 }}
+        {{- else }}
+          {{- toYaml $.Values.livenessProbe | nindent 10 }}
+        {{- end }}
+        readinessProbe:
+        {{- if .readinessProbe}}
+          {{- toYaml .readinessProbe | nindent 10 }}
+        {{- else }}
+          {{- toYaml $.Values.readinessProbe | nindent 10 }}
+        {{- end }}
+        name: {{ .name }}
+        resources: {{- toYaml .resources | nindent 10 }}
+        securityContext: {{- toYaml $.Values.containerSecurityContext | nindent 10 }}
+        {{- if .volumeMounts }}
+        volumeMounts:
+          {{- toYaml .volumeMounts | nindent 10 }}
+        {{- end }}
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- if .vaultVolume }}
+      initContainers: {{ $.Values.initContainers | toYaml | nindent 6 }}
+      {{- end }}
+      {{- with $.Values.podSecurityContext }}
+      securityContext: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccount: {{ $.Values.serviceAccount.name }}
+      volumes:
+      {{- if .vaultVolume }}
+      - name: token-vol
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+      {{- end }}
+      {{- if .volumes }}
+      {{- toYaml .volumes | nindent 6 }}
+      {{- end }}
+{{- end }}
+

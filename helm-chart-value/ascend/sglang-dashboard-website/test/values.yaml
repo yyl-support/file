@@ -1,0 +1,112 @@
+# helm chart version: 1.0.4
+global:
+  namespace: sglang-dashboard
+  appName: sglang-dashboard-website
+namespace:
+  name: sglang-dashboard
+  enabled: false
+replicaCount: 1
+# 镜像配置
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/vllm-dashboard-website-sglang
+  tag: "main-532807"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+podLabels:
+  app: sglang-dashboard-website
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: sglang-dashboard
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-abc.txt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-server.crt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-server.key: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: warn
+env:
+  - name: DET_URL
+    value: https://sglang-dashboard.test.osinfra.cn
+serviceAccount:
+  create: true
+  name: sglang-dashboard
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: 1
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 1Gi
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: sglang-dashboard.test.osinfra.cn
+# Service配置
+service:
+  portName: tls-01
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: website-tls
+  path: secrets/data/infra-test/domain-tls
+  ca_crt_key: tls.cert
+  tls_crt_key: tls.cert
+  tls_key_key: tls.key
+istio:
+  enabled: false
+  nslabel:
+    istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  virtualService:
+    host: sglang-dashboard.test.osinfra.cn
+    routes:
+      - destinations:
+          - host: sglang-dashboard-website-service.sglang-dashboard.svc.cluster.local
+        match:
+          - uri:
+              prefix: /
+  tls:
+    mode: SIMPLE
+  mtls:
+    mode: DISABLE

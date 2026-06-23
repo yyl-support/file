@@ -1,0 +1,55 @@
+{{- range .Values.cronjobs }}
+{{- if .enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- toYaml .labels | nindent 4 }}
+spec:
+  schedule: {{ .schedule | quote }}
+  suspend: {{ .suspend }}
+  concurrencyPolicy: {{ .concurrencyPolicy }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- toYaml .labels | nindent 12 }}
+          annotations:
+            {{- toYaml $.Values.podAnnotations | nindent 12 }}
+            {{- toYaml .podAnnotations | nindent 12 }}
+        spec:
+          automountServiceAccountToken: false
+          containers:
+          - command:
+            {{- toYaml .command | nindent 14 }}
+            env:
+            {{- toYaml $.Values.cronjobCommon.env | nindent 14 }}
+            image: "{{ .image.repository }}:{{ .image.tag }}"
+            imagePullPolicy: {{ .image.imagePullPolicy }}
+            name: {{ .name }}
+            resources: {{- toYaml .resources | nindent 14 }}
+            securityContext: {{- toYaml $.Values.cronjobCommon.securityContext | nindent 14 }}
+          {{- with $.Values.imagePullSecrets }}
+          imagePullSecrets:
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          restartPolicy: {{ .restartPolicy }}
+          {{- with $.Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccount: {{ $.Values.serviceAccount.name }}
+          serviceAccountName: {{ $.Values.serviceAccount.name }}
+          volumes:
+          - name: token-vol
+            projected:
+              sources:
+              - serviceAccountToken:
+                  audience: api
+                  expirationSeconds: 600
+                  path: token
+{{- end }}
+{{- end }}

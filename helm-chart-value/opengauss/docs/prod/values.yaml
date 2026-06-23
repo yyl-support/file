@@ -1,0 +1,709 @@
+# chartVersion: 1.0.1
+namespace: opengauss-docs-new
+imagePullSecret: huawei-swr-image-pull-secret
+serviceAccount:
+  create: true
+  name: opengauss-docs-new
+  automount: false
+podAnnotations:
+  traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0 # 启用istio时添加该行
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/opengauss/opengauss-website"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/opengauss/opengauss-website" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/opengauss/opengauss-website"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/opengauss/opengauss-website" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/opengauss/opengauss-website"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/opengauss/opengauss-website" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/opengauss/opengauss-website"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/opengauss/opengauss-website" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: opengauss-docs-new
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-abc.txt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+volumeMounts: []
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+# 不需要时置空
+nodeSelector: {}
+# 不需要时置空
+autoscale: {}
+# autoscale:
+#   metadata:
+#     timezone: Asia/Shanghai
+#     start: 30 8 * * *
+#     end: 55 23 * * *
+#     desiredReplicas: "1"
+# 不需要时置空
+tolerations: []
+# tolerations:
+#   - key: "autoscale"
+#     operator: "Exists"
+#     effect: "NoSchedule"
+servers:
+  # common的配置必须在第一个
+  - name: docs-website-common
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-common
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "common-v1.0.20260623035539"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-latest
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-latest
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "latest-v1.0.20260623032803"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-7-0-0-rc3
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-700-RC3
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "7.0.0-RC3-v1.0.20260623034216"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-7-0-0-rc2
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-700-RC2
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "7.0.0-RC2-v1.0.20260623035745"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-7-0-0-rc1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-7-0-0-RC1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "7.0.0-RC1-v1.0.20260623040418"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-6-0-0
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-6-0-0
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "6.0.0-v1.0.20260623041018"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-6-0-0-rc1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-6-0-0-RC1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "6.0.0-RC1-v1.0.20260623041605"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-5-0-0
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-5-0-0
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "5.0.0-v1.0.20260623042625"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-5-1-0
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-5-1-0
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "5.1.0-v1.0.20260623042119"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-3-1-1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-3-1-1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "3.1.1-v1.0.20260623043119"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-3-1-0
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-3-1-0
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "3.1.0-v1.0.20260623043621"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-3-0-0
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-3-0-0
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "3.0.0-v1.0.20260623044120"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-2-1-0
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-2-1-0
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "2.1.0-v1.0.20260623044611"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-2-0-1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-2-0-1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "2.0.1-v1.0.20260623044907"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-2-0-0
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-2-0-0
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "2.0.0-v1.0.20260623045149"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-1-1-0
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-1-1-0
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "1.1.0-v1.0.20260623045440"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-1-0-1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-1-0-1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "1.0.1-v1.0.20260623045719"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: docs-website-1-0-0
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: docs-1-0-0
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/website-docs
+      tag: "1.0.0-v1.0.20260623045910"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.opengauss.org/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: ''
+secret:
+  enable: false
+  name: tls-secrets
+  path: secrets/data/opengauss/opengauss-org-tls
+  ca_crt_key: server.crt
+  tls_crt_key: server.crt
+  tls_key_key: server.key
+istio:
+  enabled: true
+  nslabel:
+    istio-injection: enabled
+  gateway: istio-system/istio-gateway-https
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE
+  vs:
+    name: opengauss-docs-vs
+    host: docs.opengauss.org
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: docs-website-common.opengauss-docs-new.svc.cluster.local
+              port:
+                number: 8080
+  dr:
+    - name: opengauss-docs-dr
+      serviceName: docs-website-common
+      port: 8080
+  pa:
+    - name: opengauss-docs-pa
+      podLabels:
+        app: docs-common

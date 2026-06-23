@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 0.1.0
+description: A Helm chart for doc-search
+name: doc-search
+type: application
+version: 1.0.3

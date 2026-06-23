@@ -1,0 +1,75 @@
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "audit-server-openfuyao"  # 最优先，定义deployment,service,ingress资源的名字前缀
+
+namespace: infra-audit-server
+
+deployment:
+  replicas: 1
+  revisionHistoryLimit: 3
+  labels: 
+    app: audit-server-openfuyao
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/infra-audit-server-test
+    tag: v1.11.0-20e77d
+  args:
+  - --port=8000
+  - --config-file=/vault/secrets/application.yaml
+  - --enable_debug=true
+  - --rm-cfg=true
+  containerName: audit-server-openfuyao
+  healthCheckPath: /internal/heartbeat
+
+vault:
+  annotations:
+    injectCommand:
+      for count in 1 2 3; do if [ $(netstat -anlp | grep 8000| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /vault/secrets/*; break; else echo "service not running skip";sleep 10; fi done
+    injectPerms: "0400"
+    injectSecret: 'internal/data/infra-test/infra-audit-server'
+    injectTemplate:
+      configValue: "{{- with secret\"internal/data/infra-test/infra-audit-server\" -}}\n{{ .Data.data.fuyaoServer }}\n{{- end }}\n"
+      certValue: "{{- with secret\"internal/data/infra-test/infra-audit-server\" -}}\n{{ .Data.data.pgsqlCA }}\n{{- end }}\n"
+    runAsUser: "1000"
+    runAsGroup: "1000"
+  role: infra-audit-server
+  volume:
+  - name: token-vol
+    projected:
+      sources:
+      - serviceAccountToken:
+          audience: api
+          expirationSeconds: 600
+          path: token
+
+serviceAccount:
+  create: false
+  name: infra-audit-server
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 500Mi
+  requests:
+    cpu: 500m
+    memory: 500Mi
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  hosts:
+  - host: infra-audit.test.osinfra.cn
+    paths:
+      - path: /openfuyao(/|$)(.*)
+        pathType: ImplementationSpecific
+
+service:
+  port: 80
+  type: ClusterIP

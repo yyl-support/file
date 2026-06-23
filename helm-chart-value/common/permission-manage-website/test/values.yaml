@@ -1,0 +1,167 @@
+# chartVersion: v1.0.5
+global:
+  # -- 应用名称
+  appName: permission-manage-website
+namespace:
+  # -- 是否创建namespace资源: false/true
+  enabled: false
+  # -- 命名空间
+  name: ascend
+# -- 容器部署副本数
+replicaCount: 1
+initContainers:
+  # -- 初始化容器启动命令,用于修改配置文件目录权限
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/
+    # -- 初始化容器镜像
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    # -- 初始化容器镜像拉取策略
+    imagePullPolicy: IfNotPresent
+    # -- 初始化容器名
+    name: init
+image:
+  # -- WEB容器镜像名
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/permission-manage-website-test
+  # -- WEB容器镜像TAG,更新该字段即可完成新版本发布
+  tag: "dev-bbb1f7"
+  # -- WEB容器镜像拉取策略
+  pullPolicy: IfNotPresent
+  # -- WEB容器镜像拉取密钥名
+  pullSecret: huawei-swr-image-pull-secret
+podLabels:
+  # -- WEB容器标签
+  app: permission-manage-website
+podAnnotations:
+  # -- 是否启用vault inject功能,默认开启
+  vault.hashicorp.com/agent-inject: "true"
+  # -- 挂载配置文件server.crt权限
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  # -- 挂载配置文件server.key权限
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  # -- 挂载配置文件abc.txt权限
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  # -- 挂载配置文件dhparam.pem权限
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  # -- vault agent容器运行用户id
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  # -- vault agent容器运行用户组id
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  # -- 配置文件挂载目录
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  # -- 配置文件server.crt在vault仓库中存放路径
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  # -- 配置文件server.crt渲染模版,默认为vault中存放原文格式
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  # -- 配置文件server.key在vault仓库中存放路径
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  # -- 配置文件server.key渲染模版,默认为vault中存放原文格式
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  # -- 配置文件abc.txt在vault仓库中存放路径
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  # -- 配置文件abc.txt渲染模版,默认为vault中存放原文格式
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  # -- 配置文件dhparam.pem在vault仓库中存放路径
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  # -- 配置文件dhparam.pem渲染模版,默认为vault中存放原文格式
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  # -- vault权限角色
+  vault.hashicorp.com/role: ascend
+  # -- vault agent挂载的sa资源名
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  # -- vault agent和vault server通信是否跳过tls验证,默认为true
+  vault.hashicorp.com/tls-skip-verify: "true"
+  # -- vault agent是否作为init容器
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  # -- vault agent作为init容器时,是否最先启动
+  vault.hashicorp.com/agent-init-first: "true"
+  # -- 设置vault agent容器日志等级
+  vault.hashicorp.com/log-level: "warn"
+env:
+  # -- 环境变量DET_URL,用于检测容器是否启动成功,成功后则会删除配置文件
+  - name: DET_URL
+    value: https://auth-website.test.osinfra.cn/
+serviceAccount:
+  # -- 是否创建sa
+  create: false
+  # -- serviceaccount名称
+  name: ascend
+  # -- serviceaccount是否挂载进容器,默认取消挂载
+  automount: false
+# 资源限制
+resources:
+  requests:
+    # -- 容器运行所需CPU资源，最小值为1
+    cpu: 1
+    # -- 容器运行所需内存资源，最小值为1Gi
+    memory: 1Gi
+  limits:
+    # -- 容器运行限制CPU资源
+    cpu: 1
+    # -- 容器运行限制内存资源
+    memory: 1Gi
+# Ingress配置
+ingress:
+  # -- ingress启用标签
+  enabled: true
+  # -- ingress class
+  className: nginx
+  # -- ingress 自定义声明项
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  # -- 服务对外域名
+  host: auth-website.test.osinfra.cn
+# Service配置
+service:
+  # -- 服务暴露端口名称,启用istio后,名称需要包含tls
+  portName: tls-1
+  # -- 服务类型:ClusterIP/NodePort/LoadBalancer,默认使用ClusterIP
+  type: ClusterIP
+  # -- 服务暴露端口,默认和targetPort保持一致
+  port: 8080
+  # -- 服务暴露端口
+  targetPort: 8080
+secret:
+  # -- secret启用标签,如果启用ingress,则需要启用
+  enable: false
+  # -- secret资源名
+  name: test-osinfra-cn-tls
+  # -- secret资源在vault中存放路径
+  path: secrets/data/infra-test/domain-tls
+  # -- secret中创建的key,格式为[secret key]: [vault key]
+  ca_crt_key: tls.cert
+  # -- secret中创建的key,格式为[secret key]: [vault key]
+  tls_crt_key: tls.cert
+  # -- secret中创建的key,格式为[secret key]: [vault key]
+  tls_key_key: tls.key
+istio:
+  # -- istio启用标签
+  enabled: false
+  # -- istio命名空间资源标签,如需对接istio,则需要在namespace增加该标签
+  nslabel: {}
+  # istio-injection: enabled
+  # -- istio网关配置
+  gateway: ""
+  # -- istio虚拟后端配置
+  virtualService:
+    # -- istio虚拟后端域名配置
+    host: ""
+    # -- istio虚拟后端http配置
+    http: []
+  # -- istio虚拟后端tls模式,后端支持tls则使用SIMPLE,不支持则使用DISABLE
+  tlsMode: SIMPLE
+  # -- istio网格间是否启用mtls,默认DISABLE
+  mtlsMode: DISABLE

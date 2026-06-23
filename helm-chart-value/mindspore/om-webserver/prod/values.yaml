@@ -1,0 +1,115 @@
+namespace: om-webserver-xihe
+serviceAccount:
+  create: true
+  name: xiheapi
+imagePullSecret: huawei-swr-image-pull-secret
+deployments:
+  - name: om-webserver-v2
+    replicaCount: 3
+    podLabels:
+      app: om-webserver-v2
+      common-app: om-webserver
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podAnnotations:
+      vault.hashicorp.com/agent-inject: "true"
+      vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+      vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+      vault.hashicorp.com/agent-inject-secret-application.properties: internal/data/mindspore/xiheapi
+      vault.hashicorp.com/agent-inject-secret-redis.crt: internal/data/mindspore/xiheapi
+      vault.hashicorp.com/agent-inject-secret-tls.pfx: internal/data/mindspore/xiheapi
+      vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/mindspore/xiheapi\" -}}  \n{{ .Data.data.applicationV2 }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/mindspore/xiheapi\" -}}  \n{{ .Data.data.redisCrt }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/mindspore/xiheapi\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-pre-populate-only: "true"
+      vault.hashicorp.com/agent-run-as-group: "1001"
+      vault.hashicorp.com/agent-run-as-user: "1001"
+      vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+      vault.hashicorp.com/role: xiheapi
+      vault.hashicorp.com/secret-volume-path: /var/lib/om-webserver
+      vault.hashicorp.com/tls-skip-verify: "true"
+      vault.hashicorp.com/log-level: "warn"
+    applicationPath: /var/lib/om-webserver/application.properties
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/mindspore/om-webserver-prod
+      tag: "release-om-webserver-20260430-208e28"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4000Mi
+      requests:
+        cpu: "2"
+        memory: 4000Mi
+    heathCheckPath:
+      path: /oneid/checkOmService
+      port: 8080
+      scheme: HTTPS
+    containerPort: 8080
+# ingress: {}
+
+# 格式示例
+ingress:
+  - name: om-webserver-mindspore-ingress
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+      nginx.ingress.kubernetes.io/configuration-snippet: "if ($http_origin ~ '^https:\\/\\/xihe\\.mindspore\\.cn$') {\n  set $allow_origin $http_origin;  \n}\nif ($http_origin ~ '^https:\\/\\/xihe2\\.test\\.osinfra\\.cn$') {\n  set $allow_origin $http_origin;  \n}\nmore_set_headers \"Access-Control-Allow-Origin: $allow_origin\";\nmore_set_headers \"Access-Control-Allow-Credentials: true\";\nmore_set_headers \"Access-Control-Allow-Methods: GET, PUT, POST, DELETE,PATCH, OPTIONS\";\n"
+      nginx.ingress.kubernetes.io/limit-connections: "400"
+      nginx.ingress.kubernetes.io/limit-rps: "400"
+    host: omapi.mindspore.cn
+    serviceName: om-webserver-service
+    servicePort: 80
+    path: /
+    pathType: ImplementationSpecific
+    secretName: mindspore-omwebserver-tls
+services:
+  - name: om-webserver-service
+    type: ClusterIP
+    port: 80
+    portName: srv
+    targetPort: 8080
+    podLabels:
+      app: om-webserver-v2
+      common-app: om-webserver
+# secrets: {}
+
+# 格式示例
+secrets:
+  - name: mindspore-omwebserver-tls
+    path: secrets/data/mindspore/mindspore-cn-tls
+    certKey: ca.cert
+    keyKey: ca.key
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+
+  gateway: istio-system/istio-gateway-https
+  vs:
+    name: om-webserver-virtualservice
+    host:
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host:
+              port:
+                number:
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE
+  dr:
+    - name: destinationrule-om-webserver
+      serviceName: om-webserver-service
+      port: 80
+  pa:
+    - name: peerauthentication-om-webserver-disable-mtls
+      podLabels:
+        app: om-webserver

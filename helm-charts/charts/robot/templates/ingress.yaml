@@ -1,0 +1,30 @@
+{{- range .Values.ingress.backends }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .name }}-ingress
+  labels:
+  {{- include "robot.labels" $ | nindent 4 }}
+  {{- with .annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ $.Values.ingress.host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ .name }}-service
+            port:
+              number: {{ .port }}
+        path: {{ .path }}
+        pathType: {{ .pathType }}
+  tls:
+  - hosts:
+    - {{ $.Values.ingress.host }}
+    secretName: {{ $.Values.secret.name }}
+{{- end }}

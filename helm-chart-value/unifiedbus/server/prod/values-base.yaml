@@ -1,0 +1,148 @@
+updateStrategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+
+serviceAccount:
+  name: unifiedbus
+  automount: false
+
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+
+nodeSelector:
+  kubernetes.io/arch: amd64
+
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+
+initContainers:
+- command:
+  - /bin/bash
+  - -c
+  - chmod 0700 /vault/secrets/; chown -R 1000:1000 /vault/secrets/; chmod g-s /vault/secrets/; ls -ld /vault/secrets/
+  image: swr.cn-north-4.myhuaweicloud.com/unifiedbus/openeuler:22.03-lts-sp3
+  imagePullPolicy: IfNotPresent
+  name: init-unifiedbus
+
+podAnnotations:
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/role: 'unifiedbus'
+
+ingress:
+  secretName: tls-secret
+  host: www.unifiedbus.com
+  main:
+    enabled: false
+    annotations:
+      nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+      nginx.ingress.kubernetes.io/limit-rpm: "500"
+  rewrite:
+    enabled: true
+    name: unifiedbus-website-rewrite-ingress
+    host: unifiedbus.com
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+      nginx.ingress.kubernetes.io/limit-rpm: "10000"
+      nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        if ($host = 'unifiedbus.com') {
+            return 301 https://www.unifiedbus.com$request_uri;
+        }
+  subpaths:
+    - name: server-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "2000"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+      path: /api-server(/|$)(.*)
+      pathType: ImplementationSpecific
+      serviceName: server-service
+      servicePort: 8080
+    - name: statement-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "2000"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+      path: /api-statement(/|$)(.*)
+      pathType: ImplementationSpecific
+      serviceName: statement-server-service
+      servicePort: 8080
+    - name: captcha-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "2000"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+      path: /api-captcha(/|$)(.*)
+      pathType: ImplementationSpecific
+      serviceName: captcha-common-service
+      servicePort: 8080
+    - name: stat-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "2000"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+      path: /api-stat(/|$)(.*)
+      pathType: ImplementationSpecific
+      serviceName: website-backend-stat-service
+      servicePort: 8080
+    - name: guid-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "2000"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+        nginx.ingress.kubernetes.io/proxy-body-size: 10m	
+        nginx.ingress.kubernetes.io/proxy-buffer-size: 8k	
+        nginx.ingress.kubernetes.io/proxy-buffering: 'on'	
+        nginx.ingress.kubernetes.io/proxy-buffers-number: '4'
+      path: /api-guid(/|$)(.*)
+      pathType: ImplementationSpecific
+      serviceName: unifiedbus-guid-management-service
+      servicePort: 8080
+    - name: lingqu-errata-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/cors-allow-origin: '*'
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/limit-rpm: "100"
+        nginx.ingress.kubernetes.io/proxy-body-size: 10m
+        nginx.ingress.kubernetes.io/proxy-buffer-size: 8k
+        nginx.ingress.kubernetes.io/proxy-buffering: "on"
+        nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+      path: /api-errata(/|$)(.*)
+      pathType: ImplementationSpecific
+      serviceName: unifiedbus-errata-management-service
+      servicePort: 8080
+
+
+pvc:
+  name: unifiedbus-server-data
+  annotations: {}
+  accessModes: 
+  - ReadWriteMany
+  storage: 1Gi
+  storageClassName: csi-sfs
+  volumeMode: Filesystem
+
+secrets:
+  enabled: true
+  name: tls-secret
+  path: secrets/data/unifiedbus/tls
+  keysMap:
+    ca.crt: tls.cert
+    tls.crt: tls.cert
+    tls.key: tls.key

@@ -1,0 +1,67 @@
+nameOverride: ""
+fullnameOverride: "mindspore-repo"
+namespace:
+  enabled: false
+  name: mindspore-repo
+replicaCount: 1
+istio:
+  nslabel: {}
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+strategy:
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+  type: RollingUpdate
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/mindspore/repo-test
+  tag: "mindspore-58e705dd"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+volumeMounts:
+- name: data-volume
+  mountPath: /repo/mindspore
+volumes:
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: mindspore-repo
+resources:
+  requests:
+    cpu: "20m"
+    memory: 50Mi
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "mindspore-repo.test.osinfra.cn"
+service:
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  type: ClusterIP
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+secret:
+  enabled: true
+  name: tls-secrets
+  path: secrets/data/infra-test/domain-tls
+  crtKey: tls.cert
+  keyKey: tls.key
+pvc:
+  name: mindspore-repo
+  accessModes: ReadWriteMany
+  size: 500Mi
+  storageClass: sfsturbo-subpath-sc

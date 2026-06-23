@@ -1,0 +1,76 @@
+access:
+  enabled: true
+  configmap:
+    name: configmap-access
+    config: |-
+      access:
+        repo_plugins:
+          - org_or_repo: testmyai
+            plugin_name:
+              - robot-service-welcome
+              - robot-service-cla
+              - robot-service-lifecycle
+              - robot-service-label
+              - robot-service-review
+              - robot-service-assign
+        plugins:
+          - name: robot-service-welcome
+            endpoint: http://robot-universal-welcome-service.openjiuwen-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Issue Hook"
+          - name: robot-service-cla
+            endpoint: http://robot-universal-cla-service.openjiuwen-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-lifecycle
+            endpoint: http://robot-universal-lifecycle-service.openjiuwen-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+          - name: robot-service-label
+            endpoint: http://robot-universal-label-service.openjiuwen-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-review
+            endpoint: http://robot-universal-review-service.openjiuwen-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-assign
+            endpoint: http://robot-universal-assign-service.openjiuwen-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+              - "Issue Hook"
+  deployment:
+    podSecurityContext:
+      seccompProfile:
+        localhostProfile: infra-seccomp.json
+        type: Localhost
+    replicas: 1
+    robotUniversalAccess:
+      args:
+        - --port=8888
+        - --handle-path=gitcode-hook
+        - --config-file=/app/conf/config
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsUser: 1000
+      resources:
+        limits:
+          cpu: 100m
+          memory: 300Mi
+        requests:
+          cpu: 100m
+          memory: 300Mi
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+  NetworkPolicy:
+    enabled: true

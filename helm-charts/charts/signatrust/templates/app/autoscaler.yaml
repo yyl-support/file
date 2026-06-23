@@ -1,0 +1,19 @@
+{{- if .Values.global.autoscaler.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ printf "%s-deployment-autoscaler" .Values.app.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations: 
+{{ toYaml .Values.app.commonAnnotations | indent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ printf "%s-deployment" .Values.app.name }}
+  triggers:
+    - type: cron
+      metadata:
+        timezone: {{ .Values.global.autoscaler.cron.timezone | quote }}
+        start: {{ .Values.global.autoscaler.cron.start | quote }}
+        end: {{ .Values.global.autoscaler.cron.end | quote }}
+        desiredReplicas: {{ .Values.global.autoscaler.cron.desiredReplicas }}
+{{- end }}

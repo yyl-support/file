@@ -1,0 +1,12 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "osi-task.fullname" . }}
+  namespace: {{ .Values.namespace.name }}
+spec:
+  ports:
+  {{- toYaml .Values.servicePorts | nindent 4 }}
+  selector:
+    {{- toYaml .Values.podLabels | nindent 4 }}
+  type: {{ .Values.serviceType }}

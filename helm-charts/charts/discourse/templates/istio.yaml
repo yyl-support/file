@@ -1,0 +1,63 @@
+{{- if .Values.istio.enabled }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.namespace.name }}-virtualservice
+spec:
+  gateways:
+  - {{ .Values.istio.gateway }}
+  hosts:
+  - {{ .Values.ingress.host }}
+  http:
+  {{- range $index, $route := .Values.istio.virtualService.routes }}
+  - route:
+  {{- range $destination := $route.destinations }}
+    - destination:
+        host: {{ $destination.host }}
+        port:
+          number: {{ $.Values.service.port }}
+        {{- if $destination.subset }}
+        subset:  {{ $destination.subset }}
+        {{- end }}
+  {{- end }}
+    {{- range $match := $route.match }}
+    match:
+    - {{- toYaml $match | nindent 6 }}
+    {{- end }}
+    {{- with $route.rewrite }}
+    rewrite:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{ .Values.namespace.name }}-destinationrule
+spec:
+  host: {{ include "discourse.fullname" . }}
+  trafficPolicy:
+    portLevelSettings:
+      - port:
+          number: {{ .Values.service.port }}
+        tls:
+          mode: {{ .Values.istio.tls.mode }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: {{ .Values.namespace.name }}-peerauthentication
+spec:
+  mtls:
+    mode: {{ .Values.istio.mtlsMode }}
+  selector:
+    matchLabels:
+      {{- include "discourse.selectorLabels" . | nindent 6 }}
+{{- end }}

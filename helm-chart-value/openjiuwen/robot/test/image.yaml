@@ -1,0 +1,75 @@
+image:
+  access:
+    name: robot-universal-access
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-access
+    tag: develop-lts-6dc552
+  assign:
+    name: robot-universal-assign
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-assign
+    tag: develop-lts-a42f9d
+  cla:
+    name: robot-universal-cla
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-cla
+    tag: develop-lts-e9f2b0
+  dispatcher:
+    name: robot-hook-dispatcher
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-hook-dispatcher
+    tag: develop-lts-91526e
+  delivery:
+    name: robot-universal-hook-delivery
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-hook-delivery
+    tag: develop-lts-a0c6fb
+  label:
+    name: robot-universal-label
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-label
+    tag: develop-lts-712c4d
+  lifecycle:
+    name: robot-universal-lifecycle
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-lifecycle
+    tag: develop-lts-298f05
+  review:
+    name: robot-universal-review
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-review
+    tag: develop-lts-tmp-0efb7e
+  welcome:
+    name: robot-universal-welcome
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/robot-universal-welcome
+    tag: develop-lts-2ae547
+
+# Default values for global.
+serviceAccount:
+  name: openjiuwen-robot
+  annotations: {}
+
+global:
+  deployment:
+    initContainers:
+      initOpeneuler:
+        - command:
+            - /bin/bash
+            - -c
+            - chmod 0700 /vault/secrets; chown -R 1000:1000 /vault/secrets; chmod g-s /vault/secrets;
+              ls -ld /vault/secrets
+          image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+          imagePullPolicy: IfNotPresent
+          name: init-openeuler
+          resources: {}
+  specKeysMap:
+    ca.crt:
+      key: tls.cert
+      path: secrets/data/infra-test/domain-tls
+    tls.crt:
+      key: tls.cert
+      path: secrets/data/infra-test/domain-tls
+    tls.key:
+      key: tls.key
+      path: secrets/data/infra-test/domain-tls
+  secret:
+    name: test-osinfra-cn-tls
+  service:
+    ports:
+      - name: http-port
+        port: 8888
+        protocol: TCP
+        targetPort: 8888
+    type: ClusterIP

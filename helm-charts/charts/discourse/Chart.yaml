@@ -1,0 +1,6 @@
+apiVersion: v2
+name: discourse
+description: A Helm chart for Discourse forum.
+type: application
+version: 1.0.11
+appVersion: "2.0.1"

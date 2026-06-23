@@ -1,0 +1,46 @@
+{{- if .Values.collectGithookDeployment.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.collectGithookDeployment.name }}
+  namespace: {{ .Values.namespace }}
+  {{- with .Values.deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.collectGithookDeployment.name }}
+  replicas: {{ .Values.collectGithookDeployment.replicaCount }}
+  strategy:
+    {{- toYaml .Values.collectGithookDeployment.strategy | nindent 4 }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.collectGithookDeployment.podAnnotations | nindent 8 }}
+      labels:
+        app: {{ .Values.collectGithookDeployment.name }}
+    spec:
+      serviceAccount: {{ .Values.serviceAccount.name }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets.name }}
+      automountServiceAccountToken: false
+      containers:
+        - name: server
+          image: "{{ .Values.collectGithookDeployment.image.repository }}:{{ .Values.collectGithookDeployment.image.tag }}"
+          imagePullPolicy: {{ .Values.collectGithookDeployment.image.pullPolicy }}
+          args:
+            {{- toYaml .Values.collectGithookDeployment.args | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.collectGithookDeployment.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.collectGithookDeployment.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.collectGithookDeployment.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+      volumes:
+        {{- toYaml .Values.volumes | nindent 8 }}
+{{- end }}

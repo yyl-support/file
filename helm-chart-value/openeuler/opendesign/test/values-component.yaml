@@ -1,0 +1,115 @@
+# 全局配置
+global:
+  appName: opendesign-component
+# 副本配置
+replicaCount: 1
+revisionHistoryLimitCount: 10
+# 镜像配置
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/opendesign-component-test
+  tag: "doc-149484"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+podLabels:
+  app: opendesign-component
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: opendesign
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-abc.txt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+env:
+  - name: DET_URL
+    value: https://opendesign.test.osinfra.cn/
+serviceAccount:
+  create: false
+  name: opendesign
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: 1
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 1Gi
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  successThreshold: 1
+  httpGet:
+    scheme: HTTPS
+    path: /
+    port: 8080
+    httpHeaders:
+      - name: "Host"
+        value: "opendesign.test.osinfra.cn"
+  timeoutSeconds: 10
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  successThreshold: 1
+  httpGet:
+    scheme: HTTPS
+    path: /
+    port: 8080
+    httpHeaders:
+      - name: "Host"
+        value: "opendesign.test.osinfra.cn"
+  timeoutSeconds: 10
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: opendesign.test.osinfra.cn
+# Service配置
+service:
+  portName: http-port
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: false
+  name: test-osinfra-cn-tls
+  path: secrets/data/infra-test/domain-tls
+  ca_crt_key: tls.cert
+  tls_crt_key: tls.cert
+  tls_key_key: tls.key
+istio:
+  enabled: false

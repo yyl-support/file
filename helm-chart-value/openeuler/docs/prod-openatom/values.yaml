@@ -1,0 +1,912 @@
+# chartVersion: 1.0.1
+namespace: openeuler-website-docs
+imagePullSecret: huawei-swr-image-pull-secret
+serviceAccount:
+  create: false
+  name: openeuler-website-docs
+  automount: false
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/openeuler/openeuler-org-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/openeuler/openeuler-org-tls-ssl" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/openeuler/openeuler-org-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/openeuler/openeuler-org-tls-ssl" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/openeuler/openeuler-org-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/openeuler/openeuler-org-tls-ssl" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/openeuler/openeuler-org-tls-ssl"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/openeuler/openeuler-org-tls-ssl" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: openeuler-website-docs
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-abc.txt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-server.crt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/agent-inject-command-server.key: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+volumeMounts: []
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+# 不需要时置空
+# nodeSelector: {}
+nodeSelector: {}
+# 不需要时置空
+# autoscale: {}
+autoscale: {}
+# 不需要时置空
+# tolerations: {}
+tolerations:
+servers:
+  # common的配置必须在第一个
+  - name: openeuler-website-docs-openatom
+    replicaCount: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openeuler-docs-openatom
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-common-v1.0.20260623065127"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.openatom.cn/zh/
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-24-03-lts-sp2
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-24-03-lts-sp2
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "24.03-lts-sp2-v1.0.20260623064028"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/24.03_LTS_SP2/server/quickstart/quickstart/quick_start.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-24-03-lts-sp3
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-24-03-lts-sp3
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable-24-03-lts-sp3-v1.0.20260623064423"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/24.03_LTS_SP3/server/quickstart/quickstart/quick_start.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-25-03
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-25-03
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-25.03-v1.0.20260623063340"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/25.03/server/index.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-20-03-lts
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-20-03-lts
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-20-03-lts-v1.0.20260623072105"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/20.03_LTS/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-20-03-lts-sp1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-20-03-lts-sp1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-20-03-lts-sp1-v1.0.20260623071859"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/20.03_LTS_SP1/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-20-03-lts-sp2
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-20-03-lts-sp2
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-20-03-lts-sp2-v1.0.20260623071655"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/20.03_LTS_SP2/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-20-03-lts-sp3
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-20-03-lts-sp3
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-20-03-lts-sp3-v1.0.20260623071418"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/20.03_LTS_SP3/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-20-03-lts-sp4
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-20-03-lts-sp4
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-20-03-lts-sp4-v1.0.20260623065958"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/20.03_LTS_SP4/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-20-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-20-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-20-09-v1.0.20260623072003"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/20.09/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-21-03
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-21-03
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-21-03-v1.0.20260623071800"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/21.03/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-21-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-21-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-21-09-v1.0.20260623071551"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/21.09/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-22-03-lts
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-22-03-lts
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-22-03-lts-v1.0.20260623065401"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/22.03_LTS/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-22-03-lts-sp1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-22-03-lts-sp1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-22-03-lts-sp1-v1.0.20260623070122"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/22.03_LTS_SP1/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-22-03-lts-sp2
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-22-03-lts-sp2
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-22-03-lts-sp2-v1.0.20260623070847"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/22.03_LTS_SP2/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-22-03-lts-sp3
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-22-03-lts-sp3
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-22-03-lts-sp3-v1.0.20260623065809"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/22.03_LTS_SP3/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-22-03-lts-sp4
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-22-03-lts-sp4
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-22-03-lts-sp4-v1.0.20260623064813"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/22.03_LTS_SP4/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-22-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-22-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-22-09-v1.0.20260623071220"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/22.09/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type:
+  - name: openatom-docs-website-stable2-23-03
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-23-03
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-23-03-v1.0.20260623071040"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/23.03/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-23-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-23-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-23-09-v1.0.20260623070613"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/23.09/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-24-03-lts
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-24-03-lts
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-24-03-lts-v1.0.20260623065541"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/24.03_LTS/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-24-03-lts-sp1
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-24-03-lts-sp1
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-24-03-lts-sp1-v1.0.20260623063706"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/24.03_LTS_SP1/server/index.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-24-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-stable2-24-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable2-24-09-v1.0.20260623070321"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/24.09/docs/Releasenotes/terms-of-use.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openatom-docs-website-stable2-25-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openatom-website-25-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openatom-docs-prod
+      tag: "stable-25-09-v1.0.20260623063003"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openeuler.org/en/docs/25.09/server/quickstart/quickstart/quick_start.html
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    probeHttpGet:
+      path: /404.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+ingress:
+  enabled: true
+  name: openatom-website-docs-v2-ingress
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      set $redirect_domain https://docs.openeuler.org;
+      location = / {
+        if ($redirect_cn = 0) {
+            return 302 $redirect_domain/en/;
+        }
+        if ($redirect_cn = 1) {
+            return 302 /zh/;
+        }
+      }
+      if ($redirect_cn = 0) {
+          return 302 $redirect_domain$request_uri;
+      }
+  host: 'docs.openeuler.openatom.cn'
+secret:
+  enable: true
+  name: openeuler-openatom-cn-tls
+  path: secrets/data/openeuler/openeuler-openatom-cn-tls
+  crtKey: server.crt
+  crtKey: server.crt
+  keyKey: server.key
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: istio-system/istio-gateway-https
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE
+  vs:
+    name: openeuler-docs-vs
+    host: openeuler-docs.test.osinfra.cn
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: docs-website-common.openeuler-website-docs.svc.cluster.local
+              port:
+                number: 8080
+  dr:
+    - name: openeuler-docs-dr
+      serviceName: docs-website-common
+      port: 8080
+  pa:
+    - name: openeuler-docs-pa
+      podLabels:
+        app: docs-common

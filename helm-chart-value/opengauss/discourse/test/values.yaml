@@ -1,0 +1,280 @@
+#ChartVersion: 1.0.11
+replicaCount: 1
+updateStrategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/discourse
+  pullPolicy: IfNotPresent
+  tag: "v3.0.1"
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "web-server"
+namespace:
+  enabled: true
+  name: opengauss-discourse
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: "opengauss-discourse"
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+podAnnotations:
+  # traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0  # 启用istio时添加这一行
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/role: 'opengauss-discourse'
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-inject-perms-monitor.sh: "0500"
+  vault.hashicorp.com/agent-inject-secret-monitor.sh: 'internal/data/infra-test/opengauss-discourse'
+  vault.hashicorp.com/agent-inject-template-monitor.sh: "{{- with secret \"internal/data/infra-test/opengauss-discourse\" -}}  \n{{ .Data.data.monitorScript }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-envbash.sh: "0500"
+  vault.hashicorp.com/agent-inject-secret-envbash.sh: 'internal/data/infra-test/opengauss-discourse'
+  vault.hashicorp.com/agent-inject-template-envbash.sh: "{{- with secret \"internal/data/infra-test/opengauss-discourse\" -}}  \n{{ .Data.data.envScript }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-pg-server-ca.crt: "0400"
+  vault.hashicorp.com/secret-volume-path-pg-server-ca.crt: /usr/local/share/ca-certificates
+  vault.hashicorp.com/agent-inject-secret-pg-server-ca.crt: 'internal/data/infra-test/opengauss-discourse'
+  vault.hashicorp.com/agent-inject-template-pg-server-ca.crt: "{{- with secret \"internal/data/infra-test/opengauss-discourse\" -}}  \n{{ .Data.data.pgsqlCA }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-redis-server-ca.crt: "0400"
+  vault.hashicorp.com/secret-volume-path-redis-server-ca.crt: /usr/local/share/ca-certificates
+  vault.hashicorp.com/agent-inject-secret-redis-server-ca.crt: 'internal/data/infra-test/opengauss-discourse'
+  vault.hashicorp.com/agent-inject-template-redis-server-ca.crt: "{{- with secret \"internal/data/infra-test/opengauss-discourse\" -}}  \n{{ .Data.data.redisCA }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-discourse.key: "0400"
+  vault.hashicorp.com/secret-volume-path-discourse.key: /etc/nginx/certs
+  vault.hashicorp.com/agent-inject-secret-discourse.key: 'internal/data/infra-test/opengauss-discourse'
+  vault.hashicorp.com/agent-inject-template-discourse.key: "{{- with secret \"internal/data/infra-test/opengauss-discourse\" -}}  \n{{ .Data.data.serverKey }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-discourse.crt: "0400"
+  vault.hashicorp.com/secret-volume-path-discourse.crt: /etc/nginx/certs
+  vault.hashicorp.com/agent-inject-secret-discourse.crt: 'internal/data/infra-test/opengauss-discourse'
+  vault.hashicorp.com/agent-inject-template-discourse.crt: "{{- with secret \"internal/data/infra-test/opengauss-discourse\" -}}  \n{{ .Data.data.serverCrt }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-command-discourse.key: |
+    for count in 1 2 3; do if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /etc/nginx/* ; rm -rf /usr/local/share/ca-certificates/pg-server-ca.crt;
+    rm -rf /usr/local/share/ca-certificates/redis-server-ca.crt ; break; else echo "service not running skip";sleep 10; fi done
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+podLabels:
+  app: web-server
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - "chmod 0700 /vault/secrets/;chmod 0700 /etc/nginx/; chmod 0700 /usr/local/share/ca-certificates/; chown -R 1000:1000 /vault/secrets/; chown -R 1000:1000 /etc/nginx/;chown -R 1000:1000 /usr/local/share/ca-certificates/; chmod g-s /vault/secrets/; chmod g-s /etc/nginx/;chmod g-s /usr/local/share/ca-certificates/; ls -ld /vault/secrets/"
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+service:
+  name: tls-1
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+ingress:
+  enabled: true
+  host: opengauss-discourse.test.osinfra.cn
+  secretName: discourse-tls
+  default:
+    name: discourse-ingress
+    path: /
+    pathType: Prefix
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "400m"
+      nginx.ingress.kubernetes.io/limit-rpm: "100"
+      nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  limit:
+    name: discourse-discussion-mail-send-ratelimit-ingress
+    path: /admin/email
+    pathType: Exact
+    annotations:
+      nginx.ingress.kubernetes.io/limit-rpm: "1"
+      nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+resources:
+  requests:
+    cpu: 100m
+    memory: 2.5Gi
+livenessProbe:
+  httpGet:
+    path: /srv/status
+    port: 8080
+    scheme: HTTPS
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+readinessProbe:
+  httpGet:
+    path: /srv/status
+    port: 8080
+    scheme: HTTPS
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+volumes:
+  - name: discourse-storage-new
+    persistentVolumeClaim:
+      claimName: pvc-opengauss-discourse
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+  - name: config-vol
+    configMap:
+      name: discourse-proxy
+volumeMounts:
+  - name: discourse-storage-new
+    mountPath: /shared
+  - name: config-vol
+    mountPath: /etc/nginx/conf.d/outlets/server/40-proxy.conf
+    subPath: 40-proxy.conf
+# nodeSelector:
+#   kubernetes.io/arch: amd64
+env:
+  - name: DISCOURSE_MAXMIND_LICENSE_KEY
+    value: ""
+  - name: DISCOURSE_DEVELOPER_EMAILS
+    value: ""
+  - name: DISCOURSE_DB_NAME
+    value: ""
+  - name: DISCOURSE_DB_PASSWORD
+    value: ""
+  - name: DISCOURSE_REDIS_PASSWORD
+    value: ""
+tolerations: []
+affinity: {}
+pvc:
+  enabled: true
+  name: pvc-opengauss-discourse
+  accessModes: ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: sfsturbo-subpath-sc
+  volumeMode: Filesystem
+tlsDefinition:
+  enabled: true
+  name: discourse-tls
+  path: secrets/data/infra-test/domain-tls
+  keysMap:
+    ca.crt: tls.cert
+    tls.crt: tls.cert
+    tls.key: tls.key
+command:
+  - /bin/bash
+  - -c
+  - /vault/secrets/envbash.sh
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  # gateway: "istio-system/istio-gateway-https"
+  # virtualService:
+  #   routes:
+  #     - destinations:
+  #         - host: web-server.opengauss-discourse.svc.cluster.local
+  #       match:
+  #         - uri:
+  #             prefix: /
+  #       rewrite:
+  #         uri: /
+  # tls:
+  #   mode: SIMPLE
+  # mtlsMode: DISABLE
+robot:
+  enabled: false
+  # replicaCount: 1
+  # strategy:
+  #   type: Recreate
+  # podLabels:
+  #   app: forum-robot
+  # podAnnotations:
+  #   vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  #   vault.hashicorp.com/tls-skip-verify: "true"
+  #   vault.hashicorp.com/agent-inject: 'true'
+  #   vault.hashicorp.com/role: 'opengauss-discourse'
+  #   vault.hashicorp.com/agent-run-as-user: "1000"
+  #   vault.hashicorp.com/agent-run-as-group: "1000"
+  #   vault.hashicorp.com/agent-inject-perms-config.yaml: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-config.yaml: 'internal/data/infra-test/opengauss-discourse'
+  #   vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/opengauss-discourse\" -}}  \n{{ .Data.data.robotConf }}\n{{- end }}\n"
+  #   vault.hashicorp.com/secret-volume-path: "/app/config"
+  #   vault.hashicorp.com/template-static-secret-render-interval: 5s
+  #   vault.hashicorp.com/agent-inject-command-config.yaml: |
+  #     for count in 1 2 3; do if [ $(netstat -anlp | grep 5000| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /app/config/* ;  break; else echo "service not running skip";sleep 10; fi done
+  # image:
+  #   repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/forum-robot
+  #   tag: "main-545d7a"
+  #   pullPolicy: IfNotPresent
+  # resources:
+  #   requests:
+  #     cpu: 200m
+  #     memory: 600Mi
+  #   limits:
+  #     cpu: 200m
+  #     memory: 600Mi
+  # volumeMounts:
+  #   - name: data-vol
+  #     mountPath: /app/data/forum_data
+  # volumes:
+  #   - name: token-vol
+  #     projected:
+  #       sources:
+  #         - serviceAccountToken:
+  #             audience: api
+  #             expirationSeconds: 600
+  #             path: token
+  #   - name: data-vol
+  #     persistentVolumeClaim:
+  #       claimName: pvc-forumrobot-data
+  # pvc:
+  #   name: pvc-forumrobot-data
+  #   accessModes: ReadWriteOnce
+  #   storage: 10Gi
+  #   storageClassName: csi-disk
+  #   volumeMode: Filesystem
+auditCronJob:
+  enabled: false
+configmaps:
+  - name: discourse-proxy
+    keyName: 40-proxy.conf
+    content: |-
+      # Proxy configuration
+      # Production environment proxy
+
+      # Test environment proxy
+      location /api-dsapi-test/ {
+          proxy_set_header X-Forwarded-For $http_x_real_ip;
+          proxy_pass https://dsapi.test.osinfra.cn/;
+      }
+
+      # Proxy configuration for logout
+      location /gauss-logout-test {
+          proxy_set_header X-Forwarded-For $http_x_real_ip;
+          proxy_pass https://omapi-revision.test.osinfra.cn/oneid/logout;
+      }

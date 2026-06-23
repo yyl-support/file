@@ -1,0 +1,3 @@
+# 离线评估依赖（不在生产运行时安装）
+# 轻量方案：零额外依赖，复用 config.yaml 已有模型进行 LLM Judge 评测
+# （无需 deepeval，run_baseline.py 已实现轻量方案）

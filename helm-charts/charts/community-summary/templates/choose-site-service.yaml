@@ -1,0 +1,16 @@
+{{- if .Values.welcome.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.community.name }}-summary-welcome-service
+  namespace: {{ .Values.namespace.name }}
+spec:
+  ports:
+  - name: {{ .Values.welcome.service.portName }}
+    port: {{ .Values.welcome.service.port }}
+    protocol: TCP
+    targetPort: {{ .Values.welcome.service.targetPort }}
+  selector:
+    {{- toYaml .Values.welcome.podLabels | nindent 4 }}
+  type: {{ .Values.welcome.service.type }}
+{{- end }}

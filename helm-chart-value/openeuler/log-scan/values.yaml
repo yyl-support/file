@@ -1,0 +1,53 @@
+
+
+namespace: infra-tools
+serviceAccount:
+  create: true
+  name: infra-tools
+  automount: false
+imagePullSecrets:
+  - name: huawei-swr-instance-image-pull-secret
+cronjob:
+  name: running-log-scan
+  suspend: true
+  schedule: '15 3 1 * *'
+  concurrencyPolicy: Allow
+  annotations:
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-inject: 'true'
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/log-level: "warn"
+    vault.hashicorp.com/role: 'infra-tools'
+    vault.hashicorp.com/agent-run-as-user: "1001"
+    vault.hashicorp.com/agent-run-as-group: "1001"
+    vault.hashicorp.com/agent-inject-perms-config.json: "0400"
+    vault.hashicorp.com/agent-inject-secret-config.json: 'internal/data/openeuler/infra-tools'
+    vault.hashicorp.com/agent-inject-template-config.json: "{{- with secret \"internal/data/openeuler/infra-tools\" -}}  \n{{ .Data.data.runningLogScan }}\n{{- end }}\n"
+  restartPolicy: Never
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsUser: 0
+  image:
+    repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/lts-log-scanner
+    tag: "zkh-f1489a43-1"
+    pullPolicy: IfNotPresent
+  volumeMounts:
+  - mountPath: /opt/running-log-data
+    name: data
+  volumes:
+    - name: token-vol
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+    - name: data
+      persistantVolumeClaim:
+        claimName: pvc-running-log
+pvc:
+  name: pvc-running-log
+  accessModes: ReadWriteMany
+  storage: 1Gi
+  

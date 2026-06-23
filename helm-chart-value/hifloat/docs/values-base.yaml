@@ -1,0 +1,59 @@
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+podSecurityContext: {}
+#  seccompProfile:
+#     type: Localhost
+#     localhostProfile: infra-seccomp.json
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+
+initContainers:
+- command:
+  - /bin/bash
+  - -c
+  - chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/
+  image: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/openeuler:22.03-lts-sp3
+  imagePullPolicy: IfNotPresent
+  name: init-openeuler
+
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  successThreshold: 1
+  httpGet:
+    scheme: HTTPS
+    path: /error.html
+    port: 8080
+  timeoutSeconds: 5
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 3
+  httpGet:
+    scheme: HTTPS
+    path: /error.html
+    port: 8080
+
+volumeMounts: []
+
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token

@@ -1,0 +1,61 @@
+{{- if .Values.guidcronjob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.guidcronjob.name }}-cronjob
+spec:
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            {{- toYaml .Values.podAnnotations | nindent 12 }}
+            {{- toYaml .Values.guidcronjob.podAnnotations | nindent 12 }}
+        spec:
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ .Values.serviceAccount.name }}
+          automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+          - name: {{ .Values.guidcronjob.name }}-cronjob
+            {{- with .Values.guidcronjob.args }}
+            args:
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            env:
+            {{- range .Values.guidcronjob.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+            image: {{ .Values.guidcronjob.image.repository }}:{{ .Values.guidcronjob.image.tag }}
+            imagePullPolicy: {{ .Values.guidcronjob.image.pullPolicy }}
+            {{- with .Values.guidcronjob.resources }}
+            resources:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            {{- with .Values.guidcronjob.securityContext }}
+            securityContext:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            {{- with .Values.guidcronjob.volumeMounts }}
+            volumeMounts:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+          restartPolicy: {{ .Values.guidcronjob.restartPolicy }}
+          {{- with .Values.guidcronjob.volumes }}
+          volumes:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+  schedule: {{ .Values.guidcronjob.schedule }}
+  suspend: {{ .Values.guidcronjob.suspend }}
+{{- end }}

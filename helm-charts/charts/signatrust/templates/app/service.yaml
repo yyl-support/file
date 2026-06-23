@@ -1,0 +1,18 @@
+{{- if .Values.app.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-service" .Values.app.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+{{ toYaml .Values.app.commonAnnotations | indent 4 }}
+spec:
+  type: {{ .Values.app.service.type }}
+  selector:
+    app: {{ .Values.app.name }}
+  ports:
+    - name: {{ .Values.app.service.name }}
+      port: {{ .Values.app.service.port }}
+      protocol: {{ .Values.app.service.protocol }}
+      targetPort: {{ .Values.app.service.targetPort }}
+{{- end }}

@@ -1,0 +1,17 @@
+{{- if .Values.controlServer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-service" .Values.controlServer.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations: {{ include "signatrust.annotations" . | indent 2 }}
+spec:
+  type: {{ .Values.controlServer.service.type }}
+  selector:
+    component: {{ .Values.controlServer.name }}
+  ports:
+    - name: {{ .Values.controlServer.service.name }}
+      protocol: {{ .Values.controlServer.service.protocol }}
+      port: {{ .Values.controlServer.service.port }}
+      targetPort: {{ .Values.controlServer.service.targetPort }}
+{{- end }}

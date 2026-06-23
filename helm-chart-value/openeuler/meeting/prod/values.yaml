@@ -1,0 +1,465 @@
+#chartVersion: 1.0.11
+namespace:
+  enabled: false
+  name: openeuler-meetingserver
+serviceAccount:
+  create: true
+  name: openeuler-meeting
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+image:
+  center:
+    repository: ""
+    tag: ""
+    imagePullPolicy: IfNotPresent
+  platform:
+    repository: ""
+    tag: "fix_mindspore-eaa947"
+    imagePullPolicy: IfNotPresent
+  server:
+    repository: "swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server"
+    tag: "dev_openeuler_text-0ce25c"
+    imagePullPolicy: IfNotPresent
+initContainer:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler
+    tag: "22.03-lts-sp3"
+podAnnotations:
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: openeuler-meeting
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/mindspore/openeuler-meeting
+  vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/mindspore/openeuler-meeting
+  vault.hashicorp.com/agent-inject-secret-server.key: internal/data/mindspore/openeuler-meeting
+  vault.hashicorp.com/agent-inject-template-ca.pem: |
+    {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+    {{ .Data.data.MysqlCA }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+    {{ .Data.data.servercrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+    {{ .Data.data.serverkey }}
+    {{- end }}
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+ingress:
+  enabled: true
+  name: meetingserver-ingress
+  host: "meetings.openeuler.openatom.cn"
+  serviceName: meeting-service
+  serviceNumber: 8080
+# 后端使用ingress路径转发时启用ingressNew
+ingressNew:
+  enabled: false
+  name: ""
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  host: ""
+  path: /meetings(/|$)(.*)
+  pathType: ImplementationSpecific
+  secretName: api-mindspore-tls
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: ""
+  # vs:
+  #   http:
+  #     - match:
+  #       - uri:
+  #           prefix: /api-platform/
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-platform.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  #     - match:
+  #       - uri:
+  #           prefix: /
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-center.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  # dr:
+  # - name: meeting-center
+  #   serviceName: meeting-center
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # - name: meeting-platform
+  #   serviceName: meeting-platform
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # pa:
+  # - name: meeting-center
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-center
+  # - name: meeting-platform
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-platform
+meetingCenter:
+  enabled: false
+  name: meeting-service # 模板限制此项与Ingress关联
+  # replicas: 1
+  # podLabels:
+  #   app: meeting-center
+  # resources:
+  #   limits:
+  #     cpu: 500m
+  #     memory: 500Mi
+  #   requests:
+  #     cpu: 500m
+  #     memory: 500Mi
+  # service:
+  #   type: ClusterIP
+  #   annotations: {}
+  #   ports:
+  #     - name: http-port
+  #       port: 8080
+  #       protocol: TCP
+  #       targetPort: 8080
+  # podAnnotations:
+  #   vault.hashicorp.com/agent-inject-perms-config: "0400"
+  #   vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-config: internal/data/mindspore/mindspore-meeting-v2
+  #   vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/mindspore/mindspore-meeting-v2
+  #   vault.hashicorp.com/agent-inject-template-config: |
+  #     {{- with secret "internal/data/mindspore/mindspore-meeting-v2" -}}
+  #     {{ .Data.data.centerConfig }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+  #     {{- with secret "internal/data/mindspore/mindspore-meeting-v2" -}}
+  #     {{ .Data.data.centerSecrets }}
+  #     {{- end }}
+meetingPlatform:
+  enabled: false
+  # name: meeting-platform
+  # replicas: 1
+  # podLabels:
+  #   app: meeting-platform
+  # resources:
+  #   limits:
+  #     cpu: 500m
+  #     memory: 500Mi
+  #   requests:
+  #     cpu: 500m
+  #     memory: 500Mi
+  # service:
+  #   ports:
+  #     - name: http-port
+  #       port: 8080
+  #       protocol: TCP
+  #       targetPort: 8080
+  #   type: ClusterIP
+  # podAnnotations:
+  #   vault.hashicorp.com/agent-inject-perms-config: "0400"
+  #   vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+  #   vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-config: internal/data/mindspore/mindspore-meeting-v2
+  #   vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/mindspore/mindspore-meeting-v2
+  #   vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/mindspore/mindspore-meeting-v2
+  #   vault.hashicorp.com/agent-inject-template-config: |
+  #     {{- with secret "internal/data/mindspore/mindspore-meeting-v2" -}}
+  #     {{ .Data.data.platformConfig }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-template-kafka.crt: |
+  #     {{- with secret "internal/data/mindspore/mindspore-meeting-v2" -}}
+  #     {{ .Data.data.platformKafkacrt }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+  #     {{- with secret "internal/data/mindspore/mindspore-meeting-v2" -}}
+  #     {{ .Data.data.platformSecrets }}
+  #     {{- end }}
+meetingServer:
+  enabled: true
+  name: meetingserver-deployment
+  replicas: 2
+  podLabels:
+    app: meetingserver
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/secrets.yaml
+    - name: MYSQL_TLS_PEM_PATH
+      value: /vault/secrets/ca.pem
+    - name: TLS_CRT_PATH
+      value: /vault/secrets/server.crt
+    - name: TLS_KEY_PATH
+      value: /vault/secrets/server.key
+    - name: KAFKA_CRT_PATH
+      value: /vault/secrets/kafka.crt
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1000Mi
+    requests:
+      cpu: "1"
+      memory: 1000Mi
+  service:
+    name: meeting-service
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+    type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/mindspore/openeuler-meeting
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+      {{ .Data.data.config }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: 'internal/data/mindspore/openeuler-meeting'
+    vault.hashicorp.com/agent-inject-template-kafka.crt: "{{- with secret \"internal/data/mindspore/openeuler-meeting\" -}}  \n{{ .Data.data.kafkaCA }}\n{{- end }}\n"
+secret:
+  enabled: true
+  name: meetingserver-tls
+  specKeysMap:
+    ca.crt:
+      path: secrets/data/openeuler/openeuler-openatom-cn-tls
+      key: server.crt
+    tls.crt:
+      path: secrets/data/openeuler/openeuler-openatom-cn-tls
+      key: server.crt
+    tls.key:
+      path: secrets/data/openeuler/openeuler-openatom-cn-tls
+      key: server.key
+cronjobCommon:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsUser: 1000
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/secrets.yaml
+    - name: MYSQL_TLS_PEM_PATH
+      value: /vault/secrets/ca.pem
+    - name: TLS_CRT_PATH
+      value: /vault/secrets/server.crt
+    - name: TLS_KEY_PATH
+      value: /vault/secrets/server.key
+cronjobs:
+  - enabled: false
+    name: updating-openeuler-sigs
+    labels:
+      app: updating-openeuler-sigs
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/mindspore/openeuler-meeting
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+        {{ .Data.data.config }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py genegroup
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+      tag: "dev_openeuler_text-0ce25c"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: false
+    name: upload-meeting-video
+    labels:
+      app: upload-meeting-video
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/mindspore/openeuler-meeting
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+        {{ .Data.data.config }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py handle_recordings
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+      tag: "dev_openeuler_text-0ce25c"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: false
+    name: update-activity-status
+    labels:
+      app: update-activity-status
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/mindspore/openeuler-meeting
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+        {{ .Data.data.config }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py update_activity_status
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+      tag: "dev_openeuler_text-0ce25c"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: false
+    name: check-privacy-policy-cronjob
+    labels:
+      app: check-privacy-policy
+    concurrencyPolicy: Forbid
+    schedule: "*/10 * * * *"
+    suspend: false
+    restartPolicy: Never
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/mindspore/openeuler-meeting
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+        {{ .Data.data.config }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py check_privacy_policy_update
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+      tag: "dev_openeuler_text-0ce25c"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: false
+    name: sendmessage-cronjob
+    labels:
+      app: sendmessage
+    concurrencyPolicy: Forbid
+    schedule: "*/10 * * * *"
+    suspend: false
+    restartPolicy: Never
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/mindspore/openeuler-meeting
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+        {{ .Data.data.config }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py sendmessages
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+      tag: "dev_openeuler_text-0ce25c"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: false
+    name: clean-logoff-user-cronjob
+    labels:
+      app: clean-logoff-user
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: false
+    restartPolicy: Never
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/mindspore/openeuler-meeting
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/mindspore/openeuler-meeting" -}}
+        {{ .Data.data.config }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py clean_logoff_user
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/app-meeting-server
+      tag: "dev_openeuler_text-0ce25c"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi

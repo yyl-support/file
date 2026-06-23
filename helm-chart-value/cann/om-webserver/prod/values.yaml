@@ -1,0 +1,89 @@
+# 全局配置
+global:
+  namespace: ascend
+  appName: omwebserver
+  appSubName: om-webserver
+# 副本配置
+replicaCount: 3
+revisionHistoryLimitCount: 10
+# 镜像配置
+image:
+  repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/om-webserver-prod
+  tag: release-om-webserver20260330-668030
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+containers:
+  applicationPath: "/var/lib/om-webserver/application.properties"
+  containerPort: 8080
+  portsName: om-webserver
+# 资源限制
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1000Mi
+  requests:
+    cpu: 1000m
+    memory: 1000Mi
+probeHttpGet:
+  path: /oneid/checkOmService
+  port: 8080
+  scheme: HTTPS
+serviceAccount:
+  create: false
+  name: ascend
+# Vault配置
+vault:
+  runAsUser: "1001"
+# Ingress配置, 使用独立域名时启用
+ingress:
+  enabled: false
+  className: nginx
+  host: ""
+  backendProtocol: "HTTPS"
+  limitConnections: "400"
+  limitRPS: "400"
+  port: 80
+# 使用前端域名配置路径转发时启用该ingress
+ingressNew:
+  enabled: true
+  name: omwebserver-ingress
+  host: id.meeting.osinfra.cn
+  annotations:
+    nginx.ingress.kubernetes.io/limit-connections: "400"
+    nginx.ingress.kubernetes.io/proxy-body-size: 5m
+    nginx.ingress.kubernetes.io/limit-rps: "400"
+  path: /oneid
+  pathType: Prefix
+  secretName: osinfra-cn-tls
+# Service配置
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+secret:
+  enabled: false
+  ca_crt_path: ""
+  ca_crt_key: server.crt
+  tls_crt_path: ""
+  tls_crt_key: server.crt
+  tls_key_path: ""
+  tls_key_key: server.key
+podAnnotations:
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/role: 'ascend'
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+  vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+  vault.hashicorp.com/agent-inject-secret-tls.pfx: 'internal/data/ascend/ascend-server'
+  vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/ascend/domain-tls\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-secret-application.properties: 'internal/data/ascend/ascend-server'
+  vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/ascend/ascend-server\" -}}  \n{{ .Data.data.omWebserver }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+  vault.hashicorp.com/agent-inject-secret-redis.crt: 'internal/data/ascend/ascend-server'
+  vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/ascend/ascend-server\" -}}  \n{{ .Data.data.omWebserveRedis }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/secret-volume-path: "/var/lib/om-webserver"
+  vault.hashicorp.com/log-level: "warn"

@@ -1,0 +1,154 @@
+#chartVersion: 1.0.7
+deployment:
+  replicaCount: 1
+  labels:
+    app: control-etherpad-v2
+  strategy: 
+    type: Recreate
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/etherpad
+    pullPolicy: IfNotPresent
+    tag: "main-383f61"
+  imagePullSecrets:
+    - name: huawei-swr-image-pull-secret
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-apikey.txt: "0400"
+    vault.hashicorp.com/agent-inject-perms-credentials.json: "0400"
+    vault.hashicorp.com/agent-inject-secret-apikey.txt: internal/data/openeuler/etherpad
+    vault.hashicorp.com/agent-inject-secret-credentials.json: internal/data/openeuler/etherpad
+    vault.hashicorp.com/agent-inject-template-apikey.txt: "{{- with secret \"internal/data/openeuler/etherpad\"
+      -}}  \n{{ .Data.data.apikey }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-credentials.json: "{{- with secret
+      \"internal/data/openeuler/etherpad\" -}}  \n{{ .Data.data.config }}\n{{-
+      end }}\n"
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "5001"
+    vault.hashicorp.com/agent-run-as-user: "5001"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/log-level: warn
+    vault.hashicorp.com/role: openeuler-etherpad
+    vault.hashicorp.com/tls-skip-verify: "true"
+  containerName: etherpad-lite
+  ports:
+    - containerPort: 9001
+      name: http
+      protocol: TCP
+
+
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "openeuler-etherpad"  
+
+namespace: openeuler-etherpad
+serviceAccount:
+  create: true
+  name: openeuler-etherpad
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+secretDefinitions:
+  etherpad-openeuler-tls:
+    enabled: true
+    keysMap:
+      ca.crt:
+        key: server.crt
+        path: secrets/data/openeuler/openeuler-org-tls
+      tls.crt:
+        key: server.crt
+        path: secrets/data/openeuler/openeuler-org-tls
+      tls.key:
+        key: server.key
+        path: secrets/data/openeuler/openeuler-org-tls
+
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  ports:
+    - name: ether-http
+      port: 9001
+      protocol: TCP
+      targetPort: 9001
+  type: ClusterIP
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "false"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ^~ /admin {
+        deny all;
+      }
+      location ^~ /stats {
+        deny all;
+      }
+  hosts:
+    - host: etherpad.openeuler.org
+      paths:
+        - path: /
+          pathType: Prefix
+          portNumber: 9001
+  tlsHosts:
+    - host: etherpad.openeuler.org
+      secretsName: etherpad-openeuler-tls
+
+istio:
+  enabled: false
+  nslabel: {}
+    # istio-injection: enabled
+  # gateway: "istio-system/istio-gateway-https"
+  # host: etherpad.opengaus.org
+  # virtualService:
+  #   routes:
+  #     - destinations:
+  #         - host: ""
+  #       match:
+  #       - uri:
+  #           prefix: /
+  # tls:
+  #   mode: DISABLE
+  # mtls:
+  #   mode: DISABLE
+
+resources:
+  limits:
+    cpu: "2"
+    memory: 4000Mi
+  requests:
+    cpu: "2"
+    memory: 4000Mi
+
+pvc:
+  ether-data-vol-v2:
+    enabled: true
+    annotations: {}
+      # everest.io/disk-volume-type: SSD
+    labels: {}
+    accessModes:
+      - ReadWriteOnce
+    storage: 1Gi
+    storageClassName: csi-disk-sas
+    volumeName: "pvc-9da11407-3848-4e7f-8a36-a71006dd7536"
+    volumeMode: Filesystem
+
+# Additional volumes on the output Deployment definition.
+volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: ether-data-vol-v2
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  - mountPath: /opt/etherpad-lite/var
+    name: data-volume

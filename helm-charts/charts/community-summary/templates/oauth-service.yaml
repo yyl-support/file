@@ -1,0 +1,21 @@
+{{- if .Values.oauth }}
+{{- range $server := .Values.oauth }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.community.name }}-{{ $server.provider }}-oauth-service
+  namespace: {{ $.Values.namespace.name }}
+spec:
+  ports:
+  - name: {{ $.Values.community.name }}-{{ $server.provider }}-oauth
+    port: {{ $server.service.port }}
+    protocol: TCP
+    targetPort: {{ $server.service.targetPort }}
+  {{- with $server.podLabels }}
+  selector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  type: {{ $server.service.type }}
+{{- end }}
+{{- end }}

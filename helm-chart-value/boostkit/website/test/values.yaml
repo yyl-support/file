@@ -1,0 +1,114 @@
+# chartVersion: v1.0.7
+global:
+  appName: boostkit-website
+namespace:
+  enabled: false
+  name: boostkit-website
+replicaCount: 1
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/boostkit-website-test
+  tag: "jiasensen-boostkit-e9be5d"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+deploymentLabels:
+  virtual-kubelet.io/burst-to-cci: enforce
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+podLabels:
+  app: boostkit-website
+podAnnotations:
+  # traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/infra-test/hikunpeng-test-tls"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/hikunpeng-test-tls" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/infra-test/hikunpeng-test-tls"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/hikunpeng-test-tls" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/infra-test/hikunpeng-test-tls"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/infra-test/hikunpeng-test-tls" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/infra-test/hikunpeng-test-tls"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/infra-test/hikunpeng-test-tls" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: boostkit-website
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/log-level: "warn"
+env:
+  - name: DET_URL
+    value: https://meeting.hikunpeng.test.osinfra.cn
+serviceAccount:
+  create: true
+  name: boostkit-website
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: "1"
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: meeting.hikunpeng.test.osinfra.cn
+# Service配置
+service:
+  portName: http-port
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: hikunpeng-test-tls
+  path: secrets/data/infra-test/boostkit-domain-tls
+  ca_crt_key: tls.cert
+  tls_crt_key: tls.cert
+  tls_key_key: tls.key
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: istio-system/istio-gateway-https
+  virtualService:
+    host: ""
+    http:
+      - route:
+          - destination:
+              host: ""
+              port:
+                number: 8080
+        match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE

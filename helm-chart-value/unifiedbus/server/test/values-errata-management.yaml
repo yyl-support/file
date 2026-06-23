@@ -1,0 +1,84 @@
+errata:
+  enabled: true
+  name: unifiedbus-errata-management
+  replicaCount: 1
+  podLabels:
+    app: errata-management
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-perms-mq.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-pg.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: internal/data/infra-test/unifiedbus
+    vault.hashicorp.com/agent-inject-secret-mq.crt: internal/data/infra-test/unifiedbus
+    vault.hashicorp.com/agent-inject-secret-pg.crt: internal/data/infra-test/unifiedbus
+    vault.hashicorp.com/agent-inject-secret-redis.crt: internal/data/infra-test/unifiedbus
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/infra-test/domain-tls
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/infra-test/domain-tls
+    vault.hashicorp.com/agent-inject-template-conf.yaml: "{{- with secret \"internal/data/infra-test/unifiedbus\" -}}  \n{{ .Data.data.errata }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-mq.crt: "{{- with secret \"internal/data/infra-test/unifiedbus\" -}}  \n{{ .Data.data.kafkaCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-pg.crt: "{{- with secret \"internal/data/infra-test/unifiedbus\" -}}  \n{{ .Data.data.PgCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/infra-test/unifiedbus\" -}}  \n{{ .Data.data.errataRedisCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-server.crt: "{{- with secret \"internal/data/infra-test/domain-tls\" -}}  \n{{ .Data.data.TestOsinfraCnCrt }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-template-server.key: "{{- with secret \"internal/data/infra-test/domain-tls\" -}}  \n{{ .Data.data.TestOsinfraCnKey }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    runAsUser: 1000
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/unifiedbus/errata-test
+    tag: his_new-b851fd
+    pullPolicy: IfNotPresent
+  args:
+    - --config-file=/vault/secrets/conf.yaml
+    - --port=8080
+    - --enable-debug=true
+    - --rm-config=false
+    - --tls-key=/vault/secrets/server.key
+    - --tls-cert=/vault/secrets/server.crt
+  livenessProbe:
+    failureThreshold: 3
+    httpGet:
+      path: /internal/v1/heartbeat
+      port: 8080
+      scheme: HTTPS
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    httpGet:
+      path: /internal/v1/heartbeat
+      port: 8080
+      scheme: HTTPS
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: "1"
+      memory: 1Gi
+  volumeMounts:
+  volumes:
+    - name: token-vol
+      projected:
+        defaultMode: 420
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+  service:
+    port: 8080
+    targetPort: 8080

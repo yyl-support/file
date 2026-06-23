@@ -1,0 +1,2816 @@
+configmaps:
+  - name: configmap-universal-access
+    filename: config.yaml
+    content: |-
+      access:   
+        repo_plugins:
+          - org_or_repo:
+              - openeuler
+              - src-openeuler
+              - openeuler-risc-v
+      
+            plugin_name:
+              - robot-service-cla
+              - robot-service-welcome
+              - robot-service-label
+              - robot-service-lifecycle
+              - robot-service-assign
+              - robot-service-associate
+              - robot-service-review
+              - robot-service-repo-watcher
+              - robot-universal-agreements
+              - quick-issue-githook
+              - sync-bot
+              - message-center
+              - message-center-prod
+              - robot-pr-message
+              - robot-pr-review
+      
+        plugins:
+          - name: robot-service-welcome
+            endpoint: http://robot-universal-welcome-service.robot-openeuler.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Issue Hook"
+          - name: message-center
+            endpoint: https://message-center.test.osinfra.cn/collect/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Issue Hook"
+              - "Note Hook"
+          - name: message-center-prod
+            endpoint: https://message-center.openeuler.org/collect/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Issue Hook"
+              - "Note Hook"
+          - name: robot-service-cla
+            endpoint: http://robot-universal-cla-service.robot-openeuler.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-lifecycle
+            endpoint: http://robot-universal-lifecycle-service.robot-openeuler.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+              - "Issue Hook"
+          - name: robot-service-label
+            endpoint: http://robot-universal-label-service.robot-openeuler.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+              - "Issue Hook"
+              - "Merge Request Hook"
+          - name: robot-service-review
+            endpoint: http://robot-universal-review-service.robot-openeuler.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-associate
+            endpoint: http://robot-universal-associate-service.robot-openeuler.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-assign
+            endpoint: http://robot-universal-assign-service.robot-openeuler.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Issue Hook"
+              - "Note Hook"
+          - name: robot-service-repo-watcher
+            endpoint: http://robot-universal-repo-watcher-service.robot-openeuler.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Issue Hook"
+              - "Note Hook"
+          - name: robot-universal-agreements
+            endpoint: http://robot-universal-agreements-service.robot-openeuler.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Issue Hook"
+          - name: sync-bot
+            endpoint: http://sync-bot-service.robot-openeuler.svc.cluster.local:8888/hooks
+            events:
+              - "Note Hook"
+              - "Issue Hook"
+              - "Merge Request Hook"
+          - name: quick-issue-githook
+            endpoint: https://ipb.osinfra.cn/hooks
+            events:
+              - "Note Hook"
+              - "Issue Hook"
+              - "Merge Request Hook"
+          - name: robot-pr-message
+            endpoint: https://prmessage.test.osinfra.cn/hook/analyze
+            events:
+              - "Note Hook"
+              - "Merge Request Hook"
+          - name: robot-pr-review
+            endpoint: https://pr-review.test.osinfra.cn/hook/analyze
+            events:
+              - "Note Hook"
+              - "Merge Request Hook"
+
+  - name: configmap-universal-assign
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openeuler
+            - src-openeuler
+            - openeuler-risc-v
+          enable_issue_assign: true
+      
+      community_robot_id: openeuler-ci-robot
+      msg_multiple_assignee: "### Notice \nCan only assign one assignee to the issue."
+      msg_assign_repeatedly: "### Notice \nThis issue is already assigned to ***%s***. Please do not assign repeatedly."
+      msg_not_allow_assign: "### Notice \nThis issue can not be assigned to ***%s***. Please try to assign to the repository members."
+      msg_not_allow_unassign: "### Notice \n***%s*** can not be unassigned from this issue. Please try to unassign the assignee of this issue."
+      msg_default_assignee: "### Notification \nThis issue requires an assignee. Since you haven't specified one, we've assigned ***%s*** as the default assignee for this issue."
+  - name: configmap-universal-associate
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openeuler/umdk
+            - openeuler/Gluten
+            - openeuler/OmniOperator
+            - openeuler/OmniAdaptor
+            - openeuler/OmniStream
+            - openeuler/OmniStateStore
+            - openeuler/kernel
+          enable_check_associate_issue: true
+          associate_issue_rules:
+            org:
+              - openeuler
+              - src-openeuler
+            org_label: needs-issue
+            org_issue_state_limit: true
+            org_issue_limit_state: open
+            org_comment_command_check_label: /check-issue
+            org_comment_command_remove_label: /remove-needs-issue
+            org_remove_label_permission: true
+            org_comment_remove_label_no_permission: "### Notice \nOnly maintainer/committer of the repository can delete the **needs-issue** label. Please contact them to do it."
+            org_comment_label_block_feedback: "### Linking Issue Notice \n @%s , the pull request must be linked to at least one issue. \nIf an issue has already been linked, but the **needs-issue** label remains, you can remove the label by commenting **`/check-issue`** ."
+      
+        - repos:
+            - openeuler
+            - src-openeuler
+          enable_check_associate_issue: false
+          associate_issue_rules:
+            org:
+              - "openeuler"
+              - "src-openeuler"
+            org_label: needs-issue
+            org_issue_state_limit: true
+            org_issue_limit_state: open
+            org_comment_command_check_label: /check-issue
+            org_comment_command_remove_label: /remove-needs-issue
+            org_remove_label_permission: true
+            org_comment_remove_label_no_permission: "### Notice \nOnly members of the repository can delete the **needs-issue** label. Please contact them to do it."
+            org_comment_label_block_feedback: "### Linking Issue Notice \n @%s , the pull request must be linked to at least one issue. \nIf an issue has already been linked, but the **needs-issue** label remains, you can remove the label by commenting **`/check-issue`** ."
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: openeuler
+      community_robot_id: openeuler-ci-robot
+      placeholder_linking_issue_notice_title: "### Linking Issue Notice"
+      placeholder_linking_pr_notice_title: "### Linking PR Notice"
+  - name: configmap-universal-cla
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+          - openeuler
+          - src-openeuler
+          - openeuler-risc-v
+          cla_label_yes: openeuler-cla/yes
+          cla_label_no: openeuler-cla/no
+          check_url: "https://clasign.osinfra.cn/api/v1/individual-signing/6983225bdcbb19710248ccf0"
+          sign_url: "https://clasign.osinfra.cn/sign/6983225bdcbb19710248ccf0"
+          employee_sign_url: https://clasign.osinfra.cn/sign-cla/6983225bdcbb19710248ccf0/employee
+          individual_sign_url: https://clasign.osinfra.cn/sign-cla/6983225bdcbb19710248ccf0/individual
+          faq_url: "https://atomgit.com/openeuler/infrastructure/blob/master/docs/cla-guide/faq/faq.md"
+          check_by_committer: true
+          lite_pr_committer:
+            email: "@noreply.gitcode.com"
+            email_patch: "noreply@gitee.com"
+            name: GitCode
+      user_mark_format: "@"
+      placeholder_committer: ""
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: openeuler
+      community_robot_id: openeuler-ci-robot
+      placeholder_cla_sign_guide_title: "### CLA Signature Guide"
+      placeholder_cla_sign_pass_title: "### CLA Signature Pass"
+      comment_command_trigger: "### CLA Signature Manual  \n\nBecause of the network problem, please comment `/check-cla` once again. :pray: "
+      comment_pr_no_commits: "### CLA Signature Manual  \n\nThere is no valid commits in the pull request, please check it. "
+      comment_some_need_sign: "### CLA Signature Guide  \n\n %s , thanks for your pull request. \n\nThe following commit(s) are not associated with a signed **<font color=green>_Contributor License Agreement (CLA)_</font>**.\n\n%s \n\nTo sign CLA, [**<ins>click here</ins>**](%s). \n\nTo check if your email is configured correctly, refer to the [**<font color=red><ins>_FAQs_</ins></font>**](%s). \n\nOnce you've signed the CLA or updating your email, please comment **`/check-cla`** to revalidate CLA status."
+      comment_update_label_failed: "### CLA Signature Manual  \n\nBecause of the CLA label update fail, please comment `/check-cla` once again. :pray: "
+      comment_all_signed: "### CLA Signature Pass  \n %s, thanks for your pull request. All authors of the commits have signed the CLA. :+1: "
+      invalid_email: "@noreply.gitcode.com"
+      invalid_email_message: "the email used in the commit is an invalid email! <br>please check all commits."
+      cla_service_failed_message: "the CLA service call failed! please comment `/check-cla` once again."
+      comment_unsigned_title: "| Commit | Reason |\n|--|--|"
+      comment_unsigned_line: "\n| %s | %s |"
+      not_signed_email_message: "the email used in the commit is not linked to a signed CLA! <br>please verify that it matches the email you used when signing the CLA."
+      message_individual_version_behind: "the individual CLA content has been updated. <br>[Please click here to re-sign the agreement](https://clasign.osinfra.cn/sign-cla/6983225bdcbb19710248ccf0/individual-update?email=%s)."
+      message_corporation_version_behind: "the corporation CLA content has been updated. <br>Please contact your corporation CLA manager to re-sign the agreement."
+      cla_signature_type_corporation: "corporation"
+  - name: configmap-universal-label
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openeuler/Virt-docs
+            - openeuler/openstack-docs
+            - openeuler/cloudnative-docs
+            - openeuler/A-Tune
+            - openeuler/oeAware-manager
+            - openeuler/secDetector
+            - openeuler/secGear
+            - openeuler/aops-zeus
+            - src-openeuler/oeDevPlugin
+            - openeuler/sysTrace
+            - src-openeuler/heolleo
+            - src-openeuler/roo-code
+            - src-openeuler/oeGitExt
+            - src-openeuler/oeDeploy
+            - src-openeuler/calamares
+            - openeuler/euler-copilot-framework
+            - openeuler/compiler-docs
+            - openeuler/syscare
+            - openeuler/cve-ease
+            - openeuler/jiuwen-agentcore
+            - openeuler/jiuwen-deepsearch
+            - openeuler/sysmaster
+            - openeuler/sysmonitor
+            - openeuler/dpu-utilities
+            - src-openeuler/k3s
+            - openeuler/epkg
+            - openeuler/epkg-autopkg
+            - openeuler/patch-tracking
+            - openeuler/Storage-docs
+            - openeuler/Computing-docs
+            - openeuler/imageTailor
+            - openeuler/eulerlauncher
+            - openeuler/sysSentry
+            - src-openeuler/gala-anteater
+            - src-openeuler/kae_driver
+            - openeuler/Ha-docs
+            - openeuler/ros
+            - src-openeuler/oemaker
+            - src-openeuler/migration-tools
+            - openeuler/ukui
+            - openeuler/dde
+            - openeuler/kiran-desktop
+            - openeuler/Cpds
+            - openeuler/PilotGo
+            - openeuler/CCA
+            - src-openeuler/DevStore
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "docs_ci_successful"
+            - label_name: "doc-sig-reviewed"
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "docs/zh"
+                - "docs/en"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "docs/zh"
+                - "docs/en"
+          manual_add_or_remove_pr_label_rules:
+            - label_prefix: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true       
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "need-doc-sig-review"
+              add_label_command: "/need-doc-sig-review"
+              remove_label_command: "/review-by-doc-sig"
+              verify_permission: "weak"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+            - label_name: "doc-sig-reviewed"
+              add_label_command: "/review-by-doc-sig"
+              remove_label_command: "/remove-doc-sig"
+              verify_permission: "strict"
+              user_sig_maintainer_list:
+                - "doc"
+              user_id_list:
+                - "hemiao3787"
+              pr_change_paths:
+                - "docs/zh"
+                - "docs/en"
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"  
+      
+        - repos:
+            - openeuler/yuanrong
+            - openeuler/docs-centralized
+            - openeuler/docs
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "docs_ci_successful"
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          manual_add_or_remove_pr_label_rules:
+            - label_name: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true        
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"
+
+        - repos:
+            - openeuler/mcp-servers
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "docs_ci_successful"
+            - label_name: "doc-sig-reviewed"
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "servers/cvekit_mcp/docs/zh"
+                - "servers/cvekit_mcp/docs/en"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"    
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "servers/cvekit_mcp/docs/zh"
+                - "servers/cvekit_mcp/docs/en"
+          manual_add_or_remove_pr_label_rules:
+            - label_name: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "need-doc-sig-review"
+              add_label_command: "/need-doc-sig-review"
+              remove_label_command: "/review-by-doc-sig"
+              verify_permission: "weak"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+            - label_name: "doc-sig-reviewed"
+              add_label_command: "/review-by-doc-sig"
+              remove_label_command: "/remove-doc-sig"
+              verify_permission: "strict"
+              user_sig_maintainer_list:
+                - "doc"
+              user_id_list:
+                - "hemiao3787"
+              pr_change_paths:
+                - "servers/cvekit_mcp/docs/zh"
+                - "servers/cvekit_mcp/docs/en"
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"
+
+        - repos:
+            - openeuler/UniProton
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "docs_ci_successful"
+            - label_name: "doc-sig-reviewed"
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "doc/zh"
+                - "doc/en"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "doc/zh"
+                - "doc/en"
+          manual_add_or_remove_pr_label_rules:
+            - label_prefix: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              can_not_add_labels_by_self: true
+              user_sig_role_only: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "need-doc-sig-review"
+              add_label_command: "/need-doc-sig-review"
+              remove_label_command: "/review-by-doc-sig"
+              verify_permission: "weak"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+            - label_name: "doc-sig-reviewed"
+              add_label_command: "/review-by-doc-sig"
+              remove_label_command: "/remove-doc-sig"
+              verify_permission: "strict"
+              user_sig_maintainer_list:
+                - "doc"
+              user_id_list:
+                - "hemiao3787"
+              pr_change_paths:
+                - "doc/zh"
+                - "doc/en"
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"
+      
+        - repos:
+            - openeuler/gazelle
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "docs_ci_successful"
+            - label_name: "doc-sig-reviewed"
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "docs/zh/user_manual"
+                - "docs/en/user_manual"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"    
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "docs/zh/user_manual"
+                - "docs/en/user_manual"
+          manual_add_or_remove_pr_label_rules:
+            - label_name: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "need-doc-sig-review"
+              add_label_command: "/need-doc-sig-review"
+              remove_label_command: "/review-by-doc-sig"
+              verify_permission: "weak"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+            - label_name: "doc-sig-reviewed"
+              add_label_command: "/review-by-doc-sig"
+              remove_label_command: "/remove-doc-sig"
+              verify_permission: "strict"
+              user_sig_maintainer_list:
+                - "doc"
+              user_id_list:
+                - "hemiao3787"
+              pr_change_paths:
+                - "docs/zh/user_manual"
+                - "docs/en/user_manual"
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"
+      
+        - repos:
+            - openeuler/umdk
+            - src-openeuler/umdk
+            - openeuler/ubturbo
+            - openeuler/ham
+            - openeuler/ubs-comm
+            - openeuler/ubs-engine
+            - openeuler/ubs-virt
+            - openeuler/ubs-io
+            - openeuler/ubs-mem
+            - openeuler/ubs-atomic
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          manual_add_or_remove_pr_label_rules:
+            - label_prefix: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"
+        
+        - repos:
+            - openeuler/community
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          manual_add_or_remove_pr_label_rules:
+            - label_prefix: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              repo_sig_dir: "sig"
+              can_not_add_labels_by_self: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"
+        
+        - repos:
+            - openeuler/kernel
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+          manual_add_or_remove_pr_label_rules:
+            - label_name: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "NACK"
+              add_label_command: "/nack"
+              remove_label_command: "/nack remove"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "Acked"
+              add_label_command: "/ack"
+              remove_label_command: "/ack remove"
+              verify_permission: "weak"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: false
+              can_not_add_labels_by_self: false
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"     
+
+        - repos:
+            - src-openeuler/kernel
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          manual_add_or_remove_pr_label_rules:
+            - label_name: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "NACK"
+              add_label_command: "/nack"
+              remove_label_command: "/nack remove"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "Acked"
+              add_label_command: "/ack"
+              remove_label_command: "/ack remove"
+              verify_permission: "weak"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: false
+              can_not_add_labels_by_self: false
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"
+
+        - repos:
+            - openeuler/OmniOperator
+            - openeuler/OmniStream
+            - openeuler/OmniStateStore
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "docs"
+                - "README.md"
+                - "README_en.md"
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "need-doc-sig-review"
+              pr_change_paths:
+                - "docs"
+                - "README.md"
+                - "README_en.md"
+          manual_add_or_remove_pr_label_rules:
+            - label_name: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "doc-sig-reviewed"
+              add_label_command: "/review-by-doc-sig"
+              remove_label_command: "/remove-doc-sig"
+              verify_permission: "strict"
+              user_sig_maintainer_list:
+                - "doc"
+              user_id_list:
+                - "congzhaohw"
+              pr_change_paths:
+                - "docs"
+                - "README.md"
+                - "README_en.md"
+            - label_name: "need-doc-sig-review"
+              add_label_command: "/need-doc-sig-review"
+              remove_label_command: "/review-by-doc-sig"
+              verify_permission: "weak"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"
+
+        - repos:
+            - openeuler
+            - src-openeuler
+          auto_remove_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci_successful"
+            - label_name: "wait_confirm"
+            - label_name: "kind/wait_for_update"
+            - label_name: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_prefix: "lgtm"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "approved"
+              event_actions:
+                - "pr close to trigger remove label"
+            - label_name: "ai-compliance-successful"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-compliance-failed"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-docs-only"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+            - label_name: "ai-includes-code"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:No|否)
+              event_actions:
+                - "pr body change to trigger remove label"
+          auto_add_pr_label_rules:
+            - label_name: "ai-co-authored"
+              pr_body_regex: (?s)(?:AI参与|generative AI).*?\[x\]\s*-?\s*(?:是|Yes)
+              event_actions:
+                - "pr body change to trigger add label"
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          manual_add_or_remove_pr_label_rules:
+            - label_name: "lgtm"
+              add_label_command: "/lgtm"
+              remove_label_command: "/lgtm cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "approved"
+              add_label_command: "/approve"
+              remove_label_command: "/approve cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+                - "branch keeper"
+              user_sig_role_only: true
+              can_not_add_labels_by_self: true
+            - label_name: "needs-issue"
+              remove_label_command: "/remove-needs-issue"
+              verify_permission: "strict"
+              user_id_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/squash"
+              add_label_command: "/squash"
+              remove_label_command: "/squash cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+            - label_name: "merge/rebase"
+              add_label_command: "/rebase"
+              remove_label_command: "/rebase cancel"
+              verify_permission: "strict"
+              user_sig_role_list:
+                - "maintainer"
+                - "committer"
+                - "repo admin"
+              user_sig_role_only: true
+          manual_add_or_remove_issue_label_rules:
+            - label_name: "GEO"
+              add_label_command: "/geo"
+              remove_label_command: "/geo cancel"
+              verify_permission: "strict"
+              user_id_list:
+                - "sunshuang1866"
+              user_id_only: true
+          ai_declaration_check:
+            enabled: true
+            detected_label: "ai-co-authored"
+            compliant_label: "ai-compliance-successful"
+            non_compliant_label: "ai-compliance-failed"
+            doc_extensions: ".md|.txt|.rst|.doc|.docx|.xls|.xlsx|.ppt|.pptx|.pdf"
+            docs_only_label: "ai-docs-only"
+            includes_code_label: "ai-includes-code"
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: openeuler
+      community_robot_id: openeuler-ci-robot
+      command_reg_exp_key_word: "kind|priority|sig|good"
+      delayed_seconds: 2
+      comment_remove_labels_when_pr_source_code_updated: "### Notification  \nThis pull request has been changed(code update) or closed, so removes the following label(s): %s."
+      comment_label_command_conflict: "### Label Command Feedback  \n @%s , the comment that add and delete a same label, please check it!"
+      comment_update_label_failed: "### Label Command Feedback \n\n @%s, because of the label **%s** update failed, please comment once again!"
+      comment_add_not_exist_label: "### Label Command Feedback  \nThe repository doesn't have the label(s) **%s**, it cannot be added!"
+      comment_add_label_by_self: "### Review Code Warning \n @%s , you can't review code by yourself, please contact the maintainers/committers."
+      comment_add_label_successful: "### Review Code Feedback \n- The label **%s** was added to this pull request. It means that **%s** reviewed the code changes. :wave: \n ##### *Tips* \n- If this pull request is not merged while all conditions are met, comment **`/check-pr`** to try again. :smile: "
+      comment_no_permission_for_user_list: "The label(s) **%s** permission is of **%s**, please contact them."
+      comment_no_permission_for_sig_member: "Thanks for your review, your opinion is very important to us. The maintainers will consider your advice carefully."
+      comment_no_permission_for_repo_member: "The label(s) **%s** permission is outside."
+      comment_permission_tip_for_branch_keeper: "The repository's branch is control of maintainer and branch keeper!"
+      comment_pr_no_found_commits: "### Warning  \nThe PR commit(s) can not be got, please check it!"
+      comment_pr_no_found_code_change: "### Warning  \nThe PR code change can not be got, please check it!"
+      feedback_comment_prefix: "### Label Command Feedback  \n%s"
+      add_label_to_feedback:
+        - "lgtm"
+        - "approved"
+        - "lgtm-"
+      ai_declaration_check_model: "deepseek-ai/DeepSeek-V4-Pro"
+      known_ai_tools: "Claude,Claude Code,openCode,Copilot,Cursor,ChatGPT,Windsurf,Codeium,Tabnine,Antigravity"
+      known_ai_models: "DeepSeek,Claude,GPT,Qwen,Gemini,Llama,Mistral,Grok"
+      ai_declaration_check_rules: |
+        你是一个AI声明合规性检查助手。输入可能包含 PR标题、PR描述、提交信息(commit message)。检查其中的AI工具声明并判断是否合规。
+
+        判定规则（工具与模型分别独立判断真实性，互不依赖）：
+        1. 工具真实性：声明的AI工具须真实存在（如 Claude、Copilot、Cursor、ChatGPT 等）；虚构工具（如 "XYZAI"）判不合规。
+        2. 模型真实性：若给出了模型名称，只要能归到真实的"模型系列/厂商"（如 DeepSeek、Claude、GPT、Qwen、Gemini、Llama）即视为真实；仅当连系列都对应不上的编造名称（如 "xiaomoxing"）才判不合规。未给模型不因"缺模型"判不合规。
+        3. 工具与模型相互独立，不要求同厂商、不要求"匹配"。如「Claude + DeepSeek-V3」是合规组合。
+        4. PR描述中的工具与模型不能为空
+
+        PR描述与每个commit的message一致性检查（仅当PR描述声明了使用AI，即勾选"是"或明确声明AI参与时才检查）：
+        - commit message 也须声明所用的AI工具或者模型；若提交信息中完全没有AI声明 → 不合规，在 reason 注明"commit message 未声明AI工具"。
+        - commit message 声明的模型须与PR描述一致（归一化后比较，见下）；若不一致（如PR写deepseek v4 pro、commit写GLM5.1）→ 不合规，在 reason 注明具体差异。
+        - 若PR描述声明未使用AI（勾选"否"），则不要求commit声明，此项不影响合规。
+
+        归一化方法（真实性判断与一致性比较都先归一化，只认系列，存疑从宽）：
+        - 忽略大小写、空格、分隔符与版本号写法。但拼写需正确。如 deepseekV3 / deepseek-v3 / DeepSeek-V3-0324 均归到 DeepSeek 系列；gpt4 = GPT-4；Claude code = Claude。
+        - 不校验版本是否已发布：你的知识有截止日期，只要系列真实，陌生的新版本（如 DeepSeek-V4、GPT-5、Qwen3）一律按真实处理，不得因"没见过"判为编造。
+        - 存疑从宽：无法确定系列时，倾向按真实处理（合规）；归一化后属同一系列即视为一致。
+
+        严格按以下JSON格式返回（不要其他内容）：
+        {
+          "compliant": true或false,
+          "ai_tool": "归一化后的工具名（Claude/Copilot/Cursor/DeepSeek等），无则空字符串",
+          "ai_model": "模型名（保留原始写法），无则空字符串",
+          "confidence": "High/Medium/Low",
+          "reason": "简洁理由（尽量一两句话说完，失败的话只需要说导致失败原因，符合要求部分不要赘述）。需覆盖：真实性（区分'格式差异'合规与'编造名称'不合规）、以及commit与PR的一致性（缺声明或不一致须指出）"
+        }
+      comment_ai_declaration_non_compliant: "### AI Declaration Check Failed \n @%[1]s, AI tool declaration is **not compliant**. AI tool: **%[2]s**, Reason: Please verify the correctness of the AI-generated statement in the PR description. It must be consistent with the commit messages and not contradict them. For details, see **[here](https://www.openeuler.org/zh/community/aigc)**. :warning:"
+      comment_ai_declaration_check_failed: "### AI Declaration Check Failed  \n @%s, AI declaration compliance check failed, please try again later. :x:"
+      comment_ai_declaration_no_ai_tool_detected: "### AI Declaration Check Failed  \n @%s, no AI tool usage declaration detected in this PR."
+  - name: configmap-universal-lifecycle
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openeuler
+            - src-openeuler
+            - openeuler-risc-v
+          close_issue_checklist:
+            comment_command_lines:
+              - "/close"
+            excluded_issue_type_list:
+              - "CVE和安全问题"
+            allow_issue_type_list:
+              - "任务"
+              - "缺陷"
+              - "需求"
+              - "缺陷同步"
+              - "内核缺陷"
+              - "开源软件变更管理"
+              - "软件包引入"
+              - "用户需求"
+              - "内核需求"
+              - "版本"
+              - "HDC-任务打榜赛"
+              - "内核任务"
+              - "开源之夏 2025"
+              - "翻译"
+              - "开源实习"
+              - "有奖捉虫"
+              - "自定义"
+              - "迁移提优"
+              - "Task"
+              - "开源之夏 2024"
+              - "开源之夏2023"
+            allow_workflow_list:
+              - "任务/待办的,进行中/已完成"
+              - "缺陷/待办的,已挂起,修复中,已确认/已完成"
+              - "需求/新建,已接纳,已挂起,设计中,开发中/已完成"
+              - "缺陷同步/待办的,进行中/已完成"
+              - "内核缺陷/已挂起,待办的,进行中/已完成"
+              - "开源软件变更管理/待办的,进行中/已完成"
+              - "软件包引入/已接纳,已挂起,待办的,进行中/已完成"
+              - "用户需求/待办的,进行中/已完成"
+              - "内核需求/新建,已接纳,开发中,拟拒绝/已完成"
+              - "版本/待办的,进行中/已完成"
+              - "HDC-任务打榜赛/待办的,进行中/已完成"
+              - "内核任务/待办的,进行中/已完成"
+              - "开源之夏 2025/待办的,进行中/已完成"
+              - "翻译/待办的,进行中/已完成"
+              - "开源实习/待办的,进行中/已完成"
+              - "有奖捉虫/待办的,进行中/已完成"
+              - "自定义/待办的,进行中/已完成"
+              - "迁移提优/待办的,进行中/已完成"
+              - "Task/待办的,进行中/已完成"
+              - "开源之夏 2024/待办的,进行中/已完成"
+              - "开源之夏2023/待办的,进行中/已完成"
+            close_workflow_list:
+              - "已完成"
+              - "已拒绝"
+              - "已验收"
+              - "已取消"
+            linked_pr_all_merged_or_closed: true
+          reopen_issue_checklist:
+            comment_command_lines:
+              - "/reopen"
+            allow_workflow_list:
+              - "任务/已完成,待办的,进行中/待办的"
+              - "缺陷/已挂起,修复中,已确认,已完成,已验收,已取消/待办的"
+              - "需求/已接纳,已挂起,设计中,开发中,已验收,已拒绝/新建"
+              - "缺陷同步/已拒绝,已完成,进行中/待办的"
+              - "内核缺陷/待办的,已拒绝,已完成,进行中/已挂起"
+              - "开源软件变更管理/已拒绝,已完成,进行中/待办的"
+              - "软件包引入/已挂起,已拒绝,待办的,已完成,进行中,已取消/已接纳"
+              - "用户需求/已完成,进行中/待办的"
+              - "内核需求/已完成,已接纳,开发中,拟拒绝,已取消,已拒绝/新建"
+              - "版本/已拒绝,已完成,进行中/待办的"
+              - "HDC-任务打榜赛/已拒绝,已完成,进行中/待办的"
+              - "内核任务/已完成,进行中/待办的"
+              - "开源之夏 2025/已完成,进行中/待办的"
+              - "翻译/已拒绝,已完成,进行中/待办的"
+              - "开源实习/已拒绝,已完成,进行中/待办的"
+              - "有奖捉虫/已拒绝,已完成,进行中/待办的"
+              - "自定义/已拒绝,已完成,进行中/待办的"
+              - "迁移提优/已完成,进行中/待办的"
+              - "Task/已拒绝,已完成,进行中/待办的"
+              - "开源之夏 2024/已拒绝,已完成,进行中/待办的"
+              - "开源之夏2023/已完成,进行中/待办的"
+          close_pr_checklist:
+            comment_command_lines:
+              - "/close"
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: openeuler
+      community_robot_id: openeuler-ci-bot
+      event_state_opened: opened
+      issue_action_reopen: reopen
+      event_state_closed: closed
+      issue_action_close: close
+      comment_no_permission_close_issue: "### Notice \n@%s , you can't close an issue unless you are the author of it or a collaborator."
+      comment_no_permission_reopen_issue: "### Notice \n@%s , you can't reopen an issue unless you are the author of it or a collaborator."
+      comment_list_linking_pull_requests_failure: "### Notice \n@%s  fail to check link pull requests of the issue, please retry."
+      comment_no_permission_close_pr: "### Notice \n@%s , you can't close a pull request unless you are the author of it or a collaborator."
+      comment_issue_has_open_pr: "### Notice \n@%s , this issue is linked to an open PR. Please merge the PR before closing this issue."
+      comment_not_close_issue: "### Notice \n@%s , this issue is currently under CVE service control and cannot be closed directly. Please comment **/check-issue**."
+  - name: configmap-universal-review
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openeuler
+            - openeuler-risc-v
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - src-openeuler
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+            check_branch_frozen: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: linkpull
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: check_lfs_failed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - src-openeuler/kernel
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+            check_branch_frozen: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: linkpull
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: check_lfs_failed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: Nack
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/mcp-servers
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: doc-sig-reviewed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+                pr_change_paths:
+                  - "servers/cvekit_mcp/docs/zh"
+                  - "servers/cvekit_mcp/docs/en"
+
+        - repos:
+            - openeuler/community
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+            prefix_label_metric:
+              - label_name: lgtm
+                need_num: 2
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: wait_confirm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/kernel
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+          merge_block_metrics:
+            label_metric:
+              - label_name: kind/kabi-need-review
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: NACK
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: needs-issue
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/ubturbo
+            - openeuler/ham
+            - openeuler/ubs-comm
+            - openeuler/ubs-engine
+            - openeuler/ubs-virt
+            - openeuler/ubs-io
+            - openeuler/ubs-mem
+            - openeuler/ubs-atomic
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+            prefix_label_metric:
+              - label_name: lgtm
+                need_num: 2
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: needs-issue
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/umdk
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: cam_build_successful
+                need_num: 1
+                legal_operator: maerlei
+                legal_operate_time: false
+            prefix_label_metric:
+              - label_name: lgtm
+                need_num: 2
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: needs-issue
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/dpdk
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+
+        - repos:
+            - openeuler/sysTrace
+            - src-openeuler/heolleo
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: docs_ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: doc-sig-reviewed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+                pr_change_paths:
+                  - "docs/zh"
+                  - "docs/en"
+            check_branch_frozen: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: check_lfs_failed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/docs
+            - openeuler/docs-centralized
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: docs_ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/Virt-docs
+            - openeuler/openstack-docs
+            - openeuler/cloudnative-docs
+            - openeuler/secDetector
+            - openeuler/euler-copilot-framework
+            - openeuler/compiler-docs
+            - openeuler/cve-ease
+            - openeuler/jiuwen-agentcore
+            - openeuler/jiuwen-deepsearch
+            - openeuler/sysmaster
+            - openeuler/sysmonitor
+            - openeuler/dpu-utilities
+            - openeuler/epkg
+            - openeuler/epkg-autopkg
+            - openeuler/patch-tracking
+            - openeuler/Storage-docs
+            - openeuler/Computing-docs
+            - openeuler/imageTailor
+            - openeuler/eulerlauncher
+            - openeuler/sysSentry
+            - openeuler/Ha-docs
+            - openeuler/ros
+            - openeuler/ukui
+            - openeuler/dde
+            - openeuler/kiran-desktop
+            - openeuler/Cpds
+            - openeuler/PilotGo
+            - openeuler/CCA
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: docs_ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: doc-sig-reviewed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+                pr_change_paths:
+                  - "docs/zh"
+                  - "docs/en"
+
+        - repos:
+            - openeuler/gazelle
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: docs_ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: doc-sig-reviewed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+                pr_change_paths:
+                  - "docs/zh/user_manual"
+                  - "docs/en/user_manual"
+
+        - repos:
+            - openeuler/A-Tune
+            - openeuler/oeAware-manager
+            - openeuler/secGear
+            - openeuler/aops-zeus
+            - openeuler/syscare
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: docs_ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: doc-sig-reviewed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+                pr_change_paths:
+                  - "docs/zh"
+                  - "docs/en"
+
+        - repos:
+            - openeuler/UniProton
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: docs_ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: doc-sig-reviewed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+                pr_change_paths:
+                  - "doc/zh"
+                  - "doc/en"
+            prefix_label_metric:
+              - label_name: lgtm
+                need_num: 2
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+
+        - repos:
+            - src-openeuler/umdk
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+            prefix_label_metric:
+              - label_name: lgtm
+                need_num: 2
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+            check_branch_frozen: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: linkpull
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: check_lfs_failed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/OmniAdaptor
+            - openeuler/Gluten
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: needs-issue
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/OmniStateStore
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: doc-sig-reviewed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+                pr_change_paths:
+                  - "docs"
+                  - "README.md"
+                  - "README_en.md"
+          merge_block_metrics:
+            label_metric:
+              - label_name: needs-issue
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - openeuler/OmniStream
+            - openeuler/OmniOperator
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: ci_successful
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: doc-sig-reviewed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+                pr_change_paths:
+                  - "docs"
+                  - "README.md"
+                  - "README_en.md"
+          merge_block_metrics:
+            label_metric:
+              - label_name: needs-issue
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+        - repos:
+            - src-openeuler/calamares
+            - src-openeuler/oeDeploy
+            - src-openeuler/oeGitExt
+            - src-openeuler/roo-code
+            - src-openeuler/oeDevPlugin
+            - src-openeuler/k3s
+            - src-openeuler/gala-anteater
+            - src-openeuler/kae_driver
+            - src-openeuler/oemaker
+            - src-openeuler/migration-tools
+            - src-openeuler/DevStore
+          merge_method:
+            default_method: merge
+            merge_method: merge
+            merge_label: merge/merge
+            squash_method: squash
+            squash_label: merge/squash
+            rebase_method: rebase
+            rebase_label: merge/rebase
+          merge_allow_metrics:
+            label_metric:
+              - label_name: lgtm
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: approved
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+              - label_name: openeuler-cla/yes
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: doc-sig-reviewed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: true
+                pr_change_paths:
+                  - "docs/zh"
+                  - "docs/en"
+            check_branch_frozen: true
+          merge_block_metrics:
+            label_metric:
+              - label_name: linkpull
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+              - label_name: check_lfs_failed
+                need_num: 1
+                legal_operator: openeuler-ci-bot
+                legal_operate_time: false
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: "openeuler"
+      community_robot_id: "openeuler-ci-robot"
+      comment_failed_list_pr_operation_logs: "### Warning\n The corresponding operation log is missing! please check it."
+      comment_failed_list_pr_labels: "### Warning\n The PR label(s) can not be got!"
+      comment_pr_work_in_process: "### Warning\n The PR label(s) is working in process!"
+      comment_pr_no_found_commits: "### Warning\n The PR commit(s) can not be got!"
+      comment_pr_cannot_merge_reason: "### Merge Verification Failed\n@%s, this pr is not mergeable and the reasons are below:\n\n%s"
+      comment_msg_missing_labels: "##### *Missing Labels*\n- the pull request needs **%s** label(s)."
+      comment_msg_block_labels: "##### *Label BlockList*\n- the **%s** label(s) caused the pull request to be unable to merge."
+      comment_msg_not_enough_label: "##### *Not Enough Labels*\n%s"
+      comment_msg_not_enough_label_template: "- the pull request needs **%d** **%s** labels, but now gets **%d**."
+      comment_non_compliance_label_operations: "##### *Non-Compliance Label Operations*\n%s"
+      comment_non_compliance_label_operation_template: "- the **%s** label modification should be operated by **%s**, but is currently executed by **%s**!"
+      comment_failed_merge_pr: "### PR Merge Failed \n - reason: %s"
+      comment_failed_merge_pr_unknown_reason: "unknown error occurred, please contact community infrastructure team."
+      comment_allow_label_log_non_compliance: ""
+      label_usage_tip_title: "##### *Label Usage Tips*"
+      label_usage_tip_detail: "- **%s**: %s"
+      label_usage_description:
+        - label_name: lgtm
+          description: "The code has been reviewed. This can be accomplished by commenting **`/lgtm`**"
+        - label_name: approved
+          description: "Agree to merge the pull request. This can be accomplished by commenting **`/approve`**"
+        - label_name: needs-issue
+          description: "the pull request must be linked to at least one issue. If an issue has already been linked, but the **needs-issue** label remains, you can remove the label by commenting **`/check-issue`** ."
+        - label_name: openeuler-cla/yes
+          description: "All contributor has signed the CLA."
+        - label_name: openeuler-cla/no
+          description: "At least one contributor has not signed the CLA!"
+        - label_name: ci_successful
+          description: "The code compilation/build/testcase check job is passed."
+        - label_name: doc-sig-reviewed
+          description: "The PR needs doc sig to review, please contact them."
+        - label_name: docs_ci_successful
+          description: "The PR CI of docs check job is passed."
+      action_add_label_gitcode: "add label"
+      action_delete_label_gitcode: "delete label"
+      action_commit_update_gitcode: "commit"
+      action_target_branch_change_gitcode: "target_branch"
+      action_reopen_gitcode: "opened"
+      action_add_label_gitee: "add_label"
+      action_delete_label_gitee: "remove_label"
+      label_unresolved_reviews: "unresolved-reviews"
+      label_no_passed_code_owners: "no-pass-all-review"
+      comment_unresolved_reviews: "### Notice\n The PR has **%d** review comment. **%d** is not resolved. if all are resolved, please comment ***`/check-pr`*** to try merge the PR. :smile: "
+      comment_no_passed_code_owners: "### Notice\n The PR needs **%d** assignees to review. **%d** does not review. if all are passed, please comment ***`/check-pr`*** to try merge the PR. :smile: "
+      comment_not_found_code_owners: "### Notice\n The PR not found codeowners. "
+      comment_can_not_get_frozen_branch_data: "### Notice\n The PR cannot get data"
+      comment_frozen_branch_users: "The target branch of PR has been frozen and it can be merge only by branch owners: @%s"
+      comment_label_expiry: "The %s label is expired. Please retest again."
+      comment_pr_no_found_code_change: "### Warning\n The PR code change can not be got!"
+      branch_frozen_community: openeuler
+      release_manage_org: openeuler
+      release_manage_repo: release-management
+      release_manage_file_path: release-management.yaml
+      release_manage_ref: master
+      comment_failed_list_pr_comments: "### Notice\n The PR cannot get comments!"
+      pr_merge_feedback_comment_prefix: "### Review Code Feedback \n- The label"
+      pr_merge_feedback_comment_regexp: '- The label .* was added to this pull request. It means that \*\*(.*)\*\* reviewed the code changes. :wave: '
+  - name: configmap-universal-welcome
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openeuler
+            - src-openeuler
+            - openeuler-risc-v
+          excluded_repos:
+            - openeuler/openEuler-agreements
+            - openeuler/.atomgit
+            - src-openeuler/.atomgit
+          community_name: openEuler
+          command_link: https://atomgit.com/openeuler/community/blob/master/en/sig-infrastructure/command.md
+          sig_info_link: "[%s](https://atomgit.com/openeuler/community/blob/master/sig/%s/sig-info.yaml)"
+          welcome_message:
+            - "### Welcome To %s Community"
+            - "Hey %s , thanks for your contribution to the community."
+            - "#### Bot Usage Manual"
+            - "I'm the Bot here serving you. You can find the instructions on how to interact with me at **[Here](%s)** . That means you can comment below every pull request or issue to trigger Bot Commands."
+            - "#### Contact Guide"
+            - "If you have any questions, please contact the SIG: **%s** ,"
+            - "and you want to get quick review about your pull request or issue, please contact the owners in first: %s ,"
+            - "and any of the maintainers: %s ,"
+            - "and any of the committers: %s ."
+            - "If you have any questions, please contact any of the repository's maintainers: %s ."
+      user_mark_format: "@"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: openeuler
+      exclude_user:
+        - "ibforu"
+        - openeuler-ci-bot
+  - name: configmap-universal-agreements
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openeuler/openEuler-agreements
+            - openeuler/kernel
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: openeuler
+  - name: configmap-sync-bot
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openeuler/docs
+            - openeuler/yocto-meta-openeuler
+            - openeuler/hikptool
+            - openeuler/umdk
+            - openeuler/ubs-comm
+            - src-openeuler
+          big_repos:
+            - openeuler/kernel
+          legal_operator: openeuler-ci-bot
+          labels_for_merge:
+            - openeuler-cla/yes
+          unable_checking_reviewer_for_pr: true
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      drop_brancher:
+        - openEuler-20.03-LTS
+        - openEuler-20.03-LTS-SP1
+        - openEuler-20.03-LTS-SP2
+        - openEuler-20.03-LTS-SP3
+        - openEuler-20.03-LTS-Next
+        - openEuler-20.09
+        - openEuler-21.03
+        - openEuler-21.09
+        - openEuler-22.09
+        - openEuler-23.03
+        - openEuler-23.09
+        - openEuler-22.03-LTS
+        - openEuler-22.03-LTS-Next
+        - openEuler-22.03-LTS-SP2
+        - openEuler-22.03-LTS-SP3
+        - openEuler-24.09
+        - openEuler-22.03-LTS-SP1
+        - openEuler-24.03-LTS
+        - openEuler-25.03
+        - openEuler-24.03-LTS-SP2
+        - openEuler-25.09
+      community_name: openeuler
+      community_robot_id: openeuler-ci-robot
+      git_user_name: "sync-bot"
+      git_user_email: "infra@openeuler.sh"
+  - name: configmap-repo-watcher
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - openeuler/community
+      repo_owner:
+        - "openeuler"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/exec/sigjob"
+      sig_info_query: "dsfdsafasd5645dd"
+      community_name: "openeuler"
+      fetch_interval: 3
+      member_manage_enable: true
+      member_manage_module:
+        maintainer_name: openEuler-SIG-maintainer
+        committer_name: openEuler-SIG-committer
+        repo_admin_name: Maintainer
+        repo_owner_name: Owner
+        add_member_to_repo:
+          - openeuler
+          - src-openeuler
+        repo_member_from_enterprise:
+          - dolphin-m
+          - zjl_long
+          - ding-jiao
+          - ga_beng_cui
+          - wang-kun-1005
+          - liikii
+          - cherry530
+          - hemiao3787
+          - starlet-dx
+          - wk333
+          - Evawudonger
+          - SPYFAMILY
+          - wenjunryou
+      
+      repo_manage_enable: true
+      repo_setting_module:
+        merge_method: merge
+      
+      sig_info_repo_save_dir: "/opt/app/repo/community"
+      sig_info_folder: "sig"
+      git_platform_domain: "atomgit.com"
+      sig_info_repo_owner: "openeuler"
+      sig_info_repo_name: "community"
+      sig_info_repo_branch: "master"
+      sig_info_repo_clone_depth: "50"
+      startup_to_check_merge_count : "2"
+      org_white_list_to_create:
+        - openeuler
+        - src-openeuler
+      issue_manage_enable: true
+      issue_comment_messages:
+        parse_failed: "### RepoNotice\n Failed to parse issue content: %s. Please fill in the issue according to the template format, then use the /retrigger command to re-trigger the bot."
+        validate_failed: "### Notice\n Issue content validation failed: %s. Please fill in the issue according to the template format, then use the /retrigger command to re-trigger the bot."
+        pr_created: "### Notice\n Repo creation PR has been created: %s. If you need to update the repository content, please use the /retrigger command to re-trigger the bot, and the bot will update the PR content."
+        pr_create_failed: "### Notice\n Failed to create PR: %s"
+        pr_create_failed_admin: "### Notice\n Failed to create PR, please contact the administrator"
+        not_create_repo_issue: "### Notice\n This issue is not a repo creation request, /retrigger ignored"
+      git_user_name: "openeuler-ci-bot"
+      git_user_email: "infra@openeuler.sh"
+      release_mgmt_repo_owner: "openeuler"
+      release_mgmt_repo_name: "release-management"
+      release_mgmt_repo_branch: "master"

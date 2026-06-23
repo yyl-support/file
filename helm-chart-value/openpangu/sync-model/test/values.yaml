@@ -1,0 +1,59 @@
+nameOverride: ""
+fullnameOverride: "sync-model"
+namespace:
+  enabled: false
+  name: openpangu
+serviceAccount:
+  create: false
+  name: openpangu
+suspend: true
+schedule: "0 0 1 * *"
+concurrencyPolicy: Forbid
+restartPolicy: Never
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/sync-model
+  tag: "test-bb771433"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+podAnnotations:
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/role: 'openpangu-sync-model'
+  vault.hashicorp.com/agent-run-as-user: "0"
+  vault.hashicorp.com/agent-run-as-group: "0"
+  vault.hashicorp.com/agent-inject-perms-config.yaml: "0400"
+  vault.hashicorp.com/agent-inject-secret-config.yaml: 'internal/data/infra-test/openpangu-sync-model'
+  vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/infra-test/openpangu-sync-model\" -}}  \n{{ .Data.data.config }}\n{{- end }}\n"
+  vault.hashicorp.com/log-level: "warn"
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 0
+  capabilities:
+    drop:
+      - ALL
+volumeMounts:
+  - name: data-volume
+    mountPath: /app/model
+volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: pvc-sync-model
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+resources:
+  limits:
+    cpu: "2"
+    memory: 8Gi
+pvc:
+  name: pvc-sync-model
+  accessModes: ReadWriteOnce
+  size: 5Ti
+  storageClass: csi-disk

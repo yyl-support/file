@@ -1,0 +1,308 @@
+#chartVersion: 1.0.10
+namespace:
+  enabled: true
+  name: vllm-meeting
+serviceAccount:
+  create: true
+  name: vllm-meeting
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+image:
+  center:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-center
+    tag: "main-a3e452"
+    imagePullPolicy: IfNotPresent
+  platform:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+    tag: "main-f3bd49"
+    imagePullPolicy: IfNotPresent
+  server:
+    repository: ""
+    tag: ""
+    imagePullPolicy: IfNotPresent
+initContainer:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler
+    tag: 22.03-lts-sp3
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: vllm-meeting
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/vllm/meeting
+  vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/vllm/meeting
+  vault.hashicorp.com/agent-inject-secret-server.key: internal/data/vllm/meeting
+  vault.hashicorp.com/agent-inject-template-ca.pem: |
+    {{- with secret "internal/data/vllm/meeting" -}}
+    {{ .Data.data.MysqlCA }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/vllm/meeting" -}}
+    {{ .Data.data.servercrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/vllm/meeting" -}}
+    {{ .Data.data.serverkey }}
+    {{- end }}
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+ingress:
+  enabled: false
+  name: meeting-ingress
+  host: ""
+  serviceName: meeting-center
+  serviceNumber: 8080
+# 后端使用ingress路径转发时启用ingressNew
+ingressNew:
+  enabled: false
+  # name: meeting-center
+  # annotations:
+  #   nginx.ingress.kubernetes.io/rewrite-target: /api/v1/meeting$1
+  # host: ""
+  # path: /meeting(.*)
+  # pathType: Prefix
+  # secretName: domain-tls
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: ""
+  # vs:
+  #   http:
+  #     - match:
+  #       - uri:
+  #           prefix: /api-platform/
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-platform.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  #     - match:
+  #       - uri:
+  #           prefix: /
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-center.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  # dr:
+  # - name: meeting-center
+  #   serviceName: meeting-center
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # - name: meeting-platform
+  #   serviceName: meeting-platform
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # pa:
+  # - name: meeting-center
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-center
+  # - name: meeting-platform
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-platform
+meetingCenter:
+  enabled: false
+  # name: meeting-center
+  # replicas: 1
+  # podLabels:
+  #   app: meeting-center
+  # resources:
+  #   limits:
+  #     cpu: 500m
+  #     memory: 500Mi
+  #   requests:
+  #     cpu: 500m
+  #     memory: 500Mi
+  # service:
+  #   type: ClusterIP
+  #   annotations: {}
+  #   ports:
+  #     - name: http-port
+  #       port: 8080
+  #       protocol: TCP
+  #       targetPort: 8080
+  # podAnnotations:
+  #   vault.hashicorp.com/agent-init-first: "true"
+  #   vault.hashicorp.com/agent-inject-perms-config: "0400"
+  #   vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-config: internal/data/vllm/meeting
+  #   vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/vllm/meeting
+  #   vault.hashicorp.com/agent-inject-template-config: |
+  #     {{- with secret "internal/data/vllm/meeting" -}}
+  #     {{ .Data.data.centerConfig }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+  #     {{- with secret "internal/data/vllm/meeting" -}}
+  #     {{ .Data.data.centerSecrets }}
+  #     {{- end }}
+meetingPlatform:
+  enabled: false
+  # name: meeting-platform
+  # replicas: 1
+  # podLabels:
+  #   app: meeting-platform
+  # resources:
+  #   limits:
+  #     cpu: 500m
+  #     memory: 500Mi
+  #   requests:
+  #     cpu: 500m
+  #     memory: 500Mi
+  # service:
+  #   ports:
+  #     - name: http-port
+  #       port: 8080
+  #       protocol: TCP
+  #       targetPort: 8080
+  #   type: ClusterIP
+  # podAnnotations:
+  #   vault.hashicorp.com/agent-init-first: "true"
+  #   vault.hashicorp.com/agent-inject-perms-config: "0400"
+  #   vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+  #   vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-config: internal/data/vllm/meeting
+  #   vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/vllm/meeting
+  #   vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/vllm/meeting
+  #   vault.hashicorp.com/agent-inject-template-config: |
+  #     {{- with secret "internal/data/vllm/meeting" -}}
+  #     {{ .Data.data.platformConfig }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-template-kafka.crt: |
+  #     {{- with secret "internal/data/vllm/meeting" -}}
+  #     {{ .Data.data.platformKafkacrt }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+  #     {{- with secret "internal/data/vllm/meeting" -}}
+  #     {{ .Data.data.platformSecrets }}
+  #     {{- end }}
+meetingServer:
+  enabled: false
+  # name: meeting-server
+  # replicas: 1
+  # podLabels:
+  #   app: meeting-server
+  # resources:
+  #   limits:
+  #     cpu: 500m
+  #     memory: 500Mi
+  #   requests:
+  #     cpu: 500m
+  #     memory: 500Mi
+  # service:
+  #   ports:
+  #     - name: http-port
+  #       port: 8080
+  #       protocol: TCP
+  #       targetPort: 8080
+  #   type: ClusterIP
+  # podAnnotations:
+  #   vault.hashicorp.com/agent-inject-perms-config: "0400"
+  #   vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-config: internal/data/vllm/meeting
+  #   vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/vllm/meeting
+  #   vault.hashicorp.com/agent-inject-template-config: |
+  #     {{- with secret "internal/data/vllm/meeting" -}}
+  #     {{ .Data.data.serverConfig }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+  #     {{- with secret "internal/data/vllm/meeting" -}}
+  #     {{ .Data.data.serverSecrets }}
+  #     {{- end }}
+secret:
+  enabled: false
+  # name: domain-tls
+  # specKeysMap:
+  #   ca.crt:
+  #     path: secrets/data/vllm/meeting
+  #     key: tls.cert
+  #   tls.crt:
+  #     path: secrets/data/vllm/meeting
+  #     key: tls.cert
+  #   tls.key:
+  #     path: secrets/data/vllm/meeting
+  #     key: tls.key
+cronjobCommon:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsUser: 1000
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/config.yaml
+    - name: VAULT_PATH
+      value: /vault/secrets/secrets.yaml
+    - name: MYSQL_TLS_PEM_PATH
+      value: /vault/secrets/ca.pem
+    - name: TLS_CRT_PATH
+      value: /vault/secrets/server.crt
+    - name: TLS_KEY_PATH
+      value: /vault/secrets/server.key
+cronjobs:
+  - enabled: true
+    name: scan-upload-meetings
+    labels:
+      app: scan-upload-meetings
+    concurrencyPolicy: Forbid
+    schedule: "0 0 * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config.yaml: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config.yaml: internal/data/vllm/meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/vllm/meeting
+      vault.hashicorp.com/agent-inject-template-config.yaml: |
+        {{- with secret "internal/data/vllm/meeting" -}}
+        {{ .Data.data.scanConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/vllm/meeting" -}}
+        {{ .Data.data.scanSecrets }}
+        {{- end }}
+    command:
+      - /bin/bash
+      - -c
+      - |
+        python manage.py scan_upload_meetings
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+      tag: "main-41e89d"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "12"
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 500Mi

@@ -1,0 +1,727 @@
+# chartVersion: v2.0.5
+namespace:
+  enabled: false
+  name: ascend-robot
+serviceAccount:
+  create: true
+  name: ascend-robot
+autoscale:
+  enabled: false
+  # start: 30 8 * * *
+  # end: 55 23 * * *
+podAnnotations:
+  # traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0  # 开启istio时添加该行
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/role: ascend-robot
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+istio:
+  enabled: false
+  nslabel: {}
+ingress:
+  host: "hook-delivery-ascend.osinfra.cn"
+  backends:
+    - name: robot-universal-hook-delivery
+      port: 8888
+      path: /gitcode-hook
+      pathType: Prefix
+    - name: robot-issue-manage
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /$2
+      port: 8888
+      path: /issue-manage(/|$)(.*)
+      pathType: ImplementationSpecific
+    - name: robot-universal-comment
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /$2
+      port: 8888
+      path: /comment(/|$)(.*)
+      pathType: ImplementationSpecific
+secret:
+  enabled: true
+  name: "osinfra-cn-tls"
+  path: "secrets/data/infra-common/osinfra-cn"
+  crtKey: "server.crt"
+  keyKey: "server.key"
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /vault/secrets; chown -R 1000:1000 /vault/secrets; chmod g-s /vault/secrets; ls -ld /vault/secrets
+    image: 'swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/openeuler:22.03-lts-sp3'
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+readinessProbe: # 默认值
+  failureThreshold: 3
+  httpGet:
+    path: /
+    port: 8888
+    scheme: HTTP
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+livenessProbe: # 默认值
+  failureThreshold: 3
+  httpGet:
+    path: /
+    port: 8888
+    scheme: HTTP
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+deployments:
+  - name: robot-universal-hook-delivery
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-hook-delivery
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-gitcode-secret: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-secret-gitcode-secret: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-config: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.deliveryConfig }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-template-gitcode-secret: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.deliverySecrets }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --hmac-secret-file=/vault/secrets/gitcode-secret
+      - --config-file=/vault/secrets/config
+      - --handle-path=gitcode-hook
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-universal-hook-delivery
+      tag: "main-d443fa"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts: []
+    volumes: []
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-access
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-access
+    podAnnotations: ''
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-universal-access
+      tag: "main-d5bc7b"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-access
+    vaultVolume: ''
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-assign
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-assign
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-universal-assign
+      tag: "main-39af72"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-assign
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-cla
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-cla
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceway/robot-universal-cla
+      tag: "v1.0.20260610110812"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-cla
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-hook-dispatcher
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-hook-dispatcher
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-config: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.dispatcherConfig }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/vault/secrets/config
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-hook-dispatcher
+      tag: "main-f97591"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts: []
+    # - mountPath: /app/conf/
+
+    #   name: app-config
+
+    #   readOnly: true
+    volumes: []
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-review
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-review
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-perms-db-config.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-db-config.yaml: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-db-config.yaml: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.dbConfig }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-universal-review
+      tag: "main-87e24b"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-review
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-label
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-label
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceway/robot-universal-label
+      tag: "v1.0.20260604143352"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-label
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-lifecycle
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-lifecycle
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-universal-lifecycle
+      tag: "main-04d4f0"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-lifecycle
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-lifecycle-test
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-lifecycle-test
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceway/robot-universal-lifecycle
+      tag: "develop-lts-80416e"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-lifecycle-test
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-repo-watcher
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-repo-watcher
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-universal-repo-watcher
+      tag: "main-0d9d66"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-repo-watcher
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-keeper-approve
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-keeper-approve
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=gitcode-hook
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-gitee-keeper-approve
+      tag: "main-0d302a"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-keeper-approve
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-associate
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-associate
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --token-path=/vault/secrets/token
+      - --handle-path=gitcode-hook
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-universal-associate
+      tag: "main-6274e1"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-associate
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-issue-manage
+    replicas: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-issue-manage
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config.yaml: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-config.yaml: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.issueManage }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/vault/secrets/config.yaml
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-issue-manage
+      tag: "issue-347-194b31"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts: []
+    volumes: []
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: robot-universal-comment
+    replicas: 2
+    strategy:
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 0
+      type: RollingUpdate
+    labels:
+      app: robot-universal-comment
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.token }}\n{{- end }}\n"
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --token-path=/vault/secrets/token
+    image:
+      repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/robot-universal-comment
+      tag: "main-24eb0a"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-comment
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+  - name: sync-bot
+    replicas: 1
+    strategy:
+      type: Recreate
+    labels:
+      app: sync-bot
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-token: "0400"
+      vault.hashicorp.com/agent-inject-secret-token: internal/data/ascend/robot
+      vault.hashicorp.com/agent-inject-template-token: "{{- with secret \"internal/data/ascend/robot\" -}}  \n{{ .Data.data.syncToken }}\n{{- end }}\n"
+    env:
+      - name: TZ
+        value: Asia/Shanghai
+    args:
+      - --port=8888
+      - --config-file=/app/conf/config.yaml
+      - --handle-path=hooks
+      - --token-path=/vault/secrets/token
+    image:
+      repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceway/openeuler/sync-bot
+      tag: "v1.0.20260615102820"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "2"
+        memory: 2Gi
+      requests:
+        cpu: "2"
+        memory: 2Gi
+    volumeMounts:
+      - mountPath: /app/conf/
+        name: app-config
+        readOnly: true
+      - mountPath: /repos
+        name: sync-bot-repo-volume
+    volumes:
+      - name: app-config
+        configMap:
+          name: configmap-sync-bot
+      - name: sync-bot-repo-volume
+        persistentVolumeClaim:
+          claimName: pvc-sync-bot
+    vaultVolume: create
+    service:
+      portName: http-port
+      port: 8888
+      targetPort: 8888
+      type: ClusterIP
+    pvc:
+      name: pvc-sync-bot
+      accessModes: ReadWriteOnce
+      storage: 30Gi
+      scName: csi-disk

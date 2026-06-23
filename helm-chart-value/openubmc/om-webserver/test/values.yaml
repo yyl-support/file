@@ -1,0 +1,112 @@
+# chart版本：1.0.4
+namespace: openubmc-omwebserver
+serviceAccount:
+  create: true
+  name: openubmc-omwebserver
+imagePullSecret: huawei-swr-image-pull-secret
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+deployments:
+  - name: openubmc-omwebserver
+    replicaCount: 1
+    # labels:
+    #   virtual-kubelet.io/burst-to-cci: enforce
+    podLabels:
+      app: openubmc-omwebserver
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podAnnotations:
+      #      traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0
+      vault.hashicorp.com/agent-inject: "true"
+      vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+      vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+      vault.hashicorp.com/agent-inject-secret-application.properties: internal/data/infra-test/openubmc-omwebserver
+      vault.hashicorp.com/agent-inject-secret-redis.crt: internal/data/infra-test/openubmc-omwebserver
+      vault.hashicorp.com/agent-inject-secret-tls.pfx: internal/data/infra-test/openubmc-omwebserver
+      vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/infra-test/openubmc-omwebserver\" -}}  \n{{ .Data.data.application }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/infra-test/openubmc-omwebserver\" -}}  \n{{ .Data.data.redis }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/infra-test/openubmc-omwebserver\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-pre-populate-only: "true"
+      vault.hashicorp.com/agent-run-as-group: "1001"
+      vault.hashicorp.com/agent-run-as-user: "1001"
+      vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+      vault.hashicorp.com/role: openubmc-omwebserver
+      vault.hashicorp.com/secret-volume-path: /var/lib/om-webserver/
+      vault.hashicorp.com/tls-skip-verify: "true"
+      vault.hashicorp.com/log-level: "warn"
+    applicationPath: /var/lib/om-webserver/application.properties
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/om/om-webserver-test
+      tag: "feature-add-delete-email-token-275ff0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 500Mi
+    heathCheckPath:
+      path: /oneid/checkOmService
+      port: 8080
+      scheme: HTTPS
+    containerPort: 8080
+ingress:
+  - name: openubmc-omwebserver
+    annotations:
+      nginx.ingress.kubernetes.io/limit-rps: "400"
+      nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+      nginx.ingress.kubernetes.io/limit-connections: "400"
+      nginx.ingress.kubernetes.io/proxy-body-size: 5m
+    host: omapi.openubmc.test.osinfra.cn
+    serviceName: om-webserver-service
+    servicePort: 8080
+    path: /
+    pathType: Prefix
+    secretName: domain-tls
+services:
+  - name: om-webserver-service
+    type: ClusterIP
+    port: 8080
+    portName: tls-1
+    targetPort: 8080
+    podLabels:
+      app: openubmc-omwebserver
+secrets:
+  - name: domain-tls
+    path: secrets/data/infra-test/domain-tls
+    certKey: tls.cert
+    keyKey: tls.key
+istio:
+  enabled: false
+  nslabel: {}
+  #    istio-injection: enabled
+  gateway: istio-system/istio-gateway-https
+  vs:
+    name: openubmc-om-webserver-virtualservice
+    host: omapi-revision.test.osinfra.cn
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host: om-webserver-openubmc-service.om-webserver-test.svc.cluster.local
+              port:
+                number: 8080
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE
+  dr:
+    - name: destinationrule-om-webserver-openubmc
+      serviceName: om-webserver-openubmc-service
+      port: 8080
+  pa:
+    - name: peerauthentication-om-webserver-openubmc-disable-mtls
+      podLabels:
+        app: om-webserver-openubmc
+        common-app: om-webserver

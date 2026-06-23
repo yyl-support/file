@@ -1,0 +1,17 @@
+{{- if .Values.controlAdmin.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-service" .Values.controlAdmin.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations: {{ include "signatrust.annotations" . | indent 2 }}
+spec:
+  type: {{ .Values.controlAdmin.service.type }}
+  selector:
+    component: {{ .Values.controlAdmin.name }}
+  ports:
+    - name: {{ .Values.controlAdmin.service.name }}
+      protocol: {{ .Values.controlAdmin.service.protocol }}
+      port: {{ .Values.controlAdmin.service.port }}
+      targetPort: {{ .Values.controlAdmin.service.targetPort }}
+{{- end }}

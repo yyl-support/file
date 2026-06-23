@@ -1,0 +1,5 @@
+apiVersion: v2
+name: ascend-runner-onboarding
+description: Helm chart for ascend-runner-onboarding service
+version: 1.0.0
+appVersion: 0.1.0

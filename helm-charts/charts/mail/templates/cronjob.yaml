@@ -1,0 +1,35 @@
+{{- with .Values.cronjob }}
+{{- if .enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .name }}
+  {{- with .labels }}
+  labels:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  schedule: {{ .schedule }}
+  concurrencyPolicy: {{ .concurrencyPolicy }}
+  startingDeadlineSeconds: 180
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: {{ .restartPolicy }}
+          containers:
+          - name: {{ .name }}
+            image: "{{ .image.repository }}:{{ .image.tag }}"
+            resources:
+              {{- toYaml .resources | nindent 14 }}
+            env:
+            {{- range .env.secretRef.keys }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .key }}
+                  name: {{ $.Values.mailweb.env.secretRef.name }}
+            {{- end }}
+{{- end }}
+{{- end }}

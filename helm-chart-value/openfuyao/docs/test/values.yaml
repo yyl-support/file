@@ -1,0 +1,337 @@
+# chartVersion: 1.0.3
+namespace: openfuyao-docs
+imagePullSecret: huawei-swr-image-pull-secret
+serviceAccount:
+  create: true
+  name: openfuyao-docs
+  automount: false
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/infra-test/openfuyao-domain-tls"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/infra-test/openfuyao-domain-tls" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/infra-test/openfuyao-domain-tls"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/infra-test/openfuyao-domain-tls" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/infra-test/openfuyao-domain-tls"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/infra-test/openfuyao-domain-tls" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/infra-test/openfuyao-domain-tls"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/infra-test/openfuyao-domain-tls" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: openfuyao-docs
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject-command-abc.txt: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-docs
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+volumeMounts: []
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+# 不需要时置空
+# nodeSelector: {}
+nodeSelector: {}
+# 不需要时置空
+# autoscale: {}
+autoscale:
+  metadata:
+    timezone: Asia/Shanghai
+    start: 30 8 * * *
+    end: 55 23 * * *
+    desiredReplicas: "1"
+# 不需要时置空
+# tolerations: {}
+tolerations:
+servers:
+  # common的配置必须在第一个
+  - name: openfuyao-docs-common
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: common
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openfuyao/docs-website-test
+      tag: "common-v1.0.20260618100639"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openfuyao.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openfuyao-docs-master
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: master
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openfuyao/docs-website-test
+      tag: "master-v1.0.20260331151734"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openfuyao.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openfuyao-docs-openfuyao-v26-03
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openfuyao-v26-03
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openfuyao/docs-website-test
+      tag: "openFuyao-v26-03-v1.0.20260617180318"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openfuyao.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openfuyao-docs-openfuyao-v25-12
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openfuyao-v25-12
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openfuyao/docs-website-test
+      tag: "openFuyao-v25-12-v1.0.20260618094047"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openfuyao.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openfuyao-docs-openfuyao-v25-09
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openfuyao-v25-09
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openfuyao/docs-website-test
+      tag: "openFuyao-v25-09-v1.0.20260618093348"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openfuyao.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openfuyao-docs-openfuyao-v25-06
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openfuyao-v25-06
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openfuyao/docs-website-test
+      tag: "openFuyao-v25-06-v1.0.20260618094647"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openfuyao.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+  - name: openfuyao-docs-openfuyao-v25-03
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      app: openfuyao-v25-03
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openfuyao/docs-website-test
+      tag: "openFuyao-v25-03-v1.0.20260618095106"
+      pullPolicy: IfNotPresent
+    env:
+      - name: DET_URL
+        value: https://docs.openfuyao.test.osinfra.cn/zh/
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+    probeHttpGet:
+      path: /error.html
+      port: 8080
+      scheme: HTTPS
+    service:
+      portName: tls-1
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+ingress:
+  enabled: true
+  name: openfuyao-docs-ingress
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-body-size: 4m
+  host: 'docs.openfuyao.test.osinfra.cn'
+secret:
+  enable: true
+  name: openfuyao-domain-tls
+  path: secrets/data/infra-test/openfuyao-domain-tls
+  crtKey: tls.cert
+  crtKey: tls.cert
+  keyKey: tls.key
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: istio-system/istio-gateway-https
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE
+  vs:
+    name:
+    host:
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host:
+              port:
+                number: 8080
+  dr:
+    - name:
+      serviceName:
+      port: 8080
+  pa:
+    - name:
+      podLabels:
+        app: docs-common

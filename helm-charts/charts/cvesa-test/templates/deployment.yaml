@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cvesa.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "cvesa.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cvesa.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cvesa.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+           {{- range .Values.env.secrets }}
+            - name: {{.name}}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.nameOverride }}-secrets
+                  key: {{.key}}
+            {{- end }}
+            {{- range .Values.env.const}}
+            - name: {{.name}}
+              value: {{.value}}
+            {{- end }}
+          resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+
+{{- if .Values.cronjob }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cvesa.fullname" . }}-cronjob
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "cvesa.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCountCronjob }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cvesa.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cvesa.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["--is_cronjob=true"]
+          env:
+           {{- range .Values.env.secrets }}
+            - name: {{.name}}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.nameOverride }}-secrets
+                  key: {{.key}}
+            {{- end }}
+            {{- range .Values.env.const}}
+            - name: {{.name}}
+              value: {{.value}}
+            {{- end }}
+          resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}

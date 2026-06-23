@@ -1,0 +1,51 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  name: multi-community-hotopic-data-clean-ingress
+  namespace: {{ .Values.namespace }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.host }}
+    http:
+      paths:
+      {{- range .Values.hotopics }}
+      - backend:
+          service:
+            name: {{ .community }}-hotopic-data-clean-service
+            port:
+              number: 8080
+        path: /{{ .community }}(/|$)(.*)
+        pathType: ImplementationSpecific
+      {{- end }}
+  tls:
+  - hosts:
+    - {{ .Values.host }}
+    secretName: tls-secrets
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: community-hotopic-server-ingress
+  namespace: {{ .Values.namespace }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: hotopic-server-service
+            port:
+              number: 8080
+        path: /internal
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - {{ .Values.host }}
+    secretName: tls-secrets

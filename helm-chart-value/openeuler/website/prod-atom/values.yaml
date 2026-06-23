@@ -1,0 +1,178 @@
+# chartVersion: v1.0.5
+global:
+  appName: openatom-website-v2-frontend-2025-new
+namespace:
+  enabled: false
+  name: website-v2
+replicaCount: 6
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 3
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler/openeuler-website-frontend-openatom
+  tag: "master-v1.0.20260622204723"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+podLabels:
+  app: openeuler-website-v2
+  component: website-openatom-2025
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/openeuler/website-tls"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/openeuler/website-tls" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/openeuler/website-tls"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/openeuler/website-tls" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/openeuler/website-tls"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/openeuler/website-tls" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/openeuler/website-tls"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/openeuler/website-tls" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: openeuler-website
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/log-level: "warn"
+env:
+  - name: DET_URL
+    value: https://www.openeuler.org/zh/
+serviceAccount:
+  create: false
+  name: openeuler-website
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: 2
+    memory: 2Gi
+  limits:
+    cpu: 2
+    memory: 2Gi
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  successThreshold: 1
+  httpGet:
+    scheme: HTTPS
+    path: /zh/
+    port: 8080
+    httpHeaders:
+      - name: Host
+        value: "www.openeuler.org"
+  timeoutSeconds: 5
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+  httpGet:
+    scheme: HTTPS
+    path: /zh/
+    port: 8080
+    httpHeaders:
+      - name: Host
+        value: "www.openeuler.org"
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/cors-allow-origin: '*'
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      set $redirect_domain https://www.openeuler.org;
+      location = / {
+        if ($redirect_cn = 0) {
+            return 302 $redirect_domain/en/;
+        }
+        if ($redirect_cn = 1) {
+            return 302 /zh/;
+        }
+      }
+      if ($redirect_cn = 0) {
+          return 302 $redirect_domain$request_uri;
+      }
+      rewrite ^/zh/other/cla https://clasign.osinfra.cn/sign/Z2l0ZWUlMkZvcGVuZXVsZXI= redirect;
+      rewrite ^/en/other/cla https://clasign.osinfra.cn/sign/Z2l0ZWUlMkZvcGVuZXVsZXI= redirect;
+      rewrite ^/zh/docs(/|$)(.*) https://docs.openeuler.openatom.cn/zh/docs/$2 redirect;
+      rewrite ^/en/docs(/|$)(.*) https://docs.openeuler.openatom.cn/en/docs/$2 redirect;
+      rewrite ^/ru(/|$)(.*)                                     https://www.openeuler.openatom.cn/en/$2 redirect;
+      rewrite ^/zh/other/migration(/|$)(.*)                     /zh/migration/ redirect;
+      rewrite ^/zh/security/approve/                            /zh/approve/ redirect;
+      rewrite ^/zh/security/compatibility/                      /zh/compatibility/ redirect;
+      rewrite ^/zh/sig/sig-list/sig-detail.html?(.*)            /zh/sig/sig-detail/?$1 redirect;
+      rewrite ^/en/sig/sig-list/sig-detail.html?(.*)            /en/sig/sig-detail/?$1 redirect;
+      rewrite ^/zh/migration/guidance/(1-summary|2-attention|3-process|4-assessment|5-adaptive|6-stock-migration|7-increased-migration|8-updated|9-followup)  /zh/migration/guidance/ permanent;
+      rewrite ^/zh/migration/implement-guide/                   /zh/migration/contact/ permanent;
+      rewrite ^/zh/interaction/salon-list/$                     /zh/interaction/event-list/ permanent;
+      rewrite ^/zh/interaction/salon-list/detail/(.*)           /zh/interaction/event-list/review/detail/$1 permanent;
+      rewrite ^/zh/security/safety-bulletin(/$|$)                   /zh/security/security-bulletins/         permanent;
+      rewrite ^/zh/security/safety-bulletin/detail(/$|$)             /zh/security/security-bulletins/detail/  permanent;
+      rewrite ^/zh/monthly-summary(/$|$)                        /zh/monthly-bulletins/        permanent;
+      rewrite ^/zh/download/get-os/                             /zh/download/#get-openeuler permanent;
+      rewrite ^/en/download/get-os/                             /en/download/#get-openeuler permanent;
+  host: www.openeuler.openatom.cn
+# Service配置
+service:
+  portName: tls-1
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: openeuler-openatom-cn-tls
+  path: secrets/data/openeuler/openeuler-openatom-cn-tls
+  ca_crt_key: server.crt
+  tls_crt_key: server.crt
+  tls_key_key: server.key
+volumeMounts:
+  - mountPath: /usr/share/nginx/www/tencent18356898507357621707.txt
+    name: openeuler-website-secret
+    subPath: tencent18356898507357621707_txt
+  - mountPath: /usr/share/nginx/www/zh/tencent18356898507357621707.txt
+    name: openeuler-website-secret
+    subPath: tencent18356898507357621707_txt
+volumes:
+  - name: openeuler-website-secret
+    secret:
+      secretName: openeuler-website
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: ""
+  virtualService:
+    host: ""
+    http: []
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE

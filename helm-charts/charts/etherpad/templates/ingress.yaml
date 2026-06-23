@@ -1,0 +1,33 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "etherpad.fullname" . }}-ingress
+  labels:
+  {{- include "etherpad.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                port:
+                  number: {{ .portNumber}}
+          {{- end }}
+    {{- end }}
+                name: {{ include "etherpad.fullname" . }}-service
+  tls:
+    {{- range .Values.ingress.tlsHosts }}
+    - hosts:
+      - {{ .host | quote}}
+      secretName: {{ .secretsName | quote }}
+    {{- end }}
+{{- end }}

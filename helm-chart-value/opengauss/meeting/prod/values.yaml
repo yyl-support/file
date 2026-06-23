@@ -1,0 +1,364 @@
+#chartVersion: 1.0.9
+namespace:
+  enabled: true
+  name: meetingserver
+
+serviceAccount:
+  create: true
+  name: opengauss-meeting
+
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+
+image:
+  center:
+    name: meeting-center
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-center
+    tag: master-5725b4
+    imagePullPolicy: IfNotPresent
+  platform:
+    name: meeting-platform
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+    tag: main-28a899
+    imagePullPolicy: IfNotPresent
+
+initContainer:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler
+    tag: 22.03-lts-sp3
+
+podAnnotations:
+  traffic.sidecar.istio.io/excludeOutboundIPRanges: 0.0.0.0/0  # 启用istio时添加这一行
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: opengauss-meeting
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/opengauss/opengauss-meeting
+  vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/opengauss/opengauss-meeting
+  vault.hashicorp.com/agent-inject-secret-server.key: internal/data/opengauss/opengauss-meeting
+  vault.hashicorp.com/agent-inject-template-ca.pem: |
+    {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+    {{ .Data.data.MysqlCA }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+    {{ .Data.data.servercrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+    {{ .Data.data.serverkey }}
+    {{- end }}
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+
+ingress:
+  enabled: false
+  host: meetings.opengauss.org
+  port:
+    number: 80
+# 后端使用ingress路径转发时启用ingressNew
+ingressNew:
+  enabled: false
+
+istio:
+  enabled: true
+  nslabel:
+    istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: meetings.opengauss.org
+  vs:
+    http:
+      - match:
+        - uri:
+            prefix: /api-platform/
+        rewrite:
+          uri: /
+        route:
+        - destination:
+            host: meeting-platform.meetingserver.svc.cluster.local
+            port:
+              number: 80
+      - match:
+        - uri:
+            prefix: /
+        rewrite:
+          uri: /
+        route:
+        - destination:
+            host: meeting-center.meetingserver.svc.cluster.local
+            port:
+              number: 80
+  dr:
+  - name: meeting-center
+    serviceName: meeting-center
+    portNumber: 80
+    tlsMode: SIMPLE
+  - name: meeting-platform
+    serviceName: meeting-platform
+    portNumber: 80
+    tlsMode: SIMPLE
+  pa:
+  - name: meeting-center
+    mtlsMode: DISABLE
+    label: 
+      app: meeting-center
+  - name: meeting-platform
+    mtlsMode: DISABLE
+    label: 
+      app: meeting-platform
+
+
+meetingCenter:
+  enabled: true
+  name: meeting-center
+  replicas: 2
+  podLabels:
+    app: meeting-center
+  resources:
+    limits:
+      cpu: "2"
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  service:
+    type: ClusterIP
+    annotations: {}
+    ports:
+      - name: tls-1
+        port: 80
+        protocol: TCP
+        targetPort: 8080
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/opengauss/opengauss-meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/opengauss/opengauss-meeting
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+      {{ .Data.data.centerConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+      {{ .Data.data.centerSecrets }}
+      {{- end }}
+
+meetingPlatform:
+  enabled: true
+  name: meeting-platform
+  replicas: 2
+  podLabels:
+    app: meeting-platform
+  resources:
+    limits:
+      cpu: "2"
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  service:
+    ports:
+      - name: tls-1
+        port: 80
+        protocol: TCP
+        targetPort: 8080
+    type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/opengauss/opengauss-meeting
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/opengauss/opengauss-meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/opengauss/opengauss-meeting
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+      {{ .Data.data.platformConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |
+      {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+      {{ .Data.data.kafkacrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+      {{ .Data.data.platformSecrets }}
+      {{- end }}
+
+secret:
+  enable: false
+  # name: meeting-server-tls
+  # specKeysMap:
+  #   ca.crt:
+  #     path: secrets/data/opengauss/opengauss-org-tls
+  #     key: server.crt
+  #   tls.crt:
+  #     path: secrets/data/opengauss/opengauss-org-tls
+  #     key: server.crt
+  #   tls.key:
+  #     path: secrets/data/opengauss/opengauss-org-tls
+  #     key: server.key
+
+cronjobCommon:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsUser: 1000
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/config
+    - name: VAULT_PATH
+      value: /vault/secrets/secrets.yaml
+    - name: MYSQL_TLS_PEM_PATH
+      value: /vault/secrets/ca.pem
+    - name: TLS_CRT_PATH
+      value: /vault/secrets/server.crt
+    - name: TLS_KEY_PATH
+      value: /vault/secrets/server.key
+cronjobs:
+  - enabled: true
+    name: handle-meeting
+    labels:
+      app: handle-meeting
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/opengauss/opengauss-meeting
+      vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/opengauss/opengauss-meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/opengauss/opengauss-meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-kafka.crt: |
+        {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+        {{ .Data.data.kafkacrt }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/bash
+      - -c
+      - |
+        python3 manage.py handle_meeting
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+      tag: "main-28a899"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: true
+    name: handle-recordings
+    labels:
+      app: handle-recording
+    concurrencyPolicy: Replace
+    schedule: "30 19 * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/opengauss/opengauss-meeting
+      vault.hashicorp.com/agent-inject-secret-kafka.crt: internal/data/opengauss/opengauss-meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/opengauss/opengauss-meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-kafka.crt: |
+        {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+        {{ .Data.data.kafkacrt }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/bash
+      - -c
+      - |
+        python manage.py handle_recordings
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-platform
+      tag: "main-28a899"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+  - enabled: true
+    name: updating-sigs
+    labels:
+      app: updating-sigs
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/opengauss/opengauss-meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/opengauss/opengauss-meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+        {{ .Data.data.centerConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/opengauss/opengauss-meeting" -}}
+        {{ .Data.data.centerSecrets }}
+        {{- end }}
+    command:
+      - /bin/bash
+      - -c
+      - |
+        python manage.py sync_sig
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/meeting/meeting-center
+      tag: "master-5725b4"
+      imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi

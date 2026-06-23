@@ -1,0 +1,338 @@
+#chartVersion: 1.0.15
+namespace:
+  enabled: false
+  name: hpckit-meeting
+serviceAccount:
+  create: true
+  name: hpckit-meeting
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 1
+  type: RollingUpdate
+autoscale:
+  enabled: false
+  start: 30 8 * * *
+  end: 55 23 * * *
+image:
+  center:
+    repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/meeting/meeting-center
+    tag: "bd6e0e13-1"
+    imagePullPolicy: IfNotPresent
+  platform:
+    repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/meeting/meeting-platform
+    tag: "ad6bc9c5-1"
+    imagePullPolicy: IfNotPresent
+imagePullSecrets:
+- name: huawei-swr-instance-image-pull-secret
+initContainer:
+  image:
+    repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/openeuler
+    tag: 22.03-lts-sp3
+podAnnotations:
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: hpckit-meeting
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-secret-ca.pem: internal/data/hpckit/meeting
+  vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/hpckit/domain-tls
+  vault.hashicorp.com/agent-inject-secret-server.key: internal/data/hpckit/domain-tls
+  vault.hashicorp.com/agent-inject-template-ca.pem: |
+    {{- with secret "internal/data/hpckit/meeting" -}}
+    {{ .Data.data.MysqlCA }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/hpckit/domain-tls" -}}
+    {{ .Data.data.serverCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/hpckit/domain-tls" -}}
+    {{ .Data.data.serverKey }}
+    {{- end }}
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+ingress:
+  enabled: false
+  name: hpckit-meeting-ingress
+  host: "meeting.hpckit.osinfra.cn"
+  serviceName: meeting-center
+  serviceNumber: 8080
+# 后端使用ingress路径转发时启用ingressNew
+ingressNew:
+  enabled: true
+  name: meeting-center
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /api/v1/meeting$1
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+  host: "meeting.hpckit.osinfra.cn"
+  path: /api-meeting(.*)
+  pathType: Prefix
+  secretName: meeting-server-tls
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: ""
+  # vs:
+  #   http:
+  #     - match:
+  #       - uri:
+  #           prefix: /api-platform/
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-platform.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  #     - match:
+  #       - uri:
+  #           prefix: /
+  #       rewrite:
+  #         uri: /
+  #       route:
+  #       - destination:
+  #           host: meeting-center.meetingserver.svc.cluster.local
+  #           port:
+  #             number: 8080
+  # dr:
+  # - name: meeting-center
+  #   serviceName: meeting-center
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # - name: meeting-platform
+  #   serviceName: meeting-platform
+  #   portNumber: 8080
+  #   tlsMode: SIMPLE
+  # pa:
+  # - name: meeting-center
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-center
+  # - name: meeting-platform
+  #   mtlsMode: DISABLE
+  #   label: 
+  #     app: meeting-platform
+meetingCenter:
+  enabled: true
+  name: meeting-center
+  replicas: 2
+  # deploymentLabels:
+  #   virtual-kubelet.io/burst-to-cci: enforce
+  podLabels:
+    app: meeting-center
+  resources:
+    requests:
+      cpu: "50m"
+      memory: 500Mi
+  service:
+    type: ClusterIP
+    annotations: {}
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/hpckit/meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/hpckit/meeting
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/hpckit/meeting" -}}
+      {{ .Data.data.centerConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/hpckit/meeting" -}}
+      {{ .Data.data.centerSecrets }}
+      {{- end }}
+meetingPlatform:
+  enabled: true
+  name: meeting-platform
+  replicas: 2
+  # deploymentLabels:
+  #   virtual-kubelet.io/burst-to-cci: enforce
+  podLabels:
+    app: meeting-platform
+  resources:
+    requests:
+      cpu: "50m"
+      memory: 500Mi
+  service:
+    ports:
+      - name: http-port
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+    type: ClusterIP
+  podAnnotations:
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/hpckit/meeting
+    vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/hpckit/meeting
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/hpckit/meeting" -}}
+      {{ .Data.data.platformConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+      {{- with secret "internal/data/hpckit/meeting" -}}
+      {{ .Data.data.platformSecrets }}
+      {{- end }}
+meetingServer:
+  enabled: false
+secret:
+  enabled: true
+  name: meeting-server-tls
+  specKeysMap:
+    ca.crt:
+      path: secrets/data/hpckit/hpckit-osinfra-cn-tls
+      key: server.cert
+    tls.crt:
+      path: secrets/data/hpckit/hpckit-osinfra-cn-tls
+      key: server.cert
+    tls.key:
+      path: secrets/data/hpckit/hpckit-osinfra-cn-tls
+      key: server.key
+cronjobCommon:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsUser: 1000
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: CONFIG_PATH
+      value: /vault/secrets/config
+    - name: VAULT_PATH
+      value: /vault/secrets/secrets.yaml
+    - name: MYSQL_TLS_PEM_PATH
+      value: /vault/secrets/ca.pem
+    - name: TLS_CRT_PATH
+      value: /vault/secrets/server.crt
+    - name: TLS_KEY_PATH
+      value: /vault/secrets/server.key
+cronjobs:
+  - enabled: true
+    name: hpckit-handle-meeting
+    labels:
+      app: hpckit-handle-meeting
+      # virtual-kubelet.io/burst-to-cci: enforce
+    concurrencyPolicy: Forbid
+    schedule: "*/15 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/hpckit/meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/hpckit/meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/hpckit/meeting" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/hpckit/meeting" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python3 manage.py handle_meeting
+    image:
+      repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/meeting/meeting-platform
+      tag: "ad6bc9c5-1"
+      imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 50m
+        memory: 500Mi
+  - enabled: true
+    name: hpckit-handle-recording
+    labels:
+      app: hpckit-handle-recording
+      # virtual-kubelet.io/burst-to-cci: enforce
+    concurrencyPolicy: Forbid
+    schedule: "30 * * * *"
+    suspend: false
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/hpckit/meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/hpckit/meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/hpckit/meeting" -}}
+        {{ .Data.data.platformConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/hpckit/meeting" -}}
+        {{ .Data.data.platformSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python3 manage.py handle_recordings
+    image:
+      repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/meeting/meeting-platform
+      tag: "ad6bc9c5-1"
+      imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 50m
+        memory: 500Mi
+  - enabled: true
+    name: hpckit-updating-sigs
+    labels:
+      app: hpckit-updating-sigs
+    concurrencyPolicy: Forbid
+    schedule: "0 * * * *"
+    suspend: true
+    restartPolicy: OnFailure
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config: "0400"
+      vault.hashicorp.com/agent-inject-perms-secrets.yaml: "0400"
+      vault.hashicorp.com/agent-inject-secret-config: internal/data/hpckit/meeting
+      vault.hashicorp.com/agent-inject-secret-secrets.yaml: internal/data/hpckit/meeting
+      vault.hashicorp.com/agent-inject-template-config: |
+        {{- with secret "internal/data/hpckit/meeting" -}}
+        {{ .Data.data.centerConfig }}
+        {{- end }}
+      vault.hashicorp.com/agent-inject-template-secrets.yaml: |
+        {{- with secret "internal/data/hpckit/meeting" -}}
+        {{ .Data.data.centerSecrets }}
+        {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python manage.py sync_sig
+    image:
+      repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/meeting/meeting-center
+      tag: "bd6e0e13-1"
+      imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 500Mi

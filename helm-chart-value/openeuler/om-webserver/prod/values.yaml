@@ -1,0 +1,196 @@
+namespace: om-webserver-oneid
+serviceAccount:
+  create: true
+  name: openeuler-omwebserver
+imagePullSecret: huawei-swr-image-pull-secret
+deployments:
+  - name: om-webserver
+    replicaCount: 2
+    podLabels:
+      app: om-webserver
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    podAnnotations:
+      vault.hashicorp.com/agent-inject: "true"
+      vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+      vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+      vault.hashicorp.com/agent-inject-secret-application.properties: internal/data/openeuler/openeuler-omwebserver
+      vault.hashicorp.com/agent-inject-secret-redis.crt: internal/data/openeuler/openeuler-omwebserver
+      vault.hashicorp.com/agent-inject-secret-tls.pfx: internal/data/openeuler/openeuler-omwebserver
+      vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/openeuler/openeuler-omwebserver\" -}}  \n{{ .Data.data.application }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/openeuler/openeuler-omwebserver\" -}}  \n{{ .Data.data.redis }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/openeuler/openeuler-omwebserver\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-pre-populate-only: "true"
+      vault.hashicorp.com/agent-run-as-group: "1001"
+      vault.hashicorp.com/agent-run-as-user: "1001"
+      vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+      vault.hashicorp.com/role: openeuler-omwebserver
+      vault.hashicorp.com/secret-volume-path: /var/lib/om-webserver
+      vault.hashicorp.com/tls-skip-verify: "true"
+      vault.hashicorp.com/log-level: "warn"
+    applicationPath: /var/lib/om-webserver/application.properties
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/om/om-webserver-prod
+      tag: "release-om-webserver-20260630-56d6b0"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "2"
+        memory: 8000Mi
+      requests:
+        cpu: "2"
+        memory: 8000Mi
+    heathCheckPath:
+      path: /oneid/checkOmService
+      port: 8080
+      scheme: HTTPS
+    containerPort: 8080
+  - name: om-webserver-openatom
+    replicaCount: 2
+    podLabels:
+      app: om-webserver-openatom
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    podAnnotations:
+      vault.hashicorp.com/agent-inject: "true"
+      vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+      vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+      vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+      vault.hashicorp.com/agent-inject-secret-application.properties: internal/data/openeuler/openeuler-omwebserver
+      vault.hashicorp.com/agent-inject-secret-redis.crt: internal/data/openeuler/openeuler-omwebserver
+      vault.hashicorp.com/agent-inject-secret-tls.pfx: internal/data/openeuler/openeuler-omwebserver
+      vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/openeuler/openeuler-omwebserver\" -}}  \n{{ .Data.data.applicationOpenatom }}\n{{- end }}\n"
+      vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/openeuler/openeuler-omwebserver\" -}}  \n{{ .Data.data.redis }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/openeuler/openeuler-omwebserver\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }} \n"
+      vault.hashicorp.com/agent-pre-populate-only: "true"
+      vault.hashicorp.com/agent-run-as-group: "1001"
+      vault.hashicorp.com/agent-run-as-user: "1001"
+      vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+      vault.hashicorp.com/role: openeuler-omwebserver
+      vault.hashicorp.com/secret-volume-path: /var/lib/om-webserver
+      vault.hashicorp.com/tls-skip-verify: "true"
+      vault.hashicorp.com/log-level: "warn"
+    applicationPath: /var/lib/om-webserver/application.properties
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/om/om-webserver-openatom-prod
+      tag: "release-om-webserver-20260630-56d6b0"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "2"
+        memory: 8000Mi
+      requests:
+        cpu: "2"
+        memory: 8000Mi
+    heathCheckPath:
+      path: /oneid/checkOmService
+      port: 8080
+      scheme: HTTPS
+    containerPort: 8080
+# ingress: {}
+
+# 格式示例
+ingress:
+  - name: om-webserver-ingress
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+      nginx.ingress.kubernetes.io/limit-connections: "2000"
+      nginx.ingress.kubernetes.io/limit-rps: "2000"
+      nginx.ingress.kubernetes.io/proxy-body-size: 2m
+    host: omapi.osinfra.cn
+    serviceName: om-webserver-service
+    servicePort: 80
+    path: /oneid/
+    pathType: ImplementationSpecific
+    secretName: tls-secrets
+  - name: om-webserver-openatom-ingress
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+      nginx.ingress.kubernetes.io/limit-connections: "2000"
+      nginx.ingress.kubernetes.io/limit-rps: "2000"
+      nginx.ingress.kubernetes.io/proxy-body-size: 2m
+    host: omapi.openeuler.openatom.cn
+    serviceName: om-webserver-openatom-service
+    servicePort: 80
+    path: /oneid/
+    pathType: ImplementationSpecific
+    secretName: openatom-tls-secrets
+  - name: om-webserver-rewrite-ingress
+    annotations:
+      nginx.ingress.kubernetes.io/cors-allow-origin: '*'
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/limit-connections: "400"
+      nginx.ingress.kubernetes.io/limit-rps: "400"
+      nginx.ingress.kubernetes.io/proxy-body-size: 2m
+      nginx.ingress.kubernetes.io/server-snippet: |
+        rewrite ^/query/(.*)      https://dsapi.osinfra.cn/query/$1 redirect;
+    host: omapi.osinfra.cn
+    serviceName: om-webserver-service
+    servicePort: 80
+    path: /oneid/
+    pathType: ImplementationSpecific
+    secretName: tls-secrets
+services:
+  - name: om-webserver-service
+    type: ClusterIP
+    port: 80
+    portName: srv
+    targetPort: 8080
+    podLabels:
+      app: om-webserver
+  - name: om-webserver-openatom-service
+    type: ClusterIP
+    port: 80
+    portName: srv
+    targetPort: 8080
+    podLabels:
+      app: om-webserver-openatom
+# secrets: {}
+
+# 格式示例
+secrets:
+  - name: tls-secrets
+    path: secrets/data/infra-common/osinfra-cn
+    certKey: server.crt
+    keyKey: server.key
+  - name: openatom-tls-secrets
+    path: secrets/data/openeuler/openeuler-openatom-cn-tls
+    certKey: server.crt
+    keyKey: server.key
+istio:
+  enabled: false
+  nslabel: {}
+  # istio-injection: enabled
+
+  gateway: istio-system/istio-gateway-https
+  vs:
+    name: om-webserver-virtualservice
+    host:
+    http:
+      - match:
+          - uri:
+              prefix: /
+        rewrite:
+          uri: /
+        route:
+          - destination:
+              host:
+              port:
+                number:
+  tlsMode: SIMPLE
+  mtlsMode: DISABLE
+  dr:
+    - name: destinationrule-om-webserver
+      serviceName: om-webserver-service
+      port: 80
+  pa:
+    - name: peerauthentication-om-webserver-disable-mtls
+      podLabels:
+        app: om-webserver

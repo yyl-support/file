@@ -1,0 +1,66 @@
+
+replicaCount: 1
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+namespace: om-collect
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/openfuyao/om-collection
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "meeting_1.5"
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+config:
+  path: "/opt/config"
+nameOverride: "meeting"
+fullnameOverride: "meeting"
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "om-collect"
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/role: om-collect
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/secret-volume-path: /opt/config
+  vault.hashicorp.com/agent-inject-secret-config.ini: internal/data/openfuyao/om-collect
+  vault.hashicorp.com/agent-inject-perms-config.ini: "0400"
+  vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/openfuyao/om-collect\" -}}  \n{{ .Data.data.Meeting }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1001
+  capabilities:
+    drop:
+      - ALL
+resources:
+  limits:
+    cpu: 1
+    memory: 1000Mi
+  requests:
+    cpu: 0.5
+    memory: 500Mi
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+deployments: []

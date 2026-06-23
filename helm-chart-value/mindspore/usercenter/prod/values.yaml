@@ -1,0 +1,106 @@
+# helm chart version: 1.0.4
+global:
+  namespace: mindspore-usercenter
+  appName: mindspore-usercenter-v2
+namespace:
+  name: mindspore-usercenter
+  enabled: false
+replicaCount: 3
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+# 镜像配置
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/mindspore/oneid-website-prod
+  tag: "release-319712"
+  pullPolicy: IfNotPresent
+  pullSecret: huawei-swr-image-pull-secret
+podLabels:
+  app: mindspore-usercenter-v2
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-secret-abc.txt: internal/data/mindspore/osinfra-cn-nginx-tls
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: internal/data/mindspore/osinfra-cn-nginx-tls
+  vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/mindspore/osinfra-cn-nginx-tls
+  vault.hashicorp.com/agent-inject-secret-server.key: internal/data/mindspore/osinfra-cn-nginx-tls
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/mindspore/osinfra-cn-nginx-tls" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/mindspore/osinfra-cn-nginx-tls" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/mindspore/osinfra-cn-nginx-tls" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/mindspore/osinfra-cn-nginx-tls" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: mindspore-usercenter
+  vault.hashicorp.com/secret-volume-path: /etc/nginx/cert/
+  vault.hashicorp.com/log-level: warn
+env:
+  - name: DET_URL
+    value: https://id.mindspore.cn
+serviceAccount:
+  create: true
+  name: mindspore-usercenter
+  automount: false
+# 资源限制
+resources:
+  requests:
+    cpu: 1
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 1Gi
+# Ingress配置
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-body-size: 2m
+  host: id.mindspore.cn
+# Service配置
+service:
+  portName: tls-01
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+secret:
+  enable: true
+  name: mindspore-website-tls
+  path: secrets/data/mindspore/mindspore-cn-tls
+  ca_crt_key: ca.cert
+  tls_crt_key: ca.cert
+  tls_key_key: ca.key
+istio:
+  enabled: false
+  nslabel:
+    istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  virtualService:
+    host: id.mindspore.cn
+    routes:
+      - destinations:
+          - host: mindspore-usercenter-v2-service.mindspore-usercenter.svc.cluster.local
+        match:
+          - uri:
+              prefix: /
+  tls:
+    mode: SIMPLE
+  mtls:
+    mode: DISABLE

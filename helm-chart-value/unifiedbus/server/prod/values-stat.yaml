@@ -1,0 +1,96 @@
+stat:
+  enabled: true
+  name: website-backend-stat
+  replicaCount: 1
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/unifiedbus/website-backend-stat
+    tag: "main-0f74d1"
+    pullPolicy: IfNotPresent
+  podLabels:
+    app: website-backend-stat
+  podAnnotations:
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: "internal/data/unifiedbus/unifiedbus-server"
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-template-conf.yaml: |
+      {{- with secret "internal/data/unifiedbus/unifiedbus-server" -}}
+      {{ .Data.data.statConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-secret-mongo.crt: 'internal/data/unifiedbus/unifiedbus-server'
+    vault.hashicorp.com/agent-inject-perms-mongo.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-mongo.crt: |  
+      {{- with secret "internal/data/unifiedbus/unifiedbus-server" -}}  
+      {{ .Data.data.mongoCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-secret-redis.crt: 'internal/data/unifiedbus/unifiedbus-server'
+    vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-redis.crt: |  
+      {{- with secret "internal/data/unifiedbus/unifiedbus-server" -}}  
+      {{ .Data.data.statRedisCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-secret-server.crt: 'internal/data/unifiedbus/domain-tls'
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-template-server.crt: |  
+      {{- with secret "internal/data/unifiedbus/domain-tls" -}}  
+      {{ .Data.data.ServerCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-secret-server.key: 'internal/data/unifiedbus/domain-tls'
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-template-server.key: |  
+      {{- with secret "internal/data/unifiedbus/domain-tls" -}}  
+      {{ .Data.data.ServerKey }}
+      {{- end }}
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsUser: 1000
+  
+  args:
+  - --config-file=/vault/secrets/conf.yaml
+  - --port=8080
+  - --enable-debug=true
+  - --rm-config=true
+  - --tls-key=/vault/secrets/server.key
+  - --tls-cert=/vault/secrets/server.crt
+  
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    httpGet:
+      scheme: HTTPS
+      path: /internal/v1/heartbeat
+      port: 8080
+  
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    httpGet:
+      scheme: HTTPS
+      path: /internal/v1/heartbeat
+      port: 8080
+  
+  resources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 1
+      memory: 1Gi
+  volumeMounts: {}
+  
+  volumes:
+    - name: token-vol
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+  service:
+    port: 8080
+    targetPort: 8080

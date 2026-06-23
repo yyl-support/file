@@ -1,0 +1,104 @@
+namespace: mindspore-doc-search
+appName: doc-search-server-deployment
+replicaCount: 1
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/role: mindspore-doc-search
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-inject-perms-application.yaml: "0400"
+  vault.hashicorp.com/agent-inject-secret-application.yaml: internal/data/infra-test/mindspore-doc-search
+  vault.hashicorp.com/agent-inject-template-application.yaml: "{{- with secret \"internal/data/infra-test/mindspore-doc-search\" -}}  \n{{ .Data.data.application }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-es.jks: "0400"
+  vault.hashicorp.com/agent-inject-secret-es.jks: internal/data/infra-test/mindspore-doc-search
+  vault.hashicorp.com/agent-inject-template-es.jks: "{{- with secret \"internal/data/infra-test/mindspore-doc-search\" -}}  \n{{ base64Decode .Data.data.esJks }}\n{{- end }}\n"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+  vault.hashicorp.com/agent-inject-secret-redis.crt: internal/data/infra-test/mindspore-doc-search
+  vault.hashicorp.com/agent-inject-template-redis.crt: "{{- with secret \"internal/data/infra-test/mindspore-doc-search\" -}}  \n{{ .Data.data.redisCrt }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+  vault.hashicorp.com/agent-inject-secret-tls.pfx: internal/data/infra-test/domain-tls
+  vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/infra-test/domain-tls\" -}}  \n{{ base64Decode .Data.data.TestOsinfraCnPfx }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-multimodal-prompt.md: "0400"
+  vault.hashicorp.com/agent-inject-secret-multimodal-prompt.md: internal/data/infra-test/mindspore-doc-search
+  vault.hashicorp.com/agent-inject-template-multimodal-prompt.md: "{{- with secret \"internal/data/infra-test/mindspore-doc-search\" -}}  \n{{ .Data.data.prompt }}\n{{- end }}\n"
+  vault.hashicorp.com/secret-volume-path-multimodal-prompt.md: "/etc/easysearch"
+serviceAccount:
+  create: true
+  name: mindspore-doc-search
+imagePullSecret:
+  - name: huawei-swr-image-pull-secret
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/mindspore/docs-search-test
+  tag: "feature-fuyao-docs-be090a"
+  pullPolicy: IfNotPresent
+configPath: /vault/secrets/application.yaml
+env: {}
+resources:
+  requests:
+    cpu: 100m
+    memory: 1Gi
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  successThreshold: 1
+  httpGet:
+    path: /error
+    port: 8080
+    scheme: HTTPS
+  timeoutSeconds: 10
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  successThreshold: 1
+  httpGet:
+    path: /error
+    port: 8080
+    scheme: HTTPS
+  timeoutSeconds: 10
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1001
+  capabilities:
+    drop:
+      - ALL
+service:
+  portName: http
+  port: 8080
+  targetPort: 8080
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+  host: doc-search-common.test.osinfra.cn
+secret:
+  enabled: true
+  name: tls-secrets
+  tlsPath: secrets/data/infra-test/domain-tls
+  keysMap:
+    ca.crt: tls.cert
+    tls.crt: tls.cert
+    tls.key: tls.key
+cronjob:
+  enabled: false

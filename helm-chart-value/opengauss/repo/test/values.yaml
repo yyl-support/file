@@ -1,0 +1,66 @@
+nameOverride: ""
+fullnameOverride: "opengauss-repo"
+namespace:
+  enabled: false
+  name: opengauss-repo
+replicaCount: 1
+istio:
+  nslabel: {}
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+strategy:
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+  type: RollingUpdate
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengauss/repo
+  tag: "v1.0.3"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+podSecurityContext:
+  fsGroup: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+volumeMounts:
+- name: data-volume
+  mountPath: /repo/opengauss
+volumes:
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: opengauss-repo
+resources:
+  requests:
+    cpu: "50m"
+    memory: 100Mi
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "opengauss-repo.test.osinfra.cn"
+service:
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  type: ClusterIP
+secret:
+  enabled: true
+  name: tls-secrets
+  path: secrets/data/infra-test/domain-tls
+  crtKey: tls.cert
+  keyKey: tls.key
+pvc:
+  name: opengauss-repo
+  accessModes: ReadWriteMany
+  size: 500Mi
+  storageClass: sfsturbo-subpath-sc

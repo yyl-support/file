@@ -1,0 +1,10 @@
+{{- if .Values.namespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  {{- if .Values.istio.enabled }}
+  labels:
+    {{- toYaml .Values.istio.nslabel | nindent 4 }}
+  {{- end }}
+  name: {{ .Values.namespace }}
+{{- end }}

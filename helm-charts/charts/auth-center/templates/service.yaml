@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "auth-center.fullname" . }}
+  namespace: {{ .Values.namespace.name }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "auth-center.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.service.ports | toYaml | nindent 2 }}

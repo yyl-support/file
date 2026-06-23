@@ -1,0 +1,40 @@
+{{- with .Values.cronjob }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rm-check-cronjob
+spec:
+  suspend: {{ .suspend }}
+  schedule: {{ .schedule | quote }}
+  concurrencyPolicy: {{ .concurrencyPolicy }}
+  startingDeadlineSeconds: 180
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            {{- toYaml .annotations | nindent 12 }}
+        spec:
+          {{- with $.Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12}}
+          {{- end }}
+          serviceAccount: {{ $.Values.serviceAccount.name }}
+          automountServiceAccountToken: {{ $.Values.serviceAccount.automount }}
+          {{- with $.Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          restartPolicy: {{ .restartPolicy }}
+          containers:
+            - name: {{ $.Chart.Name }}
+              securityContext:
+                {{- toYaml .securityContext | nindent 16 }}
+              image: "{{ .image.repository }}:{{ .image.tag }}"
+              imagePullPolicy: {{ .image.pullPolicy }}
+              resources:
+                {{- toYaml .resources | nindent 16 }}
+          volumes:
+            {{- toYaml .volumes | nindent 12 }}
+{{- end }}

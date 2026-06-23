@@ -1,0 +1,56 @@
+hookDelivery:
+  enabled: true
+  host: hook-delivery-openjiuwen.test.osinfra.cn
+  deployment:
+    podSecurityContext:
+      seccompProfile:
+        localhostProfile: infra-seccomp.json
+        type: Localhost
+    replicas: 1
+    robotUniversalHookDelivery:
+      args:
+        - --port=8888
+        - --hmac-secret-file=/vault/secrets/gitcode-secret
+        - --config-file=/vault/secrets/config
+        - --handle-path=gitcode-hook
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsUser: 1000
+      resources:
+        limits:
+          cpu: 100m
+          memory: 300Mi
+        requests:
+          cpu: 100m
+          memory: 300Mi
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-config: "0400"
+    vault.hashicorp.com/agent-inject-perms-gitcode-secret: "0400"
+    vault.hashicorp.com/agent-inject-secret-config: internal/data/infra-test/openjiuwen-robot
+    vault.hashicorp.com/agent-inject-secret-gitcode-secret: internal/data/infra-test/openjiuwen-robot
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{- with secret "internal/data/infra-test/openjiuwen-robot" -}}
+      {{ .Data.data.deliveryConfig }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-gitcode-secret: |
+      {{- with secret "internal/data/infra-test/openjiuwen-robot" -}}
+      {{ .Data.data.deliverySecrets }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: openjiuwen-robot
+    vault.hashicorp.com/tls-skip-verify: "true"
+  NetworkPolicy:
+    enabled: true

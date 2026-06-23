@@ -1,0 +1,10 @@
+{{- with .Values.configmap }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}
+data:
+  {{ .filename }}: |-
+{{- .content | nindent 4 }}
+{{- end }}

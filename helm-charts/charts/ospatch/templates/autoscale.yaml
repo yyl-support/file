@@ -1,0 +1,17 @@
+{{- if .Values.autoscale.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "ospatch.fullname" . }}-autoscaler
+  namespace: {{ .Values.namespace.name }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.autoscale.targetRef | default (include "ospatch.fullname" .) }}
+  triggers:
+  - metadata:
+      desiredReplicas: {{ $.Values.replicaCount | quote }}
+      start: {{ .Values.autoscale.start | quote }}
+      end: {{ .Values.autoscale.end | quote }}
+      timezone: {{ .Values.autoscale.timezone | default "Asia/Shanghai" | quote }}
+    type: cron
+{{- end }}

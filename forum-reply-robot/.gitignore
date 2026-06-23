@@ -1,0 +1,39 @@
+# Python 字节码缓存
+__pycache__/
+*.py[cod]
+*$py.class
+src/__pycache__/
+src/update_lightrag/__pycache__/
+src/ForumBot/__pycache__/
+src/ForumBot/SchemaValidation/__pycache__/
+
+# 虚拟环境
+venv/
+.venv/
+env/
+
+# 环境变量文件
+.env
+src/ForumBot/SchemaValidation/.env
+
+# 日志文件
+logs/
+src/ForumBot/SchemaValidation/log/
+*.log
+
+# 测试结果
+src/ForumBot/SchemaValidation/check_results/
+
+# Schema 文件目录（从独立仓库拉取）
+src/ForumBot/SchemaValidation/SchemaFiles/
+
+# 临时文件
+*.tmp
+requirements_clean.txt
+config/config.yaml
+config/config.yaml
+config/config.zip
+
+# 评估数据集和报告（中间文件不入库）
+evaluation_datasets/*.json
+evaluation_reports/*.json

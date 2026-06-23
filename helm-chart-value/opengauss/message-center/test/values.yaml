@@ -1,0 +1,457 @@
+# chartVersion: v1.0.2
+namespace: opengauss-message-center
+serviceAccount:
+  name: opengauss-message-center
+# deploymentLabels:
+#   virtual-kubelet.io/burst-to-cci: enforce
+autoscale:
+  enabled: true
+  start: 30 8 * * *
+  end: 55 23 * * *
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+istio:
+  nslabel: {}
+imagePullSecrets:
+  name: huawei-swr-image-pull-secret
+collectDeployment:
+  enabled: true
+  name: collect-deployment
+  replicaCount: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  podAnnotations:
+    vault.hashicorp.com/agent-inject: 'true'
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/role: 'opengauss-message-center'
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-conf.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.collectConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-meeting_conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-meeting_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-meeting_conf.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.collectMeetingConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.kafkaCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-kafka-hk.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-kafka-hk.crt: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-kafka-hk.crt: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.kafkaHkCrt }}
+      {{- end }}
+  args:
+    - --config-file=/vault/secrets/conf.yaml
+    - --meeting-config-file=/vault/secrets/meeting_conf.yaml
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/message-center/message-collect-test
+    tag: release-opengauss-d9f0d0
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+collectCronDeployment:
+  enabled: false
+  # name: collect-cron-deployment
+  # strategy:
+  #   type: RollingUpdate
+  #   rollingUpdate:
+  #     maxUnavailable: 1
+  # podAnnotations:
+  #   vault.hashicorp.com/agent-inject: 'true'
+  #   vault.hashicorp.com/agent-pre-populate-only: "true"
+  #   vault.hashicorp.com/tls-skip-verify: "true"
+  #   vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  #   vault.hashicorp.com/agent-run-as-user: "1000"
+  #   vault.hashicorp.com/agent-run-as-group: "1000"
+  #   vault.hashicorp.com/role: 'opengauss-message-center'
+  #   vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+  #   vault.hashicorp.com/agent-inject-template-conf.yaml: |
+  #     {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+  #     {{ .Data.data.cronConf }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-perms-forum_conf.yaml: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-forum_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+  #   vault.hashicorp.com/agent-inject-template-forum_conf.yaml: |
+  #     {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+  #     {{ .Data.data.cronForumConf }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-kafka.crt: 'internal/data/infra-test/opengauss-message-center'
+  #   vault.hashicorp.com/agent-inject-template-kafka.crt: |
+  #     {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+  #     {{ .Data.data.kafkaCrt }}
+  #     {{- end }}
+  #   vault.hashicorp.com/agent-inject-perms-redis.crt: "0400"
+  #   vault.hashicorp.com/agent-inject-secret-redis.crt: 'internal/data/infra-test/opengauss-message-center'
+  #   vault.hashicorp.com/agent-inject-template-redis.crt: |
+  #     {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+  #     {{ .Data.data.redisCrt }}
+  #     {{- end }}
+  # args:
+  #   - --config-file=/vault/secrets/conf.yaml
+  #   - --forum-config-file=/vault/secrets/forum_conf.yaml
+  # image:
+  #   repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/message-center/message-collect-cron-prod
+  #   tag: release_openeuler-96f512
+  #   pullPolicy: IfNotPresent
+  # resources:
+  #   limits:
+  #     cpu: 2
+  #     memory: 8Gi
+  #   requests:
+  #     cpu: 500m
+  #     memory: 500Mi
+collectGithookDeployment:
+  enabled: true
+  name: collect-githook-deployment
+  replicaCount: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  podAnnotations:
+    vault.hashicorp.com/log-level: "warn"
+    vault.hashicorp.com/agent-inject: 'true'
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/role: 'opengauss-message-center'
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-conf.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.collectConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.kafkaHkCrt }}
+      {{- end }}
+  args:
+    - --config-file=/vault/secrets/conf.yaml
+    - --port=8080
+    - --handle-path=gitcode-hook
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/message-center/message-collect-githook-test
+    tag: release-opengauss-93157e
+    pullPolicy: IfNotPresent
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+collectGithookService:
+  enabled: true
+  name: collect-githook-service
+  app: collect-githook-deployment
+  port: 8080
+  portName: http-port
+  targetPort: 8080
+  type: ClusterIP
+managerDeployment:
+  enabled: true
+  name: manager-deployment
+  app: manager
+  replicaCount: 1
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/log-level: "warn"
+    vault.hashicorp.com/agent-inject: 'true'
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/role: 'opengauss-message-center'
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-conf.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.managerConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-server.key: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.serverkey }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-server.crt: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.servercrt }}
+      {{- end }}
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/message-center/message-manager-test
+    tag: release-opengauss-82dc7f
+    pullPolicy: IfNotPresent
+  args:
+  - --config-file=/vault/secrets/conf.yaml
+  - --server-key=/vault/secrets/server.key
+  - --server-cert=/vault/secrets/server.crt
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    httpGet:
+      scheme: HTTPS
+      path: /message_center/health
+      port: 8082
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    httpGet:
+      scheme: HTTPS
+      path: /message_center/health
+      port: 8082
+    timeoutSeconds: 5
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+managerService:
+  enabled: true
+  name: manager-service
+  app: manager
+  port: 8082
+  portName: http-port
+  targetPort: 8082
+  type: ClusterIP
+pushDeployment:
+  enabled: true
+  name: push-deployment
+  app: push
+  replicaCount: 1
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/log-level: "warn"
+    vault.hashicorp.com/agent-inject: 'true'
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/role: 'opengauss-message-center'
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-conf.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.pushConf }}
+      {{- end }}
+    # vault.hashicorp.com/agent-inject-perms-eur_build.yaml: "0400"
+    # vault.hashicorp.com/agent-inject-secret-eur_build.yaml: 'internal/data/infra-test/opengauss-message-center'
+    # vault.hashicorp.com/agent-inject-template-eur_build.yaml: |
+    #   {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+    #   {{ .Data.data.pushEurBuildConf }}
+    #   {{- end }}
+    vault.hashicorp.com/agent-inject-perms-gitee_conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-gitee_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-gitee_conf.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.pushGiteeConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-meeting_conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-meeting_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-meeting_conf.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.pushMeetingConf }}
+      {{- end }}
+    # vault.hashicorp.com/agent-inject-perms-forum_conf.yaml: "0400"
+    # vault.hashicorp.com/agent-inject-secret-forum_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    # vault.hashicorp.com/agent-inject-template-forum_conf.yaml: |
+    #   {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+    #   {{ .Data.data.pushForumConf }}
+    #   {{- end }}
+    vault.hashicorp.com/agent-inject-perms-cve.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-cve.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-cve.yaml: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.pushCveConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+      {{ .Data.data.kafkaHkCrt }}
+      {{- end }}
+    # vault.hashicorp.com/agent-inject-perms-certification_conf.yaml: "0400"
+    # vault.hashicorp.com/agent-inject-secret-certification_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    # vault.hashicorp.com/agent-inject-template-certification_conf.yaml: |
+    #   {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+    #   {{ .Data.data.pushCertification }}
+    #   {{- end }}
+    # vault.hashicorp.com/agent-inject-perms-software_review_conf.yaml: "0400"
+    # vault.hashicorp.com/agent-inject-secret-software_rereview_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    # vault.hashicorp.com/agent-inject-template-software_review_conf.yaml: |
+    #   {{- with secret "internal/data/infra-test/opengauss-message-center" -}}
+    #   {{ .Data.data.pushSoftwareReview }}
+    #   {{- end }}
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/message-center/message-push-test
+    tag: release-opengauss-f981ec
+    pullPolicy: IfNotPresent
+  args:
+  - --config-file=/vault/secrets/conf.yaml
+  # - --eur-build-config-file=/vault/secrets/eur_build.yaml
+  - --gitee-config-file=/vault/secrets/gitee_conf.yaml
+  - --meeting-config-file=/vault/secrets/meeting_conf.yaml
+  - --cve-config-file=/vault/secrets/cve.yaml
+  # - --forum-config-file=/vault/secrets/forum_conf.yaml
+  # - --certification-config-file=/vault/secrets/certification_conf.yaml
+  # - --software-review-config-file=/vault/secrets/software_review_conf.yaml
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+transferDeployment:
+  enabled: true
+  name: transfer-deployment
+  app: transfer
+  replicaCount: 1
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+  podAnnotations:
+    vault.hashicorp.com/log-level: "warn"
+    vault.hashicorp.com/agent-inject: 'true'
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/role: 'opengauss-message-center'
+    vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-conf.yaml: |  
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}  
+      {{ .Data.data.transferConf }}
+      {{- end }}
+    # vault.hashicorp.com/agent-inject-perms-eur_build.yaml: "0400"
+    # vault.hashicorp.com/agent-inject-secret-eur_build.yaml: 'internal/data/infra-test/opengauss-message-center'
+    # vault.hashicorp.com/agent-inject-template-eur_build.yaml: |  
+    #   {{- with secret "internal/data/infra-test/opengauss-message-center" -}}  
+    #   {{ .Data.data.transferEurBuildConf }}
+    #   {{- end }}
+    vault.hashicorp.com/agent-inject-perms-gitee_conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-gitee_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-gitee_conf.yaml: |  
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}  
+      {{ .Data.data.transferGiteeConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-meeting_conf.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-meeting_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-meeting_conf.yaml: |  
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}  
+      {{ .Data.data.transferMeetingConf }}
+      {{- end }}
+    # vault.hashicorp.com/agent-inject-perms-forum_conf.yaml: "0400"
+    # vault.hashicorp.com/agent-inject-secret-forum_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    # vault.hashicorp.com/agent-inject-template-forum_conf.yaml: |  
+    #   {{- with secret "internal/data/infra-test/opengauss-message-center" -}}  
+    #   {{ .Data.data.transferForumConf }}
+    #   {{- end }}
+    vault.hashicorp.com/agent-inject-perms-cve.yaml: "0400"
+    vault.hashicorp.com/agent-inject-secret-cve.yaml: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-cve.yaml: |  
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}  
+      {{ .Data.data.transferCveConf }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-perms-kafka.crt: "0400"
+    vault.hashicorp.com/agent-inject-secret-kafka.crt: 'internal/data/infra-test/opengauss-message-center'
+    vault.hashicorp.com/agent-inject-template-kafka.crt: |  
+      {{- with secret "internal/data/infra-test/opengauss-message-center" -}}  
+      {{ .Data.data.kafkaHkCrt }}
+      {{- end }}
+    # vault.hashicorp.com/agent-inject-perms-certification_conf.yaml: "0400"
+    # vault.hashicorp.com/agent-inject-secret-certification_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    # vault.hashicorp.com/agent-inject-template-certification_conf.yaml: |  
+    #   {{- with secret "internal/data/infra-test/opengauss-message-center" -}}  
+    #   {{ .Data.data.transferCertification }}
+    #   {{- end }}
+    # vault.hashicorp.com/agent-inject-perms-software_review_conf.yaml: "0400"
+    # vault.hashicorp.com/agent-inject-secret-software_review_conf.yaml: 'internal/data/infra-test/opengauss-message-center'
+    # vault.hashicorp.com/agent-inject-template-software_review_conf.yaml: |  
+    #   {{- with secret "internal/data/infra-test/opengauss-message-center" -}}  
+    #   {{ .Data.data.transferSoftwareReview }}
+    #   {{- end }}
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/message-center/message-transfer-test
+    tag: release-opengauss-ede160
+    pullPolicy: IfNotPresent
+  args:
+    - --config-file=/vault/secrets/conf.yaml
+    # - --eur-build-config-file=/vault/secrets/eur_build.yaml
+    - --gitee-config-file=/vault/secrets/gitee_conf.yaml
+    - --meeting-config-file=/vault/secrets/meeting_conf.yaml
+    - --cve-config-file=/vault/secrets/cve.yaml
+    # - --forum-config-file=/vault/secrets/forum_conf.yaml
+    # - --certification-config-file=/vault/secrets/certification_conf.yaml
+    # - --software-review-config-file=/vault/secrets/software_review_conf.yaml
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi

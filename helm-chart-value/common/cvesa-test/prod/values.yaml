@@ -1,0 +1,137 @@
+# Default values for cvesa-test.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 2
+replicaCountCronjob: 1
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+namespace: api-cve
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/cve-sa-backend/api-cve
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "main-ab1e86"
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+nameOverride: "api-cve"
+fullnameOverride: "api-cve"
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "api-cve"
+  automount: false
+podAnnotations: {}
+podSecurityContext:
+  fsGroup: 1000
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+service:
+  type: ClusterIP
+  ports:
+    name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/configuration-snippet: "location /cve-security-notice-server/manager {\n  return 403;\n} \n"
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: api-cve.openeuler.org
+      paths:
+        - path: /
+          port: 8080
+  tls:
+    - secretName: openeuler-api-cve-tls
+      hosts:
+        - api-cve.openeuler.org
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 2000m
+    memory: 2000Mi
+  requests:
+    cpu: 2000m
+    memory: 2000Mi
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+nodeSelector: {}
+tolerations: []
+affinity: {}
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  tcpSocket:
+    port: 8080
+  timeoutSeconds: 5
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  tcpSocket:
+    port: 8080
+  timeoutSeconds: 5
+secretdefine:
+  enabled: true
+  secret:
+    db_user:
+      path: secrets/data/openeuler/api-cve
+      key: db_user
+    db_password:
+      path: secrets/data/openeuler/api-cve
+      key: db_password
+    ak_value:
+      path: secrets/data/openeuler/api-cve
+      key: ak_value
+    sk_value:
+      path: secrets/data/openeuler/api-cve
+      key: sk_value
+    upload_username:
+      path: secrets/data/openeuler/api-cve
+      key: upload_username
+    upload_password:
+      path: secrets/data/openeuler/api-cve
+      key: upload_password
+env:
+  secrets:
+    - name: DB_USER
+      key: db_user
+    - name: DB_PWD
+      key: db_password
+    - name: AK
+      key: ak_value
+    - name: SK
+      key: sk_value
+    - name: UPLOAD_USERNAME
+      key: upload_username
+    - name: UPLOAD_PASSWORD
+      key: upload_password
+  const:
+    - name: DB_URL
+      value: 172.16.1.73
+cronjob: enable

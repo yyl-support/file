@@ -1,0 +1,41 @@
+{{- if .Values.collectCronDeployment.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.collectCronDeployment.name }}
+  namespace: {{ .Values.namespace }}
+  {{- with .Values.deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.collectCronDeployment.name }}
+  strategy:
+    {{- toYaml .Values.collectCronDeployment.strategy | nindent 4 }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.collectCronDeployment.podAnnotations | nindent 8 }}
+      labels:
+        app: {{ .Values.collectCronDeployment.name }}
+    spec:
+      serviceAccount: {{ .Values.serviceAccount.name }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets.name }}
+      automountServiceAccountToken: false
+      containers:
+        - name: server
+          args:
+            {{- toYaml .Values.collectCronDeployment.args | nindent 12 }}
+          image: "{{ .Values.collectCronDeployment.image.repository }}:{{ .Values.collectCronDeployment.image.tag }}"
+          imagePullPolicy: {{ .Values.collectCronDeployment.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.collectCronDeployment.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+      volumes:
+        {{- toYaml .Values.volumes | nindent 8 }}
+{{- end }}

@@ -1,0 +1,144 @@
+nameOverride: ""
+fullnameOverride: "repo"
+namespace:
+  enabled: false
+  name: repo
+replicaCount: 1
+istio:
+  nslabel: {}
+deploymentLabels: {}
+strategy:
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+  type: RollingUpdate
+serviceAccount: 
+  name: repo
+initContainers:
+- command:
+  - /bin/bash
+  - -c
+  - chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/
+  image: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/openeuler:22.03-lts-sp3
+  imagePullPolicy: IfNotPresent
+  name: init
+autoscale:
+  enabled: false
+  start: 30 8 * * *
+  end: 55 23 * * *
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/hpckit/domain-tls"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/hpckit/domain-tls" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/hpckit/domain-tls"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/hpckit/domain-tls" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/hpckit/domain-tls"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/hpckit/domain-tls" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/hpckit/domain-tls"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/hpckit/domain-tls" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: repo
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/log-level: "warn"
+image:
+  repository: opensourceways-w5peto.swr-pro.myhuaweicloud.com/opensourceways/repo
+  tag: "main-910570"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: huawei-swr-instance-image-pull-secret
+podSecurityContext:
+  fsGroup: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 5
+  periodSeconds: 20
+  successThreshold: 1
+  httpGet:
+    scheme: HTTPS
+    path: /
+    port: 8080
+  timeoutSeconds: 5
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 20
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 3
+  httpGet:
+    scheme: HTTPS
+    path: /
+    port: 8080
+volumeMounts:
+- name: data-volume
+  mountPath: /repo/hpckit
+  readOnly: true
+volumes:
+- name: token-vol
+  projected:
+    sources:
+      - serviceAccountToken:
+          audience: api
+          expirationSeconds: 600
+          path: token
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: pvc-hpckit-repo
+resources:
+  requests:
+    cpu: 50m
+    memory: 256Mi
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "repo.hpckit.osinfra.cn"
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+service:
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  type: ClusterIP
+secret:
+  enabled: true
+  name: tls-secrets
+  path: secrets/data/hpckit/hpckit-osinfra-cn-tls
+  crtKey: server.cert
+  keyKey: server.key
+pvc:
+  - name: pvc-hpckit-repo
+    accessModes: ReadWriteMany
+    size: 1Gi
+    storageClass: csi-obs

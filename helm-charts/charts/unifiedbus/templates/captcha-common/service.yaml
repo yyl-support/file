@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.captcha.name }}-service
+  labels:
+    {{- with .Values.captcha.podLabels }}
+    {{- toYaml . | nindent 4}}
+    {{- end }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.captcha.service.port }}
+      targetPort: {{ .Values.captcha.service.targetPort }}
+      protocol: TCP
+      name: http-port
+  {{- with .Values.captcha.podLabels }}
+  selector:
+    {{- toYaml . | nindent 4}}
+  {{- end }}

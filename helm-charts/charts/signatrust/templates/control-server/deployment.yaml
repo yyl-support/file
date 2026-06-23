@@ -1,0 +1,123 @@
+{{- if .Values.controlServer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.controlServer.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+{{ include "signatrust.annotations" . | indent 4 }}
+spec:
+  {{- if not .Values.global.autoscaler.enabled }}
+  replicas: {{ .Values.controlServer.replicas }}
+  {{- with $.Values.controlServer.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  selector:
+    matchLabels:
+      component: {{ .Values.controlServer.name }}
+  template:
+    metadata:
+      labels:
+        component: {{ .Values.controlServer.name }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.controlServer.image.pullSecret }}
+      automountServiceAccountToken: false
+      initContainers:
+{{- range .Values.controlServer.initContainers }}
+        - name: {{ .name }}
+          image: {{ .image }}
+          command:
+{{- range .command }}
+            - {{ . | quote }}
+{{- end }}
+{{- if .env }}
+          env:
+{{- range .env }}
+            - name: {{ .name }}
+{{- if .value }}
+              value: {{ .value | quote }}
+{{- else if .valueFrom }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .valueFrom.secretKeyRef.name }}
+                  key: {{ .valueFrom.secretKeyRef.key }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+      containers:
+        - name: {{ .Values.controlServer.name }}
+          image: "{{ .Values.controlServer.image.repository }}:{{ .Values.controlServer.image.tag }}"
+          imagePullPolicy: {{ .Values.controlServer.image.pullPolicy }}
+          command:
+{{- range .Values.controlServer.container.command }}
+            - {{ . | quote }}
+{{- end }}
+
+          env:
+{{- range .Values.controlServer.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+{{- end }}
+
+          ports:
+{{- range .Values.controlServer.container.ports }}
+            - containerPort: {{ .containerPort }}
+              name: {{ .name }}
+              protocol: {{ .protocol }}
+{{- end }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.controlServer.resources.requests.cpu }}
+              memory: {{ .Values.controlServer.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.controlServer.resources.limits.cpu }}
+              memory: {{ .Values.controlServer.resources.limits.memory }}
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.controlServer.probes.liveness.path }}
+              port: {{ .Values.controlServer.probes.liveness.port }}
+              scheme: {{ .Values.controlServer.probes.liveness.scheme }}
+            initialDelaySeconds: {{ .Values.controlServer.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.controlServer.probes.liveness.periodSeconds }}
+            failureThreshold: {{ .Values.controlServer.probes.liveness.failureThreshold }}
+
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.controlServer.probes.readiness.path }}
+              port: {{ .Values.controlServer.probes.readiness.port }}
+              scheme: {{ .Values.controlServer.probes.readiness.scheme }}
+            initialDelaySeconds: {{ .Values.controlServer.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.controlServer.probes.readiness.periodSeconds }}
+            failureThreshold: {{ .Values.controlServer.probes.readiness.failureThreshold }}
+
+          volumeMounts:
+            - name: secret
+              mountPath: {{ .Values.controlServer.mounts.controlServer.mountPath }}
+              subPath: {{ .Values.controlServer.mounts.controlServer.subPath }}
+            - name: secret
+              mountPath: {{ .Values.controlServer.mounts.srvcrt.mountPath }}
+              subPath: {{ .Values.controlServer.mounts.srvcrt.subPath }}
+            - name: secret
+              mountPath: {{ .Values.controlServer.mounts.key.mountPath }}
+              subPath: {{ .Values.controlServer.mounts.key.subPath }}
+            - name: secret
+              mountPath: {{ .Values.controlServer.mounts.rootcrt.mountPath }}
+              subPath: {{ .Values.controlServer.mounts.rootcrt.subPath }}
+
+          securityContext:
+            allowPrivilegeEscalation: {{ .Values.controlServer.securityContext.allowPrivilegeEscalation }}
+            runAsUser: {{ .Values.controlServer.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.controlServer.securityContext.runAsGroup }}
+
+      volumes:
+        - name: secret
+          secret:
+            secretName: {{ .Values.controlServer.volumes.secretName }}
+{{- end }}

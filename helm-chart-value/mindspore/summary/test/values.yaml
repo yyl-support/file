@@ -1,0 +1,326 @@
+# 1.0.0
+namespace:
+  name: community-summary
+community:
+  name: mindspore
+serviceAccount:
+  name: community-summary
+  automount: false
+imagePullSecret: huawei-swr-image-pull-secret
+tls:
+  enable: true
+  secret:
+    path: secrets/data/infra-test/domain-tls
+    ca: tls.cert
+    key: tls.key
+welcome:
+  enabled: true
+  name: welcome
+  replicaCount: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  podLabels:
+    app: mindspore-summary-welcome
+  podAnnotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+    vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-abc.txt: internal/data/infra-test/community-summary
+    vault.hashicorp.com/agent-inject-secret-dhparam.pem: internal/data/infra-test/community-summary
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/infra-test/community-summary
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/infra-test/community-summary
+    vault.hashicorp.com/agent-inject-template-abc.txt: |
+      {{- with secret "internal/data/infra-test/community-summary" -}}
+      {{ .Data.data.certificatePassword }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+      {{- with secret "internal/data/infra-test/community-summary" -}}
+      {{ .Data.data.dhparamPem }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/infra-test/community-summary" -}}
+      {{ .Data.data.ServerCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/infra-test/community-summary" -}}
+      {{ .Data.data.ServerKey }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: community-summary
+    vault.hashicorp.com/secret-volume-path: /etc/nginx/cert/
+  podSecurityContext:
+  image:
+    pullSecret: huawei-swr-image-pull-secret
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/mindspore/summary-welcome-test
+    tag: 2025-6115fc
+    pullPolicy: IfNotPresent
+  env:
+  service:
+    portName: tls-1
+    port: 8080
+    targetPort: 8080
+    type: ClusterIP
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1000Mi
+    requests:
+      cpu: "1"
+      memory: 1000Mi
+  volumeMounts:
+  securityContext:
+  volumes:
+    - name: token-vol
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+  ingress:
+    enabled: true
+    annotations:
+    host: summary-mindspore-welcome.test.osinfra.cn
+    className: nginx
+oauth:
+  - provider: gitee
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      k8s-app: mindspore-oauth2-proxy
+    podAnnotations:
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/oauth2-proxy
+      tag: baff24347077677bbcb1d22fc97ed17ad3b8620f
+      pullPolicy: Always
+    args:
+      - --provider=gitee
+      - --email-domain=*
+      - --proxy-prefix=/oauth2
+      - --skip-validate-email=true
+      - --skip-auth-regex=^/agreement_ch.html
+      - --skip-auth-regex=^/agreement_en.html
+      - --upstream=http://mindspore-summary-website-service.community-summary.svc.cluster.local:8080
+      - --http-address=0.0.0.0:4180
+      - --cookie-expire=6h0m0s
+      - --set-xauthrequest=true
+      - --custom-templates-dir=/bin/static/login
+      - --custom-templates-sign-in=mindspore.html
+    env:
+      - name: OAUTH2_PROXY_CLIENT_ID
+        value: mindspre_client_id
+      - name: OAUTH2_PROXY_CLIENT_SECRET
+        value: mindspre_client_secret
+      - name: OAUTH2_PROXY_COOKIE_SECRET
+        value: mindspre_cookie_secret
+    secret:
+      name: mindspore-oauth-secrets
+      path: secrets/data/infra-test/community-summary
+    service:
+      port: 4180
+      targetPort: 4180
+      type: ClusterIP
+    livenessProbe:
+      failureThreshold: 3
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      tcpSocket:
+        port: 4180
+      timeoutSeconds: 5
+    readinessProbe:
+      failureThreshold: 3
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      tcpSocket:
+        port: 4180
+      timeoutSeconds: 5
+    resources:
+    volumeMounts:
+    securityContext:
+    volumes:
+    ingress:
+      annotations:
+      host: summary-mindspore.test.osinfra.cn
+      className: nginx
+  - provider: github
+    replicaCount: 1
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    podLabels:
+      k8s-app: mindspore-github-oauth2-proxy
+    podAnnotations:
+    image:
+      repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/oauth2-proxy
+      tag: baff24347077677bbcb1d22fc97ed17ad3b8620f
+      pullPolicy: Always
+    args:
+      - --provider=github
+      - --email-domain=*
+      - --proxy-prefix=/oauth2
+      - --skip-validate-email=true
+      - --skip-auth-regex=^/agreement_ch.html
+      - --skip-auth-regex=^/agreement_en.html
+      - --upstream=http://mindspore-summary-website-service.community-summary.svc.cluster.local:8080
+      - --http-address=0.0.0.0:4180
+      - --cookie-expire=6h0m0s
+      - --set-xauthrequest=true
+      - --custom-templates-dir=/bin/static/login
+      - --custom-templates-sign-in=mindspore.html
+    env:
+      - name: OAUTH2_PROXY_CLIENT_ID
+        value: mindspre_github_client_id
+      - name: OAUTH2_PROXY_CLIENT_SECRET
+        value: mindspre_github_client_secret
+      - name: OAUTH2_PROXY_COOKIE_SECRET
+        value: mindspre_github_cookie_secret
+    secret:
+      name: mindspore-oauth-github-secrets
+      path: secrets/data/infra-test/community-summary
+    service:
+      port: 4180
+      targetPort: 4180
+      type: ClusterIP
+    livenessProbe:
+      failureThreshold: 3
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      tcpSocket:
+        port: 4180
+      timeoutSeconds: 5
+    readinessProbe:
+      failureThreshold: 3
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      tcpSocket:
+        port: 4180
+      timeoutSeconds: 5
+    resources:
+    volumeMounts:
+    securityContext:
+    volumes:
+    ingress:
+      annotations:
+      host: summary-mindspore-github.test.osinfra.cn
+      className: nginx
+website:
+  enabled: true
+  name: summary-website
+  replicaCount: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  podLabels:
+    app: mindspore-summary
+  podAnnotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+    vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-secret-abc.txt: internal/data/infra-test/community-summary
+    vault.hashicorp.com/agent-inject-secret-dhparam.pem: internal/data/infra-test/community-summary
+    vault.hashicorp.com/agent-inject-secret-server.crt: internal/data/infra-test/community-summary
+    vault.hashicorp.com/agent-inject-secret-server.key: internal/data/infra-test/community-summary
+    vault.hashicorp.com/agent-inject-template-abc.txt: |
+      {{- with secret "internal/data/infra-test/community-summary" -}}
+      {{ .Data.data.certificatePassword }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+      {{- with secret "internal/data/infra-test/community-summary" -}}
+      {{ .Data.data.dhparamPem }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/infra-test/community-summary" -}}
+      {{ .Data.data.ServerCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/infra-test/community-summary" -}}
+      {{ .Data.data.ServerKey }}
+      {{- end }}
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+    vault.hashicorp.com/role: community-summary
+    vault.hashicorp.com/secret-volume-path: /etc/nginx/cert/
+  podSecurityContext:
+  image:
+    pullSecret: huawei-swr-image-pull-secret
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/mindspore/summary-test
+    tag: v1.0.20251225205755
+  env:
+  service:
+    portName: tls-1
+    port: 8080
+    targetPort: 8080
+    type: ClusterIP
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    tcpSocket:
+      port: 8080
+    timeoutSeconds: 5
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 200m
+      memory: 200Mi
+  volumeMounts:
+  securityContext:
+  volumes:
+    - name: token-vol
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token

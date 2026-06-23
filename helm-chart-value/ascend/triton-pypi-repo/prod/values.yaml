@@ -1,0 +1,148 @@
+nameOverride: ""
+fullnameOverride: "triton-pypi"
+namespace:
+  enabled: false
+  name: triton-pypi
+replicaCount: 3
+istio:
+  nslabel: {}
+deploymentLabels: {}
+strategy:
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+  type: RollingUpdate
+serviceAccount: 
+  name: triton-pypi
+initContainers:
+- command:
+  - /bin/bash
+  - -c
+  - chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/
+  image: swr.cn-southwest-2.myhuaweicloud.com/modelfoundry/openeuler:22.03-lts-sp2
+  imagePullPolicy: IfNotPresent
+  name: init
+autoscale:
+  enabled: false
+  start: 30 8 * * *
+  end: 55 23 * * *
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+  vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+  vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+  vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+  vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/osinfra/website"
+  vault.hashicorp.com/agent-inject-template-server.crt: |
+    {{- with secret "internal/data/osinfra/website" -}}
+    {{ .Data.data.ServerCrt }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/osinfra/website"
+  vault.hashicorp.com/agent-inject-template-server.key: |
+    {{- with secret "internal/data/osinfra/website" -}}
+    {{ .Data.data.ServerKey }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/osinfra/website"
+  vault.hashicorp.com/agent-inject-template-abc.txt: |
+    {{- with secret "internal/data/osinfra/website" -}}
+    {{ .Data.data.certificatePassword }}
+    {{- end }}
+  vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/osinfra/website"
+  vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+    {{- with secret "internal/data/osinfra/website" -}}
+    {{ .Data.data.dhparamPem }}
+    {{- end }}
+  vault.hashicorp.com/role: triton-pypi
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/agent-inject-command-dhparam.pem: |
+    if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/log-level: "warn"
+image:
+  repository: swr.cn-southwest-2.myhuaweicloud.com/modelfoundry/pypi-repo
+  tag: "v1.0.0"
+  pullPolicy: Always
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+podSecurityContext:
+  fsGroup: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1000
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 5
+  periodSeconds: 20
+  successThreshold: 1
+  httpGet:
+    scheme: HTTPS
+    path: /
+    port: 8080
+  timeoutSeconds: 5
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 20
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 3
+  httpGet:
+    scheme: HTTPS
+    path: /
+    port: 8080
+volumeMounts:
+- name: data-volume
+  mountPath: /repo/triton/pypi
+  subPath: pypi
+volumes:
+- name: token-vol
+  projected:
+    sources:
+      - serviceAccountToken:
+          audience: api
+          expirationSeconds: 600
+          path: token
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: triton-ascend-pypi-pvc
+resources:
+  limits:
+    cpu: "4"
+    memory: 4Gi
+  requests:
+    cpu: "4"
+    memory: 4Gi
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "triton-ascend.osinfra.cn"
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      location ~* ^/pypi/simple/ {
+        return 301 https://repo.huaweicloud.com/ascend/repos/pypi/triton-ascend/;
+      }
+service:
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  type: ClusterIP
+secret:
+  enabled: true
+  name: tls-secrets
+  path: secrets/data/infra-common/osinfra-cn
+  crtKey: server.crt
+  keyKey: server.key
+pvc:
+  - name: triton-ascend-pypi-pvc
+    accessModes: ReadWriteMany
+    size: 1Gi
+    storageClass: csi-obs

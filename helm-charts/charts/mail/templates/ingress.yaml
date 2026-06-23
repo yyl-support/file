@@ -1,0 +1,31 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.ingress.name }}
+  labels:
+  {{- include "mail.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+      rewrite ^/$ https://{{ .Values.host }}/postorius/lists/;
+      location ^~ /admin {
+        deny all;
+      }
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.host | quote }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ .Values.mailweb.service.name }}
+            port:
+              number: {{ .Values.mailweb.service.portNumber }}
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - {{ .Values.host | quote }}
+    secretName: {{ .Values.ingress.secretName }}
+{{- end }}

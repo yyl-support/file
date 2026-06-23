@@ -1,0 +1,232 @@
+deployment:
+  replicaCount: 1
+  revisionHistoryLimit: 5
+  labels:
+    app: etherpad
+  strategyType: Recreate
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/etherpad
+    pullPolicy: IfNotPresent
+    tag: "openubmc-v1.9.7-b27e74"
+  imagePullSecrets:
+    - name: huawei-swr-image-pull-secret
+  containerName: etherpad
+  ports:
+    - containerPort: 9001
+      name: http
+      protocol: TCP
+  env:
+    secretRef:
+      name: etherpad-secrets
+      keys:
+        - name: DB_TYPE
+          key: db_type
+        - name: DB_HOST
+          key: db_host
+        - name: DB_PORT
+          key: db_port
+        - name: DB_USER
+          key: db_user
+        - name: DB_PASS
+          key: db_pass
+        - name: DB_CHARSET
+          key: db_charset
+        - name: DB_NAME
+          key: db_name
+        - name: ADMIN_PASSWORD
+          key: admin_password
+        - name: SKIN_NAME
+          key: skin_name
+        - name: CLIENT_ID
+          key: client_id
+        - name: CLIENT_SECRET
+          key: client_secret
+        - name: ISSUER_CLIENT_ID
+          key: issuer_client_id
+        - name: ISSUER_CLIENT_SECRET
+          key: issuer_client_secret
+    plainValues:
+      - name: ISSUER_AUTHORIZATION_ENDPOINT
+        value: "https://usercenter.openubmc.test.osinfra.cn/oneid/oidc/authorize"
+      - name: ISSUER_TOKEN_ENDPOINT
+        value: "https://usercenter.openubmc.test.osinfra.cn/oneid/oidc/token"
+      - name: ISSUER_USERINFO_ENDPOINT
+        value: "https://usercenter.openubmc.test.osinfra.cn/oneid/oidc/user"
+      - name: ISSUER_ENDPOINT
+        value: "https://usercenter.openubmc.test.osinfra.cn/login"
+      - name: ISSUER_JWKS_URI
+        value: "https://usercenter.openubmc.test.osinfra.cn"
+      - name: ISSUER_BASE_URL
+        value: "https://etherpad.test.osinfra.cn"
+      - name: REQUIRE_AUTHENTICATION
+        value: "true"
+      - name: OSSCHECKURL
+        value: "https://usercenter.openubmc.test.osinfra.cn/oneid/user/permission?community=openeuler"
+      - name: OSSLOGOUTURL
+        value: "https://usercenter.openubmc.test.osinfra.cn/logout"
+
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "openubmc-etherpad"  
+
+namespace: openubmc-etherpad
+
+secretDefinitions:
+  etherpad-secrets:
+    enabled: true
+    keysMap:
+      db_type:
+        path: secrets/data/infra-test/etherpad
+        key: db_type
+      db_host:
+        path: secrets/data/infra-test/etherpad
+        key: db_host
+      db_port:
+        path: secrets/data/infra-test/etherpad
+        key: db_port
+      db_user:
+        path: secrets/data/infra-test/etherpad
+        key: db_user
+      db_pass:
+        path: secrets/data/infra-test/etherpad
+        key: db_pass
+      db_charset:
+        path: secrets/data/infra-test/etherpad
+        key: db_charset
+      db_name:
+        path: secrets/data/infra-test/etherpad
+        key: db_name
+      admin_password:
+        path: secrets/data/infra-test/etherpad
+        key: admin_password
+      skin_name:
+        path: secrets/data/infra-test/etherpad
+        key: skin_name
+      client_id:
+        path: secrets/data/infra-test/etherpad
+        key: client_id
+      client_secret:
+        path: secrets/data/infra-test/etherpad
+        key: client_secret
+      issuer_client_id:
+        path: secrets/data/infra-test/etherpad
+        key: issuer_client_id
+      issuer_client_secret:
+        path: secrets/data/infra-test/etherpad
+        key: issuer_client_secret
+  openubmc-domain-tls:
+    enabled: false
+    keysMap:
+      ca.crt:
+        key: tls.cert
+        path: secrets/data/infra-test/openubmc-beta-domain-tls
+      tls.crt:
+        key: tls.cert
+        path: secrets/data/infra-test/openubmc-beta-domain-tls
+      tls.key:
+        key: tls.key
+        path: secrets/data/infra-test/openubmc-beta-domain-tls
+
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 9001
+  type: ClusterIP
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    # nginx.ingress.kubernetes.io/cors-allow-credentials: "false"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ^~ /admin {
+        deny all;
+      }
+      location ^~ /stats {
+        deny all;
+      }
+  hosts:
+    - host: etherpad.test.osinfra.cn
+      paths:
+        - path: /
+          pathType: Prefix
+          portNumber: 80
+  tlsHosts:
+    - host: etherpad.test.osinfra.cn
+      secretsName: openubmc-domain-tls
+
+istio:
+  enabled: true
+  nslabel: 
+    istio-injection: enabled
+  gateway: "istio-system/istio-gateway-https"
+  host: etherpad.test.osinfra.cn
+  virtualService:
+    routes:
+      - destinations:
+          - host: openubmc-etherpad-service.openubmc-etherpad.svc.cluster.local
+        match:
+        - uri:
+            prefix: /
+  tls:
+    mode: DISABLE
+  mtls:
+    mode: DISABLE
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: 500Mi
+  requests:
+    cpu: "500m"
+    memory: 500Mi
+
+pvc:
+  etherpad-data-vol:
+    enabled: true
+    annotations:
+      everest.io/disk-volume-type: SSD
+    labels:
+      failure-domain.beta.kubernetes.io/region: ap-southeast-1
+      failure-domain.beta.kubernetes.io/zone: ap-southeast-1c
+    accessModes:
+      - ReadWriteOnce
+    storage: 10Gi
+    storageClassName: csi-disk
+    volumeName: "pvc-ed608c72-4f9d-4021-a4aa-ee75460236ed"
+    volumeMode: Filesystem
+  etherpad-plugin-vol:
+    enabled: false
+    annotations:
+      everest.io/disk-volume-type: SSD
+    labels:
+      failure-domain.beta.kubernetes.io/region: ap-southeast-1
+      failure-domain.beta.kubernetes.io/zone: ap-southeast-1c
+    accessModes:
+      - ReadWriteOnce
+    storage: 1Gi
+    storageClassName: csi-disk
+    volumeName: ""
+    volumeMode: Filesystem
+
+# Additional volumes on the output Deployment definition.
+volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: etherpad-data-vol
+  # - name: plugin-volume
+  #   persistentVolumeClaim:
+  #     claimName: etherpad-plugin-vol
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  - mountPath: /opt/etherpad-lite/var
+    name: data-volume
+  # - mountPath: /opt/etherpad-lite/plugin_packages
+  #   name: plugin-volume

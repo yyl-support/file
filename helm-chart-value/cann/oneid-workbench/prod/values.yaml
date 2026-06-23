@@ -1,0 +1,127 @@
+nameOverride: ""
+fullnameOverride: "cann-oneid-workbench"
+namespace:
+  enabled: false
+  name: ascend
+replicaCount: 1
+# podLabels: 
+
+#   app: oneid-workbench
+istio:
+  nslabel: {}
+strategy:
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+  type: RollingUpdate
+image:
+  repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/cann-oneid-workbench-server
+  tag: "main-383e74"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+env:
+  - name: APPLICATION_PATH
+    value: "/vault/secrets/application.properties"
+healthCheck:
+  scheme: HTTPS
+  path: /oneid-workbench/checkOmService
+  port: 8080
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1001
+  capabilities:
+    drop:
+      - ALL
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /vault/secrets/; chown -R 1001:1001 /vault/secrets/; chmod g-s /vault/secrets/; ls -ld /vault/secrets/
+    image: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+podAnnotations:
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/role: 'ascend'
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+  vault.hashicorp.com/agent-inject-secret-application.properties: 'internal/data/ascend/ascend-server'
+  vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/ascend/ascend-server\" -}}  \n{{ .Data.data.oneidWorkbenchConfig }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+  vault.hashicorp.com/agent-inject-secret-tls.pfx: 'internal/data/ascend/domain-tls'
+  vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/ascend/domain-tls\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-ca.crt: "0400"
+  vault.hashicorp.com/agent-inject-secret-ca.crt: 'internal/data/ascend/ascend-server'
+  vault.hashicorp.com/agent-inject-template-ca.crt: "{{- with secret \"internal/data/ascend/ascend-server\" -}}  \n{{ .Data.data.oneidWorkbenchRedis }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-components.yaml: "0400"
+  vault.hashicorp.com/agent-inject-secret-components.yaml: 'internal/data/ascend/ascend-server'
+  vault.hashicorp.com/agent-inject-template-components.yaml: "{{- with secret \"internal/data/ascend/ascend-server\" -}}  \n{{ .Data.data.oneidWorkbenchComponent }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-command-application.properties: |
+    for count in 1 2 3; do if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /vault/secrets/*; break; else echo "service not running skip";sleep 10; fi done
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+  dapr.io/enabled: "true"
+  dapr.io/app-id: "cann-oneid-workbench"
+  dapr.io/disable-builtin-k8s-secret-store: "true"
+  # 我们的 daprd 内存设置
+
+  dapr.io/sidecar-memory-limit: "300Mi" # 您的内存限制
+  dapr.io/env: "GOMEMLIMIT=200MiB" # 您内存限制的 90%。还请注意后缀 "MiB" 而不是 "Mi"
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+serviceAccount:
+  create: false
+  name: ascend
+  automount: false
+resources:
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  requests:
+    cpu: "1"
+    memory: 1Gi
+    # ingress:
+    #   enabled: false
+#   className: "nginx"
+
+# annotations:
+
+#   nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+#   nginx.ingress.kubernetes.io/rewrite-target: /$2
+
+# hosts:
+
+#   - host: ""
+
+#     paths:
+
+#       - path: /
+
+#         pathType: ImplementationSpecific
+service:
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  type: ClusterIP
+daprd:
+  image:
+    repository: swr.cn-southwest-2.myhuaweicloud.com/ascend_infra/daprio/daprd
+    tag: "1.15.3"

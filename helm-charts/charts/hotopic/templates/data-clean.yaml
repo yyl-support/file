@@ -1,0 +1,85 @@
+{{range .Values.hotopics }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .community}}-hotopic-data-clean-deployment
+  labels:
+    {{- toYaml .deploymentLabels | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- toYaml .podLabels | nindent 6 }}
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        {{- toYaml $.Values.podAnnotations | nindent 8 }}
+        {{- toYaml .podAnnotations | nindent 8 }}
+        vault.hashicorp.com/agent-run-as-user: "1000"
+        vault.hashicorp.com/agent-run-as-group: "1000"
+        vault.hashicorp.com/agent-inject-perms-conf.yaml: "0400"
+      labels:
+        {{- toYaml .podLabels | nindent 8 }}
+    spec:
+      serviceAccount: {{ $.Values.serviceAccount.name }}
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: {{ $.Values.imagePullSecret }}
+      securityContext:
+        seccompProfile:
+          type: Localhost
+          localhostProfile: infra-seccomp.json
+      containers:
+        - name: {{ .community }}-hotopic-data-clean
+          image: "{{ $.Values.hotopic.image.repository }}:{{ .imageTag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: SECRET_CONFIG
+            value: "/vault/secrets/conf.yaml"
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 20
+            periodSeconds: 60
+            successThreshold: 1
+            httpGet:
+              scheme: HTTP
+              path: /api/v1/data
+              port: 8080
+            timeoutSeconds: 5
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 20
+            periodSeconds: 60
+            successThreshold: 1
+            httpGet:
+              scheme: HTTP
+              path: /api/v1/data
+              port: 8080
+            timeoutSeconds: 5
+          resources:
+          {{- if not .resources }}
+            {{- toYaml $.Values.hotopic.resources | nindent 12 }}
+          {{- else }}
+            {{- toYaml .resources | nindent 12 }}
+          {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+      - name: token-vol
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+{{- end }}

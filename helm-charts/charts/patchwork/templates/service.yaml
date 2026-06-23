@@ -1,0 +1,13 @@
+{{- with .Values.service }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace.name }}
+spec:
+  ports:
+  {{- toYaml .ports | nindent 4 }}
+  selector:
+    {{- toYaml $.Values.deployment.podLabels | nindent 4 }}
+  type: {{ .type }}
+{{- end }}

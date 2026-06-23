@@ -1,0 +1,265 @@
+namespace:
+  name: infra-radar
+
+serviceAccount:
+  name: infra-radar
+  automount: false
+
+podSecurityContext:
+
+servicelinks:
+  enable: false
+
+istio:
+  enabled: false
+
+secret:
+  # -- secret启用标签,如果启用ingress,则需要启用
+  enable: true
+  # -- secret资源名
+  name: infra-radar-website-tls
+  # -- secret资源在vault中存放路径
+  path: secrets/data/infra-test/domain-tls
+  # -- secret中创建的key,格式为[secret key]: [vault key]
+  ca_crt_key: tls.cert
+  # -- secret中创建的key,格式为[secret key]: [vault key]
+  tls_crt_key: tls.cert
+  # -- secret中创建的key,格式为[secret key]: [vault key]
+  tls_key_key: tls.key
+
+website:
+  enabled: true
+  appName: website
+  deploymentLabels:
+    virtual-kubelet.io/burst-to-cci: enforce
+  replicaCount: 1
+  strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
+  podLabels:
+    app: website
+  podAnnotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-server.crt: "0400"
+    vault.hashicorp.com/agent-inject-perms-server.key: "0400"
+    vault.hashicorp.com/agent-inject-perms-abc.txt: "0400"
+    vault.hashicorp.com/agent-inject-perms-dhparam.pem: "0400"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/secret-volume-path: "/etc/nginx/cert/"
+    vault.hashicorp.com/agent-inject-secret-server.crt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+    vault.hashicorp.com/agent-inject-template-server.crt: |
+      {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+      {{ .Data.data.ServerCrt }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-secret-server.key: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+    vault.hashicorp.com/agent-inject-template-server.key: |
+      {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+      {{ .Data.data.ServerKey }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-secret-abc.txt: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+    vault.hashicorp.com/agent-inject-template-abc.txt: |
+      {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+      {{ .Data.data.certificatePassword }}
+      {{- end }}
+    vault.hashicorp.com/agent-inject-secret-dhparam.pem: "internal/data/infra-test/test-osinfra-cn-tls-ssl"
+    vault.hashicorp.com/agent-inject-template-dhparam.pem: |
+      {{- with secret "internal/data/infra-test/test-osinfra-cn-tls-ssl" -}}
+      {{ .Data.data.dhparamPem }}
+      {{- end }}
+    vault.hashicorp.com/role: infra-radar
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/agent-inject-command-abc.txt: |
+      if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then rm -rf /etc/nginx/cert/*; else echo "service not running skip"; fi
+    vault.hashicorp.com/template-static-secret-render-interval: 5s
+    vault.hashicorp.com/log-level: "warn"
+  image:
+    pullSecret: huawei-swr-image-pull-secret
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/infra-radar-website
+    tag: main-e8dcd9
+    pullPolicy: IfNotPresent
+  initContainers:
+  - command:
+    - /bin/bash
+    - -c
+    - chmod 0700 /etc/nginx/cert/; chown -R 1000:1000 /etc/nginx/cert/; chmod g-s /etc/nginx/cert/; ls -ld /etc/nginx/cert/
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init
+  env:
+  - name: DET_URL
+    value: https://radar.test.osinfra.cn/
+  service:
+    targetPort: 8080
+    portName: http-1
+    port: 8080
+    type: ClusterIP
+  livenessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    httpGet:
+      scheme: HTTPS
+      path: /
+      port: 8080
+    timeoutSeconds: 10
+  readinessProbe:
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    httpGet:
+      scheme: HTTPS
+      path: /
+      port: 8080
+    timeoutSeconds: 10
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  volumeMounts: []
+  volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    runAsUser: 1000
+  
+  ingress:
+    enabled: true
+    host: radar.test.osinfra.cn
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      nginx.ingress.kubernetes.io/limit-rpm: "1000"
+      nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+      nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: 10m
+      nginx.ingress.kubernetes.io/server-snippet: |
+        location ^~ /favicon.ico {
+          return 404;
+        }
+    className: nginx
+  
+  autoscale:
+    enabled: false
+    start: 30 8 * * *
+    end: 55 23 * * *
+
+server:
+  enabled: true
+  name: server
+  replicaCount: 1
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  deploymentLabels:
+    virtual-kubelet.io/burst-to-cci: enforce
+  podLabels:
+    app: server
+  podAnnotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-inject-perms-app.yaml: "0400"
+    vault.hashicorp.com/agent-run-as-user: "1000"
+    vault.hashicorp.com/agent-run-as-group: "1000"
+    vault.hashicorp.com/secret-volume-path: "/opt/app/infra-radar/config"
+    vault.hashicorp.com/agent-inject-secret-app.yaml: "internal/data/infra-test/infra-radar"
+    vault.hashicorp.com/agent-inject-template-app.yaml: |
+      {{- with secret "internal/data/infra-test/infra-radar" -}}
+      {{ .Data.data.config }}
+      {{- end }}
+    vault.hashicorp.com/role: infra-radar
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/agent-init-first: "true"
+    vault.hashicorp.com/log-level: "warn"
+  nodeSelector:
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/infra-radar-server
+    tag: main-e8dcd9
+    pullPolicy: IfNotPresent
+    pullSecret: huawei-swr-image-pull-secret
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+  args:
+  service:
+    port: 8080
+    targetPort: 8080
+
+  livenessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+    httpGet:
+      scheme: HTTP
+      path: /infra-dadar/sayhello
+      port: 8080
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+    httpGet:
+      scheme: HTTP
+      path: /infra-dadar/sayhello
+      port: 8080
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  volumeMounts:
+  volumes:
+    - name: token-vol
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+  ingress:
+    host: radar.test.osinfra.cn
+    subpaths:
+    - name: api-server-ingress
+      annotations:
+        nginx.ingress.kubernetes.io/limit-rpm: "100"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+        nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      path: /infra-radar
+      pathType: Prefix
+      serviceName: server-service
+      servicePort: 8080
+
+
+  

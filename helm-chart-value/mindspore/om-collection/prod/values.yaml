@@ -1,0 +1,104 @@
+# Chartversion: 1.0.7
+namespace: om
+autoscaling:
+  enabled: false
+autoscale:
+  enabled: false
+serviceAccount:
+  create: true
+  name: om
+imageRepository: swr.cn-north-4.myhuaweicloud.com/om/om-collection
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+podSecurityContext:
+  seccompProfile:
+    localhostProfile: infra-seccomp.json
+    type: Localhost
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/agent-service-account-token-volume-name: token-vol
+  vault.hashicorp.com/role: om
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/log-level: "warn"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+deployments:
+  - name: om-collect
+    replicaCount: 1
+    imageTag: "0.6.49"
+    imagePullPolicy: IfNotPresent
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
+    podAnnotations:
+      vault.hashicorp.com/agent-inject-perms-config.ini: "0400"
+      vault.hashicorp.com/agent-inject-secret-config.ini: internal/data/mindspore/om
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/mindspore/om\" -}}  \n{{ .Data.data.config }}\n{{- end }}\n"
+      vault.hashicorp.com/secret-volume-path: /opt/config
+    configPath: /opt/config
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      runAsUser: 1001
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+    volumeMounts: {}
+    volumes:
+      - name: token-vol
+        projected:
+          sources:
+            - serviceAccountToken:
+                audience: api
+                expirationSeconds: 600
+                path: token
+  - name: meeting-collect
+    replicaCount: 1
+    imageTag: "meeting_1.5"
+    imagePullPolicy: IfNotPresent
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
+    podAnnotations:
+      vault.hashicorp.com/secret-volume-path: /opt/config
+      vault.hashicorp.com/agent-inject-perms-config.ini: "0400"
+      vault.hashicorp.com/agent-inject-secret-config.ini: internal/data/mindspore/om
+      vault.hashicorp.com/agent-inject-template-config.ini: "{{- with secret \"internal/data/mindspore/om\" -}}  \n{{ .Data.data.Meeting }}\n{{- end }}\n"
+    configPath: /opt/config
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      runAsUser: 1001
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi
+      requests:
+        cpu: 500m
+        memory: 500Mi
+    volumes:
+      - name: token-vol
+        projected:
+          sources:
+            - serviceAccountToken:
+                audience: api
+                expirationSeconds: 600
+                path: token
+collectData:
+  enabled: false
+secret:
+  enabled: false

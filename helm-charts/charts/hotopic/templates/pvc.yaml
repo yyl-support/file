@@ -1,0 +1,31 @@
+{{- range .Values.minings }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .pvc.name }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: csi-sfs
+  volumeMode: Filesystem
+{{- end }}
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.backendServer.pvcName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: csi-sfs
+  volumeMode: Filesystem

@@ -1,0 +1,3820 @@
+configmaps:
+  - name: configmap-access
+    filename: config.yaml
+    content: |-
+      access:
+        repo_plugins:
+          - org_or_repo: 
+              - Ascend
+            plugin_name:
+              - robot-service-assign
+              - robot-service-cla
+              - robot-service-keeper-approve
+              - robot-service-label
+              - robot-service-review
+              - robot-service-lifecycle
+              - robot-service-associate
+              - sync-bot
+        plugins:
+          - name: robot-service-assign
+            endpoint: http://robot-universal-assign-service.ascend-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+          - name: robot-service-cla
+            endpoint: http://robot-universal-cla-service.ascend-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-keeper-approve
+            endpoint: http://robot-universal-keeper-approve-service.ascend-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+          - name: robot-service-label
+            endpoint: http://robot-universal-label-service.ascend-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+              - "Issue Hook"
+          - name: robot-service-review
+            endpoint: http://robot-universal-review-service.ascend-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: robot-service-lifecycle
+            endpoint: http://robot-universal-lifecycle-service.ascend-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Note Hook"
+          - name: robot-service-associate
+            endpoint: http://robot-universal-associate-service.ascend-robot.svc.cluster.local:8888/gitcode-hook
+            events:
+              - "Merge Request Hook"
+              - "Note Hook"
+          - name: sync-bot
+            endpoint: http://sync-bot-service.ascend-robot.svc.cluster.local:8888/hooks
+            events:
+              - "Note Hook"
+              - "Issue Hook"
+              - "Merge Request Hook"
+  - name: configmap-assign
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - Ascend
+          enable_issue_assign: true
+      
+      community_robot_id: ascend-robot
+      msg_multiple_assignee: "### Notice \nCan only assign one assignee to the issue."
+      msg_assign_repeatedly: "### Notice \nThis issue is already assigned to ***%s***. Please do not assign repeatedly."
+      msg_not_allow_assign: "### Notice \nThis issue can not be assigned to ***%s***. Please try to assign to the repository members."
+      msg_not_allow_unassign: "### Notice \n***%s*** can not be unassigned from this issue. Please try to unassign the assignee of this issue."
+      msg_default_assignee: "### Notice \nThis issue requires an assignee. Since you haven't specified one, we've assigned ***%s*** as the default assignee for this issue."
+  - name: configmap-cla
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+          - Ascend
+          cla_label_yes: ascend-cla/yes
+          cla_label_no: ascend-cla/no
+          check_url: https://clasign.osinfra.cn/api/v1/individual-signing/690ca9ddf91c03dee6082ab1
+          sign_url: https://clasign.osinfra.cn/sign/690ca9ddf91c03dee6082ab1
+          employee_sign_url: https://clasign.osinfra.cn/sign-cla/690ca9ddf91c03dee6082ab1/employee
+          individual_sign_url: https://clasign.osinfra.cn/sign-cla/690ca9ddf91c03dee6082ab1/individual
+          faq_url: https://gitcode.com/Ascend/infrastructure/blob/master/docs/cla/cla%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md#faq
+          check_by_committer: true
+          lite_pr_committer:
+            email: "@noreply.gitcode.com"
+            email_patch: "noreply@gitee.com"
+            name: GitCode
+
+      user_mark_format: "@"
+      placeholder_committer: ""
+      placeholder_cla_sign_guide_title: "### CLA Signature Guide"
+      placeholder_cla_sign_pass_title: "### CLA Signature Pass"
+      comment_command_trigger: "## CLA Signature Manual  \n\nBecause of the network problem, please comment `/check-cla` once again. :pray: "
+      comment_pr_no_commits: "## CLA Signature Manual  \n\nThere is no valid commits in the pull request, please check it. "
+      comment_some_need_sign: "## CLA Signature Guide  \n\n %s , thanks for your pull request. \n\nThe following commit(s) have not signed **<font color=green>_Contributor License Agreement (CLA)_</font>**.\n\n%s \n\nIf you need to sign CLA, [you can click here to sign the CLA](%s). \n\nIf you need to check if the email is set up correctly, [you can click here to do it in the **<font color=red>_FAQs_</font>**](%s). \n\nAfter signing the CLA or updating the email, you must comment `/check-cla` to check the CLA status again."
+      comment_update_label_failed: "## CLA Signature Manual  \n\nBecause of the CLA label update fail, please comment `/check-cla` once again. :pray: "
+      comment_all_signed: "## CLA Signature Pass  \n %s, thanks for your pull request. All authors of the commits have signed the CLA. :+1: "
+      sig_info_url: https://dsapi.test.osinfra.cn/query/sig/info
+      community_name: ascend
+      community_robot_id: ascend-robot
+      invalid_email: "@noreply.gitcode.com"
+      invalid_email_message: "it's an invalid email! please check it."
+      cla_service_failed_message: "the CLA service call failed! please comment `/check-cla` once again."
+      comment_unsigned_title: "| Commit | Reason |\n|--|--|"
+      comment_unsigned_line: "\n| %s | %s |"
+      not_signed_email_message: "the email is not signed for CLA! please check if it is correct and the same as your signed email."
+      message_individual_version_behind: "since the individual CLA content has been updated, [please click here to re-sign the agreement](https://clasign.osinfra.cn/sign-cla/690ca9ddf91c03dee6082ab1/individual-update?email=%s)."
+      message_corporation_version_behind: "since the corporation CLA content has been updated, please contact the corporation CLA manager to re-sign the agreement."
+      cla_signature_type_corporation: "corporation"
+      enable_use_comment_robot: true
+      comment_robot_url: "http://robot-universal-comment-service.ascend-robot.svc.cluster.local:8888/comment"
+  - name: configmap-label
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - Ascend
+          auto_remove_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci-pipeline-passed"
+            - label_name: "keeper_approved"
+            - label_name: "Scored"
+          auto_add_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          review:
+            total_number_of_approve: 1
+            total_number_of_lgtm: 2
+          issue_state_label_rules:
+            - issue_states:
+                - "DONE"
+                - "VALIDATION"
+              target_label: "resolved"
+              add_label: true
+        - repos:
+            - Ascend/ascend-deployer_for_lingqu
+            - Ascend/mind-cluster_for_lingqu
+            - Ascend/mind-edge
+            - Ascend/RecSDK_for_lingqu
+          auto_remove_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci-pipeline-passed"
+            - label_name: "keeper_approved"
+            - label_name: "Scored"
+          auto_add_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          review:
+            total_number_of_approve: 1
+            total_number_of_lgtm: 3
+        - repos:
+            - Ascend/FrameworkPTAdapter-CI
+            - Ascend/MindSpeed-CI
+            - Ascend/op-plugin_for_lingqu
+            - Ascend/pytorch_for_lingqu
+          auto_remove_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci-pipeline-passed"
+            - label_name: "keeper_approved"
+            - label_name: "Scored"
+          auto_add_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          review:
+            total_number_of_approve: 1
+            total_number_of_lgtm: 1
+        - repos:
+            - Ascend/AscendNPU-IR-Dev
+            - Ascend/MindIE-Motor-private
+            - Ascend/MindIE-LLM-private
+            - Ascend/MindIE-SD-private
+            - Ascend/MindIE-Turbo-private
+            - Ascend/MindIE-pyMotor-private
+            - Ascend/msinsight_for_lingqu
+            - Ascend/msmodelslim_for_lingqu
+            - Ascend/msdebug_for_lingqu
+            - Ascend/mskl_for_lingqu
+            - Ascend/mskpp_for_lingqu
+            - Ascend/msot_for_lingqu
+            - Ascend/msopcom_for_lingqu
+            - Ascend/msopgen_for_lingqu
+            - Ascend/msopprof_for_lingqu
+            - Ascend/msoptuner_for_lingqu
+            - Ascend/mssanitizer_for_lingqu
+            - Ascend/mstx_for_lingqu
+            - Ascend/msmemscope_for_lingqu
+            - Ascend/msprobe_for_lingqu
+            - Ascend/mstt_for_lingqu
+            - Ascend/msprof_for_lingqu
+            - Ascend/msprof-analyze_for_lingqu
+            - Ascend/mspti_for_lingqu
+            - Ascend/msmonitor_for_lingqu
+            - Ascend/msserviceprofiler_for_lingqu
+            - Ascend/msmodeling_for_lingqu
+            - Ascend/pytorch_ms_for_lingqu
+            - Ascend/community-private
+            - Ascend/MindIE-CI
+            - Ascend/MindIE-QA
+            - Ascend/modelzoo
+            - Ascend/ci-infra
+            - Ascend/MindCluster-CI
+            - Ascend/MindEdge-CI
+            - Ascend/MindSDK-CI
+            - Ascend/mockcpp
+            - Ascend/MindIE-SD_for_lingqu
+            - Ascend/vLLM-ascend_for_lingqu
+            - Ascend/joint-innovation-rl
+          auto_remove_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+            - label_name: "ci-pipeline-passed"
+            - label_name: "keeper_approved"
+            - label_name: "Scored"
+          auto_add_pr_label_rules:
+            - label_name: "stat/needs-squash"
+              commits_threshold: 1
+          review:
+            total_number_of_approve: 1
+            total_number_of_lgtm: 2
+
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: Ascend
+      community_robot_id: ascend-robot
+      command_reg_exp_key_word: "kind|priority|sig|good"
+      delayed_seconds: 2
+      comment_remove_labels_when_pr_source_code_updated: "### Notification  \nThis pull request has been changed(code update) or closed, so removes the following label(s): %s."
+      comment_label_command_conflict: "### Label Command Feedback  \n @%s , the comment that add and delete a same label, please check it!"
+      comment_update_label_failed: "### Label Command Feedback \n\n @%s, because of the label **%s** update failed, please comment once again!"
+      comment_add_not_exist_label: "### Label Command Feedback  \nThe repository doesn't have the label(s) **%s**, it cannot be added!"
+      comment_add_label_by_self: "### Review Code Warning \n @%s , you can't review code by yourself, please contact the maintainers/committers."
+      comment_add_label_successful: "### Review Code Feedback \n- The label **%s** was added to this pull request. It means that **%s** reviewed the code changes. :wave: \n ##### *Tips* \n- If this pull request is not merged while all conditions are met, comment **`/check-pr`** to try again. :smile: "
+      comment_no_permission_for_user_list: "The label(s) **%s** permission is of **%s**, please contact them."
+      comment_no_permission_for_sig_member: "Thanks for your review, your opinion is very important to us. The maintainers will consider your advice carefully."
+      comment_no_permission_for_repo_member: "The label(s) **%s** permission is outside."
+      comment_permission_tip_for_branch_keeper: "The repository's branch is control of maintainer and branch keeper!"
+      comment_pr_no_found_commits: "### Warning  \nThe PR commit(s) can not be got, please check it!"
+      comment_pr_no_found_code_change: "### Warning  \nThe PR code change can not be got, please check it!"
+      feedback_comment_prefix: "### Label Command Feedback  \n%s"
+      add_label_to_feedback:
+        - "lgtm"
+        - "approved"
+
+      enable_lgtm_approve: true
+      info_repo_configs:
+      - info_org: Ascend
+        info_repo: community
+        info_ref: master
+        repo_type: public
+      - info_org: Ascend
+        info_repo: community-private
+        info_ref: master
+        repo_type: private
+      special_sig_links:
+        CANN: "You can get sig-info at [**here**](https://gitcode.com/CANN/community/blob/main/CANN/PMC/pmc.yaml)"
+      org_approval_strategies:
+        ascend: "strict"
+      label_missing_tip:
+        - lgtm: "Please wait for reviewers to review the code."
+        - approved: "Please wait for committers to review the code."
+        - ascend-cla/yes: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+        - cann-cla/yes: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+        - ci-pipeline-passed: "Please wait for the CI test to be completed."
+        - SC-SUCC: "Please wait for the CI pipeline to be completed."
+        - docs-ci-pipeline-success: "Please wait for the docs CI test to be completed."
+        - keeper_approved: "Please wait for keeper to merge the code."
+        - Scored: "Please wait for committer or reviewer rate the PR."
+      label_added_by_others_tip:
+        - lgtm: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+        - approved: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+        - ascend-cla/yes: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+        - cann-cla/yes: "You can't add cann-cla/yes label manually. Please comment /check-cla to verify it again."
+        - ci-pipeline-passed: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+        - SC-SUCC: "You can't add SC-SUCC label manually. Please remove it and wait for the CI pipeline to be completed."
+        - docs-ci-pipeline-success: "You can't add docs-ci-pipeline-success label manually. Please remove it and wait for the docs CI test to be completed."
+        - keeper_approved: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+        - Scored: "You can't add Scored label manually. Please remove it and wait for committer or reviewer rate the PR."
+      sig_info_file: sig-info.yaml
+      org_info_file: org-info.yaml
+      pmc_file: "CANN/PMC/pmc.yaml"
+      tsc_file: "CANN/TSC/tsc.yaml"
+      comment_add_lgtm_by_self: "### Review Code Warning \n @%s , You can't review code by yourself, please contact the reviewers. :astonished: "
+      comment_add_approved_by_self: "### Review Code Warning \n @%s , You can't review code by yourself, please contact the committers. :astonished: "
+      comment_removed_label: "### Review Code Feedback \n ***%s*** was removed in this pull request by: ***%s***. :flushed: "
+      comment_no_permission_for_label: "### Review Code Feedback \n ***@%s*** has no permission to %s ***%s*** label in this pull request. :astonished: \nPlease contact to the admins in this repository."
+      comment_clear_label_case_by_pr_update: "### Notice\n New code changes of the pull request are detected and remove these labels ***%s***. :flushed: "
+      comment_clear_label_case_by_reopen_pr: "### Notice\n When PR is reopened, remove these labels ***%s***. :flushed: "
+      comment_failed_list_pr_operation_logs: "### Notice\n The corresponding operation log is missing."
+      commands_endpoint: "https://gitcode.com/Ascend/infrastructure/blob/master/docs/robot/robot%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md#-%E5%A6%82%E9%9C%80%E4%BA%86%E8%A7%A3%E8%AF%A6%E7%BB%86%E7%9A%84%E5%91%BD%E4%BB%A4%E5%8F%AF%E5%8F%82%E8%80%83%E4%B8%8B%E6%96%B9%E8%AF%A6%E7%BB%86%E8%A1%A8%E6%A0%BC"
+      sig_info_tips_link: "You can get sig-info at [**here**](https://gitcode.com/Ascend/%s/blob/master/%s/sigs/%s/sig-info.yaml)\n"
+      cron_job_interval: 35
+      comment_robot_url: "http://robot-universal-comment-service.ascend-robot.svc.cluster.local:8888/comment"
+      repo_config_cache_duration: 10
+      external_repo_config_file_path: config/bot-review-config.yaml
+      external_config_sources:
+        - repo_type: public
+          org: Ascend
+          repo: infrastructure
+          branch: master
+        - repo_type: private
+          org: Ascend
+          repo: infrastructure-private
+          branch: master
+      review_report_config:
+        full_comment_template: "%s\n%s\n%s\n"
+        welcome_message: "Thanks for your pull-request."
+        commands_intro: "The full list of commands accepted by me can be found at [**here**](%s)。"
+        sig_missing_repo: "Failed to find the SIG for repository %s."
+        sig_missing_org: "Failed to find the org for repository %s."
+        recommend_tips: "以下是根据您提交的修改文件推荐的Reviewer和Committer序列，需各模块评审通过后方可合入.\n"
+        recommend_table_header: "| Module List | Reviewers | Committers |"
+        unauthorized_prefix: "The following users do not have permission to comment `/lgtm` or `/approve` on any module in this PR:"
+        line_break: "\n"
+        title: "\n## PR Approval Progress"
+        all_satisfied: "✅ **Congratulations! All modules have met the lgtm and approve requirements.**"
+        not_satisfied_prefix: "⚠️ This PR does not yet meet the following requirements:"
+        module_detail_title: "### Module Approval Details"
+        table_header_row: "| module | lgtm status | approve status |"
+        table_separator_row: "|------|-----------|--------------|"
+        table_row_template: "| %s | %s | %s |"
+        lgtm_requirement: "lgtm (requires ≥ %d person(s) per module)"
+        approve_requirement: "approve (requires ≥ %d person(s) per module)"
+        list_joiner: "、"
+        user_link_template: "[*%s*](%s)"
+        user_profile_url_template: "https://gitcode.com/%s"
+        icon_approved: "✅"
+        icon_pending: "❌"
+        empty_user_list_format: "%s (0/%d)"
+        non_empty_user_list_format: "%s %s (%d/%d)"
+        tip_block_prefix: "> 💡 Tip:"
+        tip_committer: "- **Committer** can comment `/approve` or `/lgtm`"
+        tip_approve_implies_lgtm: "- Commenting `/approve` implies both code review (lgtm) and intent to merge (approve)"
+        comment_header_prefix: "## PR Approval Progress"
+        robot_username: "cann-robot"
+        lgtm_available_prefix: "(You can also ask: %s)"
+        approve_available_prefix: "(You can also ask: %s)"
+        comment_separator: "\n---\n"
+        max_display_available_users: 5
+        max_display_users: 999
+        pass_review_message_template: "%s %s %s"
+        pass_review_title: "### Review Guide\n\n"
+        pass_review_status_message: "This pull-request **passes review**.\n"
+        pass_review_approve_line: "Committers who wrote a comment of `/approve` are: %s.\n"
+        pass_review_lgtm_line: "Reviewers who wrote a comment of `/lgtm` are: %s.\n"
+        public_exclude_lgtm_users:
+          - mywaaagh_admin
+          - drizzlezyk
+          - TommyLike
+          - ZhengZhenyu
+          - zeshengzong
+          - pengxie
+          - yejianping
+          - linxi9527
+          - gcw_u8HHrTWX
+          - tianll111
+          - james88liu
+          - aflyingto
+          - dd4574bb
+          - zxf_0731
+          - dilililiwhy
+          - wujinyuan1
+          - overfitting_zh
+          - frankang
+          - Coopermassaki
+          - jy834507063
+          - ZeesangPie
+        public_exclude_approve_users:
+          - mywaaagh_admin
+          - drizzlezyk
+          - TommyLike
+          - ZhengZhenyu
+          - zeshengzong
+          - pengxie
+          - yejianping
+          - linxi9527
+          - gcw_u8HHrTWX
+          - tianll111
+          - james88liu
+          - aflyingto
+          - dd4574bb
+          - zxf_0731
+          - dilililiwhy
+          - wujinyuan1
+          - overfitting_zh
+          - frankang
+        private_exclude_lgtm_users:
+          - mywaaagh_admin
+          - drizzlezyk
+          - TommyLike
+          - ZhengZhenyu
+          - zhengzhenyu
+          - zeshengzong
+          - Coopermassaki
+        private_exclude_approve_users:
+          - mywaaagh_admin
+          - drizzlezyk
+          - TommyLike
+          - ZhengZhenyu
+          - zhengzhenyu
+          - zeshengzong
+
+      label_check_messages:
+        log_missing_tip: "The corresponding operation log is missing. You should delete the label and add it again in the correct way.\n\n"
+        label_issue_item_template: "%s: %s\n\n"
+        label_added_before_pr_update_tip: "The label was added before the last update of the PR. Please re-add it after the latest update.\n\n"
+        not_ready_header_template: "**The following %s not ready**.\n\n"
+        unexpected_exist_header_template: "**The following %s**.\n\n"
+        singular_count: 1
+        singular_label: "label is"
+        plural_label: "labels are"
+        singular_exists: "label exists"
+        plural_exists: "labels exist"
+  - name: configmap-lifecycle
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - Ascend
+          close_issue_checklist:
+            comment_command_lines:
+              - "/close"
+            allow_issue_type_list:
+              - "任务"
+              - "需求"
+              - "缺陷"
+            allow_workflow_list:
+              - "任务/TODO,WIP/DONE"
+              - "需求/TODO,WIP/DONE"
+              - "缺陷/TODO,WIP/DONE"
+            close_workflow_list:
+              - "DONE"
+            linked_pr_all_merged_or_closed: true
+          reopen_issue_checklist:
+            comment_command_lines:
+              - "/reopen"
+            allow_workflow_list:
+              - "任务/DONE,CLOSED,REJECTED/TODO"
+              - "需求/DONE,CLOSED,REJECTED/TODO"
+              - "缺陷/DONE,CLOSED,REJECTED/TODO"
+          close_pr_checklist:
+            comment_command_lines:
+              - "/close"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: ascend
+      community_robot_id: ascend-robot
+      event_state_opened: opened
+      issue_action_reopen: reopen
+      event_state_closed: closed
+      issue_action_close: close
+      comment_no_permission_close_issue: "### Notice \n@%s , you can't close an issue unless you are the author of it or a collaborator."
+      comment_no_permission_reopen_issue: "### Notice \n@%s , you can't reopen an issue unless you are the author of it or a collaborator."
+      comment_list_linking_pull_requests_failure: "### Notice \n@%s  fail to check link pull requests of the issue, please retry."
+      comment_no_permission_close_pr: "### Notice \n@%s , you can't close a pull request unless you are the author of it or a collaborator."
+      comment_issue_has_open_pr: "### Notice \n@%s , this issue is linked to an open PR. Please merge the PR before closing this issue."
+      comment_not_close_issue: "### Notice \n@%s , this issue is currently under CVE service control and cannot be closed directly. Please comment **/check-issue**."
+  - name: configmap-lifecycle-test
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - Ascend
+          close_issue_checklist:
+            comment_command_lines:
+              - "/close"
+            allow_issue_type_list:
+              - "任务"
+              - "需求"
+              - "缺陷"
+            allow_workflow_list:
+              - "任务/TODO,WIP/DONE"
+              - "需求/TODO,WIP/DONE"
+              - "缺陷/TODO,WIP/DONE"
+            close_workflow_list:
+              - "DONE"
+            linked_pr_all_merged_or_closed: true
+          reopen_issue_checklist:
+            comment_command_lines:
+              - "/reopen"
+            allow_workflow_list:
+              - "任务/DONE,CLOSED,REJECTED/TODO"
+              - "需求/DONE,CLOSED,REJECTED/TODO"
+              - "缺陷/DONE,CLOSED,REJECTED/TODO"
+          close_pr_checklist:
+            comment_command_lines:
+              - "/close"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: ascend
+      community_robot_id: ascend-robot
+      event_state_opened: opened
+      issue_action_reopen: reopen
+      event_state_closed: closed
+      issue_action_close: close
+      comment_no_permission_close_issue: "### Notice \n@%s , you can't close an issue unless you are the author of it or a collaborator."
+      comment_no_permission_reopen_issue: "### Notice \n@%s , you can't reopen an issue unless you are the author of it or a collaborator."
+      comment_list_linking_pull_requests_failure: "### Notice \n@%s  fail to check link pull requests of the issue, please retry."
+      comment_no_permission_close_pr: "### Notice \n@%s , you can't close a pull request unless you are the author of it or a collaborator."
+      comment_issue_has_open_pr: "### Notice \n@%s , this issue is linked to an open PR. Please merge the PR before closing this issue."
+      comment_not_close_issue: "### Notice \n@%s , this issue is currently under CVE service control and cannot be closed directly. Please comment **/check-issue**."
+  - name: configmap-review
+    filename: config.yaml
+    content: |-
+      config_items:
+      - repos:
+        - Ascend
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+      - repos:
+        - Ascend/MindIE-LLM
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          missing_labels: 
+          - label: needs-issue
+            tips_if_existing: "The pull request must be linked to at least one issue."
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+        
+        - branch: master
+          merge_method: squash
+          missing_labels: 
+          - label: needs-issue
+            tips_if_existing: "The pull request must be linked to at least one issue."
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: dev
+          merge_method: squash
+          missing_labels: 
+          - label: needs-issue
+            tips_if_existing: "The pull request must be linked to at least one issue."
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: v3.0.0.beta.1
+          merge_method: squash
+          missing_labels: 
+          - label: needs-issue
+            tips_if_existing: "The pull request must be linked to at least one issue."
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: v2.3.0
+          merge_method: squash
+          missing_labels: 
+          - label: needs-issue
+            tips_if_existing: "The pull request must be linked to at least one issue."
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+      
+      - repos:
+        - Ascend/MindIE-SD
+        - Ascend/MindIE-Turbo
+        - Ascend/MindIE-Motor
+        - Ascend/MindIE-PyMotor
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+        
+        - branch: master
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: dev
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: dev_950
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: SC-SUCC
+            tips_if_missing: "Please wait for the CI pipeline to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add SC-SUCC label manually. Please remove it and wait for the CI pipeline to be completed."
+
+        - branch: v3.0.0.beta.1
+          merge_method: squash
+          missing_labels: 
+          - label: needs-issue
+            tips_if_existing: "The pull request must be linked to at least one issue."
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+
+        - branch: v2.3.0
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/MindIE-Motor-private
+        - Ascend/MindIE-LLM-private
+        - Ascend/MindIE-SD-private
+        - Ascend/MindIE-Turbo-private
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+        
+        - branch: master
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+        
+        - branch: br_develop_mindie
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_release_mindie_2.0.RC1_20251014
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_feature_mindie_2.0.T32_POC_20250723
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_feature_mindie_2.1.T10_POC_20250827
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_noncom_mindie_2.2.T10_730POC_20251025
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_release_mindie_2.1.RC1_20251228
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_noncom_mindie_2.2.T20_830POC_20251121
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_release_mindie_2.2.RC1_20260423
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_release_mindie_2.3.0_20260520
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+          
+          - label: SC-SUCC
+            tips_if_missing: "Please wait for the CI pipeline to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add SC-SUCC label manually. Please remove it and wait for the CI pipeline to be completed."
+
+        - branch: br_feature_mindie_2.3.0_Acl_graph_20260208
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_feature_mindie_2.3.0_Router_layerwise_20260310
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: br_feature_mindie_2.2.RC1_Torch_like_20251129
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/ascend-faster-transformer
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/MindIE-pyMotor-private
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 1
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+      - repos:
+        - Ascend/release-management
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+      - repos:
+        - Ascend/community
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: docs-ci-pipeline-success
+            tips_if_missing: "Please wait for the docs CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add docs-ci-pipeline-success label manually. Please remove it and wait for the docs CI test to be completed."
+
+      - repos:
+        - Ascend/msinsight_for_lingqu
+        - Ascend/msmodelslim_for_lingqu
+        - Ascend/msdebug_for_lingqu
+        - Ascend/mskl_for_lingqu
+        - Ascend/mskpp_for_lingqu
+        - Ascend/msot_for_lingqu
+        - Ascend/msopcom_for_lingqu
+        - Ascend/msopgen_for_lingqu
+        - Ascend/msopprof_for_lingqu
+        - Ascend/msoptuner_for_lingqu
+        - Ascend/mssanitizer_for_lingqu
+        - Ascend/mstx_for_lingqu
+        - Ascend/msmemscope_for_lingqu
+        - Ascend/msprobe_for_lingqu
+        - Ascend/mstt_for_lingqu
+        - Ascend/msprof_for_lingqu
+        - Ascend/msprof-analyze_for_lingqu
+        - Ascend/mspti_for_lingqu
+        - Ascend/msmonitor_for_lingqu
+        - Ascend/msserviceprofiler_for_lingqu
+        - Ascend/msmodeling_for_lingqu
+        - Ascend/pytorch_ms_for_lingqu
+        - Ascend/msopmodeling
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: merge
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+      - repos:
+        - Ascend/community-private
+        - Ascend/MindIE-CI
+        - Ascend/MindIE-QA
+        - Ascend/modelzoo
+        - Ascend/ci-infra
+        - Ascend/MindCluster-CI
+        - Ascend/MindEdge-CI
+        - Ascend/MindSDK-CI
+        - Ascend/mockcpp
+        - Ascend/.gitcode
+        - Ascend/docs
+        - Ascend/ray-ascend
+        - Ascend/agent-skills
+        - Ascend/ascendc-kernelgen-data
+        - Ascend/text-embeddings-inference
+        - Ascend/faiss
+        - Ascend/MindIE-SD_for_lingqu
+        - Ascend/vLLM-ascend_for_lingqu
+        - Ascend/perf-reference-ascend
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+      
+      - repos:
+        - Ascend/infrastructure
+        - Ascend/FrameworkPTAdapter-CI
+        - Ascend/MindSpeed-CI
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 1
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+      - repos:
+        - Ascend/AscendNPU-IR
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: merge
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: NPUIR-DT-SUCC
+            tips_if_missing: "Please wait for the npuir dt to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add NPUIR-DT-SUCC label manually. Please remove it and wait for the npuir dt to be completed."
+
+      - repos:
+        - Ascend/msprof-analyze
+        - Ascend/msmonitor
+        - Ascend/msmemscope
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: merge
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/mstt
+        - Ascend/msit
+        - Ascend/msprof
+        - Ascend/msprobe
+        - Ascend/msot
+        - Ascend/msserviceprofiler
+        - Ascend/mspti
+        - Ascend/msoptuner
+        - Ascend/msinsight
+        - Ascend/mssanitizer
+        - Ascend/mstx
+        - Ascend/mskpp
+        - Ascend/msopgen
+        - Ascend/msopcom
+        - Ascend/msdebug
+        - Ascend/mskl
+        - Ascend/msopprof
+        - Ascend/msmodelslim
+        - Ascend/msdebug-dev
+        - Ascend/mskl-dev
+        - Ascend/mskpp-dev
+        - Ascend/msot-dev
+        - Ascend/msopcom-dev
+        - Ascend/msopgen-dev
+        - Ascend/msopprof-dev
+        - Ascend/msoptuner-dev
+        - Ascend/mssanitizer-dev
+        - Ascend/mstx-dev
+        - Ascend/msdebug-bak
+        - Ascend/mskl-bak
+        - Ascend/mskpp-bak
+        - Ascend/msot-bak
+        - Ascend/msopcom-bak
+        - Ascend/msopgen-bak
+        - Ascend/msopprof-bak
+        - Ascend/msoptuner-bak
+        - Ascend/mssanitizer-bak
+        - Ascend/mstx-bak
+        - Ascend/HierarchicalKV-ascend
+        - Ascend/msmodeling
+        - Ascend/MindSpeed-Core-MS
+        - Ascend/mscommreport
+        - Ascend/Triton-distributed-ascend
+        - Ascend/fbgemm-ascend
+        - Ascend/msagent
+        - Ascend/MindSpeed-Ops
+        - Ascend/MindSpeed-Bridge
+        - Ascend/MegatronAdaptor
+        - Ascend/TransformerEngineNPU
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/torchair
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/Tensorpipe
+        - Ascend/apex
+        - Ascend/modelzoo-GPL
+        - Ascend/ModelZoo-PyTorch
+        - Ascend/MindSpeed-MM
+        - Ascend/DrivingSDK
+        - Ascend/op-plugin
+        - Ascend/vision
+        - Ascend/MindSpeed
+        - Ascend/MindSpeed-LLM
+        - Ascend/MindSpeed-RL
+        - Ascend/joint-innovation-rl
+        - Ascend/TransferQueue
+        - Ascend/slime-ascend
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/ascend-deployer
+        - Ascend/ascend-deployer_for_lingqu
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 3
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: 5.0.0
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: 6.0.0
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: 6.0.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: 6.0.RC2
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: 6.0.RC3
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: 7.0.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: 7.1.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: 7.2.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/memcache
+        - Ascend/memfabric_hybrid
+        - Ascend/mind-cluster
+        - Ascend/mind-cluster_for_lingqu
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 3
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: branch_v5.0.0
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: branch_v6.0.0
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: branch_v6.0.RC3
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: branch_v7.0.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: branch_v7.1.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: branch_pre
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+        - branch: branch_v7.2.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: branch_v7.3.0
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/mind-edge
+        - Ascend/AgentSDK
+        - Ascend/IndexSDK
+        - Ascend/MutiModalSDK
+        - Ascend/RAGSDK
+        - Ascend/VisionSDK
+        - Ascend/MindInferenceService
+        - Ascend/MEF
+        - Ascend/OMSDK
+        - Ascend/MultimodalSDK
+        - Ascend/MindCluster-AscendNPUBurn
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 3
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/ascend-docker-image
+        - Ascend/mindcluster-deploy
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 3
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+        
+        - branch: branch_v5.0.0
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v6.0.0
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v6.0.RC3
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v7.0.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v7.1.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v7.2.RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+      - repos:
+        - Ascend/mindsdk-referenceapps
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 3
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+      - repos:
+        - Ascend/RecSDK
+        - Ascend/RecSDK_for_lingqu
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 3
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."   
+
+        - branch: branch_v6.0.0
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v6.0.0-RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v6.0.0-RC2
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v6.0.0-RC3
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v7.0.0-RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v7.1.0-RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: branch_v7.2.0-RC1
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: keeper_approved
+            tips_if_missing: "Please wait for keeper to merge the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+
+        - branch: develop_torch_benchmark
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+        - branch: feat_ngo
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+        - branch: develop_embcache_tmp
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+        - branch: develop_tf_xla_npu
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+      - repos:
+        - Ascend/op-plugin_for_lingqu
+        - Ascend/pytorch_for_lingqu
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 1
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/pytorch
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/triton-ascend-kernels
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: cann-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+      - repos:
+        - Ascend/AscendNPU-IR-Dev
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: SC-SUCC
+            tips_if_missing: "Please wait for the CI pipeline to be completed."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add SC-SUCC label manually. Please remove it and wait for the CI pipeline to be completed."
+
+      - repos:
+        - Ascend/triton-ascend
+        merge_method:
+          default_method: merge
+          merge_method: merge
+          merge_label: merge/merge
+          squash_method: squash
+          squash_label: merge/squash
+          rebase_method: rebase
+          rebase_label: merge/rebase
+        merge_allow_metrics:
+          label_metric:
+            - label_name: lgtm
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: approved
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: true
+            - label_name: ascend-cla/yes
+              need_num: 1
+              legal_operator: ascend-robot
+              legal_operate_time: false
+        review:
+          total_number_of_approve: 1
+          total_number_of_lgtm: 2
+        branch_configs:
+        - is_default: true
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: cann-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+        - branch: main
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: cann-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: SC-SUCC
+            tips_if_missing: "Please wait for the CI pipeline to be completed."
+            person: cann-robot
+            tips_if_added_by_others: "You can't add SC-SUCC label manually. Please remove it and wait for the CI pipeline to be completed."
+
+        - branch: release/3.2.2
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: cann-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: SC-SUCC
+            tips_if_missing: "Please wait for the CI pipeline to be completed."
+            person: cann-robot
+            tips_if_added_by_others: "You can't add SC-SUCC label manually. Please remove it and wait for the CI pipeline to be completed."
+
+        - branch: master
+          merge_method: squash
+          labels:
+          - label: lgtm
+            tips_if_missing: "Please wait for reviewers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+
+          - label: approved
+            tips_if_missing: "Please wait for committers to review the code."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+
+          - label: ascend-cla/yes
+            tips_if_missing: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+            person: ascend-robot
+            tips_if_added_by_others: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+          
+          - label: ci-pipeline-passed
+            tips_if_missing: "Please wait for the CI test to be completed."
+            person: cann-robot
+            tips_if_added_by_others: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+
+          - label: SC-SUCC
+            tips_if_missing: "Please wait for the CI pipeline to be completed."
+            person: openLiBingCI
+            tips_if_added_by_others: "You can't add SC-SUCC label manually. Please remove it and wait for the CI pipeline to be completed."
+
+      enable_sig_review: true
+      info_repo_configs:
+      - info_org: Ascend
+        info_repo: community
+        info_ref: master
+        repo_type: public
+      - info_org: Ascend
+        info_repo: community-private
+        info_ref: master
+        repo_type: private
+      label_missing_tip:
+        - lgtm: "Please wait for reviewers to review the code."
+        - approved: "Please wait for committers to review the code."
+        - ascend-cla/yes: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+        - cann-cla/yes: "Please sign CLA. If you have done, comment /check-cla to recheck again."
+        - ci-pipeline-passed: "Please wait for the CI test to be completed."
+        - SC-SUCC: "Please wait for the CI pipeline to be completed."
+        - docs-ci-pipeline-success: "Please wait for the docs CI test to be completed."
+        - keeper_approved: "Please wait for keeper to merge the code."
+        - Scored: "Please wait for committer or reviewer rate the PR."
+        - NPUIR-DT-SUCC: "Please wait for the npuir dt to be completed."
+      label_added_by_others_tip:
+        - lgtm: "You can't add lgtm label manually. Please remove it and wait for reviewers to review your codes."
+        - approved: "You can't add approved label manually. Please remove it and wait for committers to review your codes."
+        - ascend-cla/yes: "You can't add ascend-cla/yes label manually. Please comment /check-cla to verify it again."
+        - cann-cla/yes: "You can't add cann-cla/yes label manually. Please comment /check-cla to verify it again."
+        - ci-pipeline-passed: "You can't add ci-pipeline-passed label manually. Please remove it and wait for the CI test to be completed."
+        - SC-SUCC: "You can't add SC-SUCC label manually. Please remove it and wait for the CI pipeline to be completed."
+        - docs-ci-pipeline-success: "You can't add docs-ci-pipeline-success label manually. Please remove it and wait for the docs CI test to be completed."
+        - keeper_approved: "You can't add keeper_approved label manually. Please remove it and wait for the branch keeper to merge the code into this branch."
+        - Scored: "You can't add Scored label manually. Please remove it and wait for committer or reviewer rate the PR."
+        - NPUIR-DT-SUCC: "You can't add NPUIR-DT-SUCC label manually. Please remove it and wait for the npuir dt to be completed."
+      label_if_expiry_tip: 
+        - ci-pipeline-passed: "The ci-pipeline-passed label is expired. Please compile again."
+      sig_info_file: sig-info.yaml
+      org_info_file: org-info.yaml
+      pmc_file: "CANN/PMC/pmc.yaml"
+      tsc_file: "CANN/TSC/tsc.yaml"
+      comment_failed_merge_pr: "PR merge failed"
+      comment_failed_merge_pr_unknown_reason: "unknown error occurred, please contact community infrastructure team."
+      comment_pr_rejected: "### Notice\n PR合并被阻止：以下成员对本 PR 发出了 `/reject` 评论：%s. \n 请与他们沟通确认问题是否已解决，并请他们在确认后追加 `/lgtm` 或 `/approve` 以解除阻止。"
+      comment_pr_merge_faq_link: "\n\nIf you want to solve this problem, [you can click here to do it in the **<font color=red>_FAQs_</font>**](https://gitcode.com/ascend/infrastructure/blob/master/docs/robot/robot%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md#-faq)."
+      cron_job_interval: 35
+      repo_config_cache_duration: 10
+      external_repo_config_file_path: config/bot-review-config.yaml
+      external_config_sources:
+        - repo_type: public
+          org: Ascend
+          repo: infrastructure
+          branch: master
+        - repo_type: private
+          org: Ascend
+          repo: infrastructure-private
+          branch: master
+      review_report_config:
+        user_link_template: "[*%s*](%s)"
+        user_profile_url_template: "https://gitcode.com/%s"
+        max_display_users: 999
+
+      label_check_messages:
+        log_missing_tip: "The corresponding operation log is missing. You should delete the label and add it again in the correct way.\n\n"
+        label_issue_item_template: "%s: %s\n\n"
+        label_added_before_pr_update_tip: "The label was added before the last update of the PR. Please re-add it after the latest update.\n\n"
+        not_ready_header_template: "**The following %s not ready**.\n\n"
+        unexpected_exist_header_template: "**The following %s**.\n\n"
+        singular_count: 1
+        singular_label: "label is"
+        plural_label: "labels are"
+        singular_exists: "label exists"
+        plural_exists: "labels exist"
+
+      ai_review_bot_accounts:
+        - "gitcode-bot"
+      enable_resolve_ai_comments: true
+  - name: configmap-repo-watcher
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - Ascend/community
+      repo_owner:
+        - "Ascend"
+      sig_info_url: "https://magicapi.osinfra.cn/stat/exec/sigjob"
+      sig_info_query: "dsfdsafasd5645dd"
+      community_name: "ascend"
+      fetch_interval: 10
+      member_manage_enable: false
+      repo_manage_enable: false
+      repo_setting_module:
+        merge_method: merge
+      sig_info_repo_save_dir: "test"
+      sig_info_folder: "sig"
+      git_platform_domain: "atomgit.com"
+      sig_info_repo_owner: "ascend"
+      sig_info_repo_name: "community"
+      sig_info_repo_branch: "main"
+      sig_info_repo_clone_depth: "50"
+      startup_to_check_merge_count : "2"
+      extra_mode: true
+      extra_mode_config: 
+        community_robot_id: "ascend-robot"
+        repo_info_configs:
+        - org: "Ascend"
+          repo: "community"
+          ref: "master"
+        - org: "Ascend"
+          repo: "community-private"
+          ref: "master"
+        repo_setting_module:
+          merge_method: squash
+        sig_info_file: "sig-info.yaml"
+        org_info_file: "org-info.yaml"
+        repo_admin_role_name: "admin"
+        repo_custom_role_name: "Ascend开发者"
+  - name: configmap-keeper-approve
+    filename: config.yaml
+    content: |-
+      config_items:
+      - repos:
+        - Ascend
+      tag_name: keeper_approved
+      info_repo_configs:
+      - info_org: Ascend
+        info_repo: community
+        info_ref: master
+        repo_type: public
+      - info_org: Ascend
+        info_repo: community-private
+        info_ref: master
+        repo_type: private
+      sig_info_file: sig-info.yaml
+      cron_job_interval: 5
+      sig_info_url: https://dsapi.test.osinfra.cn/query/sig/info
+      community_name: ascend
+      community_robot_id: ascend-robot
+  - name: configmap-associate
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - Ascend/MindIE-LLM
+            - Ascend/pytorch
+            - Ascend/op-plugin
+            - Ascend/msmodeling
+          enable_check_associate_issue: true
+          associate_issue_rules:
+            org:
+              - "Ascend"
+            org_label: needs-issue
+            org_comment_command_check_label: /check-issue
+            org_comment_command_remove_label: /remove-needs-issue
+            org_remove_label_permission: true
+            org_comment_remove_label_no_permission: "### Notice \nOnly members of the repository can delete the **needs-issue** label. Please contact them to do it."
+            org_comment_label_block_feedback: "### Linking Issue Notice \n @%s , the pull request must be linked to at least one issue. \nIf an issue has already been linked, but the **needs-issue** label remains, you can remove the label by commenting **`/check-issue`** ."
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      community_name: Ascend
+      community_robot_id: ascend-robot
+      placeholder_linking_issue_notice_title: "### Linking Issue Notice"
+      placeholder_linking_pr_notice_title: "### Linking PR Notice"
+  - name: configmap-comment
+    filename: config.yaml
+    content: |-
+      community_name: Ascend
+      community_robot_id: ascend-robot
+      lock_shards: 1024
+      sections:
+        - "Thanks for your pull-request."
+        - "## CLA Signature"
+  - name: configmap-sync-bot
+    filename: config.yaml
+    content: |-
+      config_items:
+        - repos:
+            - Ascend/pytorch
+          legal_operator: ascend-robot
+          fork_mode: true
+          fork_account: ascend-ds-bot
+      sig_info_url: "https://magicapi.osinfra.cn/stat/sig/robot/info"
+      drop_brancher:
+        - v2.10.0-26.0.0
+        - v2.9.0-26.0.0
+        - v2.8.0
+        - v2.8.0-26.0.0
+        - v2.7.1-26.0.0
+        - v2.6.0
+        - v2.7.1-7.3.0
+        - PytorchStudy
+        - v2.9.0-7.3.0
+        - v2.8.0-7.3.0
+        - v2.6.0-7.3.0
+        - v2.1.0-7.2.0
+        - v2.1.0
+        - v2.8.0-7.2.0
+        - v2.7.1-7.2.0
+        - v2.6.0-7.2.0
+        - v2.5.1
+        - v2.1.0-7.1.0
+        - v2.6.0-7.1.0
+        - v2.5.1-7.1.0
+        - v2.1.0-7.0.0
+        - v2.4.0-7.0.0
+        - v2.4.0
+        - v2.3.1
+        - v2.3.1-7.0.0
+        - v2.5.1-7.0.0
+        - v2.4.0-6.0.0
+        - v2.3.1-6.0.0
+        - v2.1.0-6.0.0
+        - v2.1.0-6.0.rc3
+        - v2.3.1-6.0.rc3
+        - v2.4.0-6.0.rc3
+        - v2.2.0
+        - v1.11.0-6.0.rc1
+        - v2.1.0-6.0.rc1
+        - v2.2.0-6.0.rc1
+        - v1.11.0-6.0.rc2
+        - v2.1.0-6.0.rc2
+        - v2.2.0-6.0.rc2
+        - v2.3.1-6.0.rc2
+        - v1.11.0
+        - v2.1.0-5.0.0
+        - v2.0.1-5.0.0
+        - v1.11.0-5.0.0
+        - v2.0.1
+        - v2.1.0-5.0.rc3
+        - v1.11.0-5.0.rc3
+        - v2.0.1-5.0.rc3
+        - v1.11.0-5.0.rc3.3
+        - v1.8.1
+        - v1.11.0-x1
+        - v1.8.1-5.0.rc3
+        - v1.11.0-5.0.rc2.2
+        - v1.11.0-zj
+        - v1.11.0-5.0.rc2.1
+        - v2.0.1-5.0.rc2
+        - v1.11.0-5.0.rc2
+        - v1.8.1-5.0.rc2
+        - v2.0.0-5.0.rc2
+        - v1.8.1-5.0.rc1
+        - v1.11.0-5.0.rc1
+        - v1.11.0-yd
+        - v1.11.0-xf
+        - v1.11.0-infer
+        - v1.11.0-bigkernel
+        - v1.11.0-host_api
+        - v1.8.1-3.0.0
+        - v1.11.0-5.0.rc2.t100
+        - v1.8.1-5.0.rc2.t100
+        - v1.8.1-3.0.0-dev
+        - v1.11.0-3.0.0
+        - v2.0-dev
+        - v1.8.1-3.0.rc3
+        - v1.5.0-3.0.0
+        - v1.5.0
+        - v1.8.1-3.0.rc1
+        - v1.11.0-3.0.rc3
+        - v1.8.1-3.0.rc2
+        - v1.5.0-3.0.rc3
+        - v1.5.0-3.0.rc2
+        - 2.0.4.tr5
+        - v1.5.0-3.0.rc1
+        - 2.0.3.tr5
+        - 2.0.2.tr5
+      community_name: Ascend
+      community_robot_id: ascend-robot
+      git_user_name: "ascend-robot"
+      git_user_email: "zhongyuanke@huawei.com"

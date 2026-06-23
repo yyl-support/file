@@ -1,0 +1,141 @@
+nameOverride: ""
+fullnameOverride: "auth-center"
+namespace:
+  enabled: true
+  name: auth-center
+replicaCount: 2
+istio:
+  nslabel: {}
+strategy:
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+  type: RollingUpdate
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/common/auth-center-prod
+  tag: "master-3dc760"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+env:
+  - name: APPLICATION_PATH
+    value: "/vault/secrets/application.properties"
+healthCheck:
+  scheme: HTTPS
+  path: /auth/checkService
+  port: 8080
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsUser: 1001
+  capabilities:
+    drop:
+      - ALL
+initContainers:
+  - command:
+      - /bin/bash
+      - -c
+      - chmod 0700 /vault/secrets/; chown -R 1001:1001 /vault/secrets/; chmod g-s /vault/secrets/; ls -ld /vault/secrets/
+    image: swr.cn-north-4.myhuaweicloud.com/opensourceway/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+podAnnotations:
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/role: 'auth-center'
+  vault.hashicorp.com/agent-run-as-user: "1001"
+  vault.hashicorp.com/agent-run-as-group: "1001"
+  vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+  vault.hashicorp.com/agent-inject-secret-application.properties: 'internal/data/infra-common/auth-center'
+  vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/infra-common/auth-center\" -}}  \n{{ .Data.data.config }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-tls.pfx: "0400"
+  vault.hashicorp.com/agent-inject-secret-tls.pfx: 'internal/data/infra-common/auth-center'
+  vault.hashicorp.com/agent-inject-template-tls.pfx: "{{- with secret \"internal/data/infra-common/auth-center\" -}}  \n{{ base64Decode .Data.data.tlspfx }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+  vault.hashicorp.com/agent-inject-secret-ca.pem: 'internal/data/infra-common/auth-center'
+  vault.hashicorp.com/agent-inject-template-ca.pem: "{{- with secret \"internal/data/infra-common/auth-center\" -}}  \n{{ .Data.data.mysqlCA }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-command-application.properties: |
+    for count in 1 2 3; do if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /vault/secrets/*; break; else echo "service not running skip";sleep 10; fi done
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+  vault.hashicorp.com/log-level: "warn"
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+volumes:
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+serviceAccount:
+  create: true
+  name: auth-center
+  automount: false
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: "1"
+    memory: 1Gi
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: "auth-center.osinfra.cn"
+service:
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  type: ClusterIP
+secret:
+  enabled: true
+  name: tls-secrets
+  path: secrets/data/infra-common/osinfra-cn
+  crtKey: server.cert
+  keyKey: server.key
+cronjob:
+  suspend: false
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  restartPolicy: OnFailure
+  annotations:
+    vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/agent-inject: 'true'
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/log-level: "warn"
+    vault.hashicorp.com/role: 'auth-center'
+    vault.hashicorp.com/agent-run-as-user: "1001"
+    vault.hashicorp.com/agent-run-as-group: "1001"
+    vault.hashicorp.com/agent-inject-perms-application.properties: "0400"
+    vault.hashicorp.com/agent-inject-secret-application.properties: 'internal/data/infra-common/auth-center'
+    vault.hashicorp.com/agent-inject-template-application.properties: "{{- with secret \"internal/data/infra-common/auth-center\" -}}  \n{{ .Data.data.cronjob }}\n{{- end }}\n"
+    vault.hashicorp.com/agent-inject-perms-ca.pem: "0400"
+    vault.hashicorp.com/agent-inject-secret-ca.pem: 'internal/data/infra-common/auth-center'
+    vault.hashicorp.com/agent-inject-template-ca.pem: "{{- with secret \"internal/data/infra-common/auth-center\" -}}  \n{{ .Data.data.mysqlCA }}\n{{- end }}\n"
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsUser: 1001
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  healthCheck:
+    scheme: HTTP
+    path: /auth/checkService
+    port: 8080
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 200Mi

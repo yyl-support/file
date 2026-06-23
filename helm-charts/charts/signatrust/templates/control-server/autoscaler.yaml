@@ -1,0 +1,18 @@
+{{- if .Values.global.autoscaler.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ printf "%s-autoscaler" .Values.controlServer.name }}
+  namespace: {{ .Values.global.namespace }}
+  annotations: {{ include "signatrust.annotations" . | indent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ .Values.controlServer.name }}
+  triggers:
+    - type: cron
+      metadata:
+        timezone: {{ .Values.global.autoscaler.cron.timezone | quote }}
+        start: {{ .Values.global.autoscaler.cron.start | quote }}
+        end: {{ .Values.global.autoscaler.cron.end | quote }}
+        desiredReplicas: {{ .Values.global.autoscaler.cron.desiredReplicas }}
+{{- end }}

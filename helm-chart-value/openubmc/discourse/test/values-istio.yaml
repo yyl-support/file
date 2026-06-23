@@ -1,0 +1,174 @@
+replicaCount: 1
+updateStrategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+image:
+  repository: swr.cn-north-4.myhuaweicloud.com/openubmc/discourse
+  pullPolicy: Always
+  tag: "v2.0.2.testHPPT"
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "web-server"
+namespace: discourse
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: "discourse"
+podAnnotations:
+  vault.hashicorp.com/agent-service-account-token-volume-name: "token-vol"
+  vault.hashicorp.com/agent-init-first: "true"
+  vault.hashicorp.com/tls-skip-verify: "true"
+  vault.hashicorp.com/agent-inject: 'true'
+  vault.hashicorp.com/role: 'discourse'
+  vault.hashicorp.com/agent-run-as-user: "1000"
+  vault.hashicorp.com/agent-run-as-group: "1000"
+  vault.hashicorp.com/agent-inject-perms-monitor.sh: "0500"
+  vault.hashicorp.com/agent-inject-secret-monitor.sh: 'internal/data/openubmc/discourse'
+  vault.hashicorp.com/agent-inject-template-monitor.sh: "{{- with secret \"internal/data/openubmc/discourse\" -}}  \n{{ .Data.data.monitorScript }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-envbash.sh: "0500"
+  vault.hashicorp.com/agent-inject-secret-envbash.sh: 'internal/data/openubmc/discourse'
+  vault.hashicorp.com/agent-inject-template-envbash.sh: "{{- with secret \"internal/data/openubmc/discourse\" -}}  \n{{ .Data.data.envScript }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-pg-server-ca.crt: "0400"
+  vault.hashicorp.com/secret-volume-path-pg-server-ca.crt: /usr/local/share/ca-certificates
+  vault.hashicorp.com/agent-inject-secret-pg-server-ca.crt: 'internal/data/openubmc/discourse'
+  vault.hashicorp.com/agent-inject-template-pg-server-ca.crt: "{{- with secret \"internal/data/openubmc/discourse\" -}}  \n{{ .Data.data.pgsqlCA }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-redis-server-ca.crt: "0400"
+  vault.hashicorp.com/secret-volume-path-redis-server-ca.crt: /usr/local/share/ca-certificates
+  vault.hashicorp.com/agent-inject-secret-redis-server-ca.crt: 'internal/data/openubmc/discourse'
+  vault.hashicorp.com/agent-inject-template-redis-server-ca.crt: "{{- with secret \"internal/data/openubmc/discourse\" -}}  \n{{ .Data.data.redisCA }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-discourse.key: "0400"
+  vault.hashicorp.com/secret-volume-path-discourse.key: /etc/nginx/certs
+  vault.hashicorp.com/agent-inject-secret-discourse.key: 'internal/data/openubmc/discourse'
+  vault.hashicorp.com/agent-inject-template-discourse.key: "{{- with secret \"internal/data/openubmc/discourse\" -}}  \n{{ .Data.data.serverKey }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-perms-discourse.crt: "0400"
+  vault.hashicorp.com/secret-volume-path-discourse.crt: /etc/nginx/certs
+  vault.hashicorp.com/agent-inject-secret-discourse.crt: 'internal/data/openubmc/discourse'
+  vault.hashicorp.com/agent-inject-template-discourse.crt: "{{- with secret \"internal/data/openubmc/discourse\" -}}  \n{{ .Data.data.serverCrt }}\n{{- end }}\n"
+  vault.hashicorp.com/agent-inject-command-discourse.key: |
+    for count in 1 2 3; do if [ $(netstat -anlp | grep 8080| wc -l) -ge 1 ]; then echo "success delete config"; rm -rf /etc/nginx/* ; rm -rf /usr/local/share/ca-certificates/pg-server-ca.crt;
+    rm -rf /usr/local/share/ca-certificates/redis-server-ca.crt ; break; else echo "service not running skip";sleep 10; fi done
+  vault.hashicorp.com/template-static-secret-render-interval: 5s
+podLabels:
+  app: web-server
+  version: v1
+podSecurityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: infra-seccomp.json
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsUser: 1000
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+initContainers:
+  - command:
+    - /bin/bash
+    - -c
+    - "chmod 0700 /vault/secrets/;chmod 0700 /etc/nginx/; chmod 0700 /usr/local/share/ca-certificates/; chown -R 1000:1000 /vault/secrets/; chown -R 1000:1000 /etc/nginx/;chown -R 1000:1000 /usr/local/share/ca-certificates/; chmod g-s /vault/secrets/; chmod g-s /etc/nginx/;chmod g-s /usr/local/share/ca-certificates/; ls -ld /vault/secrets/"
+    image: swr.cn-north-4.myhuaweicloud.com/openubmc/openeuler:22.03-lts-sp3
+    imagePullPolicy: IfNotPresent
+    name: init-openeuler
+ingress:
+  enabled: false
+  host: discuss.openubmc.cn
+  secretName: discourse-tls
+  default:
+    name: discuss-ingress
+    path: /
+    pathType: Prefix
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "4m"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  limit:
+    name: discourse-discussion-mail-send-ratelimit-ingress
+    path: /admin/email
+    pathType: Exact
+    annotations:
+      nginx.ingress.kubernetes.io/limit-rpm: "1"
+      nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+resources:
+  requests:
+    cpu: 500m
+    memory: 1500Mi
+  limits:
+    cpu: 2
+    memory: 3000Mi
+livenessProbe:
+  tcpSocket:
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+readinessProbe:
+  tcpSocket:
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+volumes:
+  - name: discourse-storage-new
+    persistentVolumeClaim:
+      claimName: openubmc-discourse-share-volume
+  - name: token-vol
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api
+            expirationSeconds: 600
+            path: token
+volumeMounts:
+  - name: discourse-storage-new
+    mountPath: /shared
+nodeSelector:
+  kubernetes.io/arch: amd64
+env:
+  - name: DISCOURSE_MAXMIND_LICENSE_KEY
+    value: ""
+  - name: DISCOURSE_DEVELOPER_EMAILS
+    value: ""
+  - name: DISCOURSE_DB_NAME
+    value: ""
+  - name: DISCOURSE_DB_PASSWORD
+    value: ""
+  - name: DISCOURSE_REDIS_PASSWORD
+    value: ""
+tolerations: []
+affinity: {}
+pvc:
+  enabled: true
+  name: openubmc-discourse-share-volume
+  accessModes: ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: csi-sfsturbo
+  volumeMode: Filesystem
+  volumeName: pv-efs-openubmc-discourse
+tlsDefinition:
+  enabled: false
+  name: discourse-tls
+  path: secrets/data/openubmc/openubmc-cn-tls
+  keysMap:
+    ca.crt: tls.cert
+    tls.crt: tls.cert
+    tls.key: tls.key
+command:
+  - /bin/bash
+  - -c
+  - /vault/secrets/envbash.sh

@@ -1,0 +1,20 @@
+{{- if .Values.robot.enabled }}
+{{- with .Values.robot.service }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "discourse.fullname" $ }}-robot
+  namespace: {{ $.Values.namespace.name }}
+  labels:
+    {{- include "discourse.labels" $ | nindent 4 }}
+spec:
+  type: {{ .type | default "ClusterIP" }}
+  ports:
+    - name: {{ .portName | default "http" }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort | default .port }}
+      protocol: TCP
+  selector:
+    {{- toYaml $.Values.robot.podLabels | nindent 4 }}
+{{- end }}
+{{- end }}

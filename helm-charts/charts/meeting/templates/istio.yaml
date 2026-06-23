@@ -1,0 +1,48 @@
+{{- if .Values.istio.enabled }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: meeting-virtualservice
+spec:
+  gateways:
+  - {{ .Values.istio.gateway }}
+  hosts:
+  - {{ .Values.istio.host }}
+  http:
+    {{- toYaml .Values.istio.vs.http | nindent 4 }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+{{- range .Values.istio.dr }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{ .name }}-destinationrule
+spec:
+  host: {{ .serviceName }}
+  trafficPolicy:
+    portLevelSettings:
+      - port:
+          number: {{ .portNumber }}
+        tls:
+          mode: {{ .tlsMode }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.istio.enabled }}
+{{- range .Values.istio.pa }}
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: {{ .name }}-peerauthentication
+spec:
+  mtls:
+    mode: {{ .mtlsMode }}
+  selector:
+    matchLabels:
+      {{- toYaml .label | nindent 6 }}
+{{- end }}
+{{- end }}

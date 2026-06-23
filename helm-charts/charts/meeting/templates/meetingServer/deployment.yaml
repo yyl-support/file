@@ -1,0 +1,79 @@
+{{- with .Values.meetingServer }}
+{{- if .enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  {{- with .deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .replicas }}
+  strategy:
+    {{- toYaml $.Values.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- toYaml .podLabels | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- toYaml .podLabels | nindent 8 }}
+      annotations:
+        {{- toYaml $.Values.podAnnotations | nindent 8 }}
+        {{- toYaml .podAnnotations | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - env:
+        {{- toYaml .env | nindent 10 }}
+        image: "{{ $.Values.image.server.repository }}:{{ $.Values.image.server.tag }}"
+        imagePullPolicy: {{ $.Values.image.server.imagePullPolicy }}
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 5
+        name: meetingserver
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 5
+        resources: {{- toYaml .resources | nindent 10 }}
+        securityContext: {{- toYaml $.Values.securityContext | nindent 10 }}
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+      - command:
+        - /bin/bash
+        - -c
+        - chmod 0700 /vault/secrets/; chown -R 1000:1000 /vault/secrets/; chmod g-s /vault/secrets/;
+          ls -ld /vault/secrets/
+        image: "{{ $.Values.initContainer.image.repository }}:{{ $.Values.initContainer.image.tag }}"
+        imagePullPolicy: IfNotPresent
+        name: init-openeuler
+      serviceAccount: {{ $.Values.serviceAccount.name }}
+      serviceAccountName: {{ $.Values.serviceAccount.name }}
+      volumes:
+      - name: token-vol
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 600
+              path: token
+{{- end }}
+{{- end }}

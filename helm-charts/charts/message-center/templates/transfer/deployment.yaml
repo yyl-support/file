@@ -1,0 +1,42 @@
+{{- if .Values.transferDeployment.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.transferDeployment.name }}
+  namespace: {{ .Values.namespace }}
+  {{- with .Values.deploymentLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.transferDeployment.app }}
+  replicas: {{ .Values.transferDeployment.replicaCount }}
+  strategy:
+    {{- toYaml .Values.transferDeployment.strategy | nindent 4 }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.transferDeployment.podAnnotations | nindent 8 }}
+      labels:
+        app: {{ .Values.transferDeployment.app }}
+    spec:
+      serviceAccount: {{ .Values.serviceAccount.name }}
+      imagePullSecrets:
+      - name: {{ .Values.imagePullSecrets.name }}
+      automountServiceAccountToken: false
+      containers:
+      - name: transfer
+        image: {{ .Values.transferDeployment.image.repository }}:{{ .Values.transferDeployment.image.tag }}
+        imagePullPolicy: {{ .Values.transferDeployment.image.pullPolicy }}
+        args:
+        {{- toYaml .Values.transferDeployment.args | nindent 8 }}
+        resources:
+          {{- toYaml .Values.transferDeployment.resources | nindent 10 }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+      volumes:
+      {{- toYaml .Values.volumes | nindent 6 }}
+{{- end }}

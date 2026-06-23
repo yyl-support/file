@@ -1,0 +1,40 @@
+# forum-reply-robot 子服务拓扑 / 调用关系 / 预览验活端点
+# ===================================================
+# 单一事实源:本 umbrella 下所有 dev 子仓怎么串成完整业务。
+# preview.sh / test-sync 读这个 yaml。
+#
+# 由 backlog/.ai-flow/scripts/gen-preview-hook.sh 从 services/robot.yaml 生成。
+# preview 段字段已自动填;subs / foundation 需按 service.md + Vault 实测补全(见 TODO)。
+
+subs:
+  forum-reply-robot:
+    port: 5000
+    health_endpoint: /health
+    api_prefix: /
+    db:
+      name: forum_reply_robot
+    # 跨 sub 调用(可选):
+    # depends_on:
+    #   <other-sub>:
+    #     url_env: <ENV_VAR_NAME>
+    #     auth: { username_env: ..., password_env: ..., username_default: admin, password_default: <pwd> }
+    # 预览环境关掉的强依赖外部账号体系的功能(可选):
+    # preview_disabled:
+    #   - <FEATURE_FLAG>
+
+# 底座基础设施(跨 issue 共享,namespace 内一份;preview.sh ensure)
+foundation:
+  postgresql:
+    image: postgres:15
+    service_name: postgresql-service
+    port: 5432
+    password: forum-reply-robot_preview_2026    # 仅预览环境;不存敏感数据
+    init_databases:
+      - forum_reply_robot
+
+# test 环境部署归档坐标(routes.sh 据此拉 test 的 ingress 路由来同步)
+# 来源: Open-Infra-Ops/helm-chart-value 里本服务的 service.md「部署归档仓库 + 子路径」
+test_archive:
+  repo: Open-Infra-Ops/helm-chart-value
+  path: openeuler/robot/test
+  ref: master

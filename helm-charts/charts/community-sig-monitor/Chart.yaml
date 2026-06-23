@@ -1,0 +1,6 @@
+apiVersion: v2
+name: community-sig-monitor
+description: A Helm chart for community sig monitor
+type: application
+version: 1.0.1
+appVersion: "1.0.0"

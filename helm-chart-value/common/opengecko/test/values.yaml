@@ -1,0 +1,117 @@
+# ================================================================
+# openGecko 生产环境 Helm values
+# 部署前必须替换所有标注 "CHANGE_ME" 的值
+# 使用方式：
+#   helm upgrade --install opengecko ./charts/opengecko \
+#     -n opengecko --create-namespace \
+#     -f ./charts/opengecko/values-prod.example.yaml
+# ================================================================
+
+# ── 镜像仓库凭据（私有仓库时取消注释并填写 Secret 名称） ──────────
+imagePullSecrets:
+  - name: huawei-swr-image-pull-secret
+# ── 后端 ──────────────────────────────────────────────────────────
+backend:
+  replicaCount: 1 # 生产建议至少 2 副本（注意：多副本需 uploads 使用 S3 而非本地盘）
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengecko-server # 例如 registry.cn-hangzhou.aliyuncs.com/your-ns/opengecko-backend
+    tag: main-375962
+    pullPolicy: IfNotPresent
+  secrets:
+    path: secrets/data/infra-test/opengecko
+    keysMap:
+      JWT_SECRET_KEY: JWT_SECRET_KEY
+      DEFAULT_ADMIN_PASSWORD: DEFAULT_ADMIN_PASSWORD
+      DATABASE_PASSWORD: DATABASE_PASSWORD
+      DATABASE_URL: DATABASE_URL
+      S3_ACCESS_KEY: S3_ACCESS_KEY
+      S3_SECRET_KEY: S3_SECRET_KEY
+      SMTP_HOST: SMTP_HOST
+      SMTP_PORT: SMTP_PORT
+      SMTP_USER: SMTP_USER
+      SMTP_PASSWORD: SMTP_PASSWORD
+      SMTP_FROM_EMAIL: SMTP_FROM_EMAIL
+      SSO_CLIENT_ID: SSO_CLIENT_ID
+      SSO_CLIENT_SECRET: SSO_CLIENT_SECRET
+  env:
+    DEBUG: "false"
+    APP_TIMEZONE: Asia/Shanghai
+    STORAGE_BACKEND: s3 # 使用 MinIO 对象存储
+    CORS_ORIGINS: "https://opengecko.test.osinfra.cn" # 替换为正式域名
+    FRONTEND_URL: "https://opengecko.test.osinfra.cn"
+    ACCESS_TOKEN_EXPIRE_MINUTES: "10080" # 7 天
+    DEFAULT_ADMIN_USERNAME: admin
+    DEFAULT_ADMIN_EMAIL: admin@example.com
+    RATE_LIMIT_LOGIN: 10/minute
+    RATE_LIMIT_DEFAULT: 120/minute
+    COLLECTOR_EMBEDDED: "false" # 独立采集器模式（生产推荐）
+    LOG_LEVEL: warning
+    # PostgreSQL 连接池（按实际负载调整）
+    DB_POOL_SIZE: "10"
+    DB_MAX_OVERFLOW: "20"
+    DB_POOL_TIMEOUT: "30"
+    DB_POOL_RECYCLE: "3600"
+    SSO_COMMUNITY: osinfra
+    INITIAL_SUPERUSER_SSO_USERNAMES: ZhengZhenyu
+    ONEID_LOGIN_URL: https://id.test.osinfra.cn/login
+    ONEID_API_BASE: https://id.test.osinfra.cn
+    SSO_REDIRECT_URI: https://opengecko.test.osinfra.cn
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  # 使用 S3 存储时 uploads PVC 可保持 false
+  persistence:
+    uploads:
+      enabled: true
+      accessMode: ReadWriteMany
+      size: 5Gi
+      storageClass: "sfsturbo-subpath-sc"
+    data:
+      enabled: true
+      accessMode: ReadWriteMany
+      size: 5Gi
+      storageClass: "sfsturbo-subpath-sc" # 留空使用集群默认 StorageClass
+# ── 前端 ──────────────────────────────────────────────────────────
+frontend:
+  replicaCount: 1
+  image:
+    repository: swr.cn-north-4.myhuaweicloud.com/opensourceway/opengecko-website # 例如 registry.cn-hangzhou.aliyuncs.com/your-ns/opengecko-frontend
+    tag: main-375962
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+postgresql:
+  enabled: false
+minio:
+  enabled: false
+# ── Ingress ────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx # 按集群实际 IngressClass 修改（如 traefik、kong 等）
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+  hosts:
+    - host: opengecko.test.osinfra.cn # 替换为正式域名，如 opengecko.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: datastat-osinfra-cn-tls # 提前创建好证书 Secret，或接入 cert-manager
+      hosts:
+        - opengecko.test.osinfra.cn
+externalS3:
+  bucket: opengecko
+  endpointUrl: https://obs.ap-southeast-1.myhuaweicloud.com
+  publicUrl: https://obs.ap-southeast-1.myhuaweicloud.com/opengecko

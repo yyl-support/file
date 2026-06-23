@@ -1,0 +1,19 @@
+{{- with .Values.deployment }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ospatch.fullname" $ }}
+  namespace: {{ $.Values.namespace.name }}
+  {{- with .service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .service.port }}
+      targetPort: {{ .service.targetPort }}
+      name: {{ .service.name | default "http" }}
+  selector:
+    {{- include "ospatch.selectorLabels" $ | nindent 4 }}
+{{- end }}
