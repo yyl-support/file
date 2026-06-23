@@ -1,0 +1,63 @@
+# ═════════════════════════════════════════
+# 测试环境
+# ═════════════════════════════════════════
+
+flask_secret_key: "b02ecbd20743ccc94a96380c4ab43af1c63a312834d790c3e0a035389e49e2ce"
+
+oidc:
+  client_id: ""
+  client_secret: ""
+  authorize_url: "https://omapi.osinfra.cn/oneid/oidc/authorize"
+  token_url: "https://omapi.osinfra.cn/oneid/oidc/token"
+  userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/userinfo"
+  scope: "openid profile"
+  redirect_uri: "https://rag.test.osinfra.cn/api/v1/rag/auth/callback"
+
+rate_limit:
+  user_hourly_limit: 100
+  window_seconds: 3600
+
+rbac:
+  knowledge_upload_roles:
+    - huawei_maintainer
+    - robot_service
+  role_claim_mapping:
+    huawei_maintainer: "https://omapi.osinfra.cn/claims/roles"
+
+external_api:
+  enabled: true
+  host: "0.0.0.0"
+  port: 5001
+  debug: false
+
+# ═════════════════════════════════════════
+# 正式环境（上线后切换到这套）
+# ═════════════════════════════════════════
+
+# flask_secret_key: "<生成新的随机32字节>"
+
+# oidc:
+#   client_id: ""
+#   client_secret: ""
+#   authorize_url: "https://omapi.osinfra.cn/oneid/oidc/authorize"
+#   token_url: "https://omapi.osinfra.cn/oneid/oidc/token"
+#   userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/userinfo"
+#   scope: "openid profile"
+#   redirect_uri: "https://rag.openubmc.cn/api/v1/rag/auth/callback"
+#
+# rate_limit:
+#   user_hourly_limit: 100
+#   window_seconds: 3600
+#
+# rbac:
+#   knowledge_upload_roles:
+#     - huawei_maintainer
+#     - robot_service
+#   role_claim_mapping:
+#     huawei_maintainer: "https://omapi.osinfra.cn/claims/roles"
+#
+# external_api:
+#   enabled: true
+#   host: "0.0.0.0"
+#   port: 5001
+#   debug: false
