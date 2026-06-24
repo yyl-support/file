@@ -1,6 +1,6 @@
 # Issue #921 RAG API 测试命令
 
-> 测试环境地址：lightrag-cn4.test.osinfra.cn
+> 测试环境地址：lightrag.test.osinfra.cn
 
 ---
 
@@ -8,7 +8,7 @@
 
 浏览器访问：
 ```
-https://lightrag-cn4.test.osinfra.cn/api/v1/rag/auth/authorize
+https://lightrag.test.osinfra.cn/api/v1/rag/auth/authorize
 ```
 
 → OneID 登录 → 授权 → 回调返回 JSON，复制 `access_token` 和 `refresh_token`。
@@ -18,7 +18,7 @@ https://lightrag-cn4.test.osinfra.cn/api/v1/rag/auth/authorize
 ## 2. 健康检查（无需 token）
 
 ```bash
-curl https://lightrag-cn4.test.osinfra.cn/api/v1/rag/health
+curl https://lightrag.test.osinfra.cn/api/v1/rag/health
 ```
 
 ---
@@ -27,7 +27,7 @@ curl https://lightrag-cn4.test.osinfra.cn/api/v1/rag/health
 
 ```bash
 TOKEN="<access_token>"
-BASE="https://lightrag-cn4.test.osinfra.cn"
+BASE="https://lightrag.test.osinfra.cn"
 
 curl -X POST $BASE/api/v1/rag/retrieve \
   -H "Authorization: Bearer $TOKEN" \

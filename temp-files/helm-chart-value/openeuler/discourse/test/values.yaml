@@ -264,8 +264,8 @@ robot:
     host: lightrag.test.osinfra.cn
     path: /
     pathType: Prefix
-    # TODO: 为 lightrag.test.osinfra.cn 准备证书 secret；若 discourse-tls 为 *.test.osinfra.cn 通配证书，可改填 discourse-tls
-    secretName: lightrag-rag-tls
+    # 复用 *.test.osinfra.cn 通配证书
+    secretName: discourse-tls
     annotations:
       nginx.ingress.kubernetes.io/proxy-body-size: "20m"  # knowledge/upload 传文件需放大请求体
       # 注意：forum-robot 为明文 HTTP:5000，切勿设置 backend-protocol: HTTPS

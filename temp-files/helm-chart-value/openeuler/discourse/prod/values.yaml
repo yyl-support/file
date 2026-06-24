@@ -260,11 +260,11 @@ robot:
   ingress:
     enabled: true
     name: forum-robot-rag-ingress
-    # TODO: 确认 prod RAG 对外域名（test 为 lightrag.test.osinfra.cn，此处按惯例取 lightrag.osinfra.cn，需运维/OneID 最终确认）
+    # TODO: 确认 prod RAG 对外域名
     host: lightrag.osinfra.cn
     path: /
     pathType: Prefix
-    # TODO: 为上面的 host 准备证书 secret；discourse-tls 是 forum.openeuler.org 证书，不适用，需新建 lightrag-rag-tls
+    # TODO: discourse-tls 是 forum.openeuler.org 证书，不适用；需新建证书 secret
     secretName: lightrag-rag-tls
     annotations:
       nginx.ingress.kubernetes.io/proxy-body-size: "20m"  # knowledge/upload 传文件需放大请求体
