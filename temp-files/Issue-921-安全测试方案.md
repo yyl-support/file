@@ -12,7 +12,7 @@
 | GET | `/api/v1/rag/auth/authorize` | OIDC 授权入口 | 否 |
 | GET | `/api/v1/rag/auth/callback` | OIDC 回调 | 否 |
 | POST | `/api/v1/rag/auth/refresh` | 刷新 token | 否（带 refresh_token） |
-| GET | `/api/v1/rag/health` | 健康检查 | 否 |
+| GET | `/health` | 健康检查 | 否 |
 | POST | `/api/v1/rag/retrieve` | RAG 检索（透传 /query） | 是 |
 | GET | `/api/v1/rag/documents/status_counts` | 文档状态统计（透传） | 是 |
 | GET | `/api/v1/rag/documents/pipeline_status` | 管道状态（透传） | 是 |
@@ -229,7 +229,7 @@ curl -s -o /dev/null -w "%{http_code}" -X POST $BASE/api/v1/rag/retrieve \
 ### 6.1 TLS 强制
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}" "http://$BASE/api/v1/rag/health"
+curl -s -o /dev/null -w "%{http_code}" "http://$BASE/health"
 # 预期: 拒绝连接或重定向 HTTPS
 ```
 
@@ -237,7 +237,7 @@ curl -s -o /dev/null -w "%{http_code}" "http://$BASE/api/v1/rag/health"
 
 ```bash
 # health 仅 GET
-curl -s -o /dev/null -w "%{http_code}" -X POST $BASE/api/v1/rag/health
+curl -s -o /dev/null -w "%{http_code}" -X POST $BASE/health
 # 预期: 405
 
 # status_counts 仅 GET
@@ -304,7 +304,7 @@ done
 ### 8.3 健康检查
 
 ```bash
-curl -s $BASE/api/v1/rag/health | python3 -m json.tool
+curl -s $BASE/health | python3 -m json.tool
 # 预期: {"status":"healthy","service":"openubmc-rag-api"}
 # 不暴露内部 IP、数据库配置
 ```

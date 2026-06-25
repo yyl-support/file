@@ -12,7 +12,7 @@ TOKEN="<access_token>"
 ## 健康检查（无需 token）
 
 ```bash
-curl -s $BASE/api/v1/rag/health
+curl -s $BASE/health
 ```
 
 ---
