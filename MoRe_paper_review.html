@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MoRe 论文解读 · Motion-aware Feed-forward 4D Reconstruction Transformer</title>
+<style>
+  :root{
+    --bg:#fafafa; --panel:#ffffff; --ink:#111827; --ink-2:#374151; --muted:#6b7280;
+    --line:#e5e7eb; --line-2:#f1f5f9;
+    --brand:#4f46e5; --brand-soft:#eef2ff; --brand-2:#6366f1;
+    --accent:#f59e0b; --accent-soft:#fff7ed;
+    --good:#10b981; --bad:#ef4444;
+    --code:#0f172a; --code-bg:#f1f5f9;
+    --shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.08);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b0d12; --panel:#11141b; --ink:#e5e7eb; --ink-2:#cbd5e1; --muted:#94a3b8;
+      --line:#1f2430; --line-2:#171b24;
+      --brand:#a5b4fc; --brand-soft:#1e1b4b; --brand-2:#818cf8;
+      --accent:#fbbf24; --accent-soft:#3a2410;
+      --code:#e2e8f0; --code-bg:#0f172a;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.5);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",Helvetica,Arial,sans-serif;
+    line-height:1.7; font-size:16px;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:48px 24px 96px}
+  a{color:var(--brand); text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{
+    font-family:"JetBrains Mono",Consolas,Menlo,monospace;
+    background:var(--code-bg); color:var(--code);
+    padding:1px 6px; border-radius:4px; font-size:.92em;
+  }
+  pre{
+    background:var(--code-bg); color:var(--code);
+    padding:14px 16px; border-radius:8px; overflow-x:auto;
+    font-family:"JetBrains Mono",Consolas,Menlo,monospace; font-size:.88em; line-height:1.6;
+    border:1px solid var(--line);
+  }
+  h1,h2,h3,h4{color:var(--ink); line-height:1.3; margin:1.6em 0 .6em}
+  h1{font-size:2.1rem; margin-top:.2em; letter-spacing:-.01em}
+  h2{font-size:1.55rem; border-bottom:1px solid var(--line); padding-bottom:.35em}
+  h3{font-size:1.18rem}
+  h4{font-size:1.02rem; color:var(--ink-2)}
+  p{margin:.7em 0}
+  ul,ol{padding-left:1.4em; margin:.6em 0}
+  li{margin:.25em 0}
+  hr{border:0; border-top:1px solid var(--line); margin:2.2em 0}
+
+  /* header */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:14px 24px; border-bottom:1px solid var(--line);
+    background:var(--panel); position:sticky; top:0; z-index:10; backdrop-filter:saturate(140%) blur(6px);
+  }
+  .topbar .brand{font-weight:700; letter-spacing:-.01em}
+  .topbar nav{display:flex; gap:14px; flex-wrap:wrap; font-size:.92rem}
+  .topbar nav a{color:var(--ink-2)}
+  .topbar nav a:hover{color:var(--brand)}
+
+  /* hero */
+  .hero{margin-bottom:8px}
+  .eyebrow{
+    display:inline-block; font-size:.78rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--brand); background:var(--brand-soft); padding:4px 10px; border-radius:999px;
+  }
+  .meta{
+    display:flex; flex-wrap:wrap; gap:8px 14px; margin:14px 0 6px; color:var(--muted); font-size:.92rem;
+  }
+  .meta span{display:inline-flex; align-items:center; gap:6px}
+  .meta .dot{width:4px; height:4px; border-radius:50%; background:var(--muted); display:inline-block}
+
+  /* tldr */
+  .tldr{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; box-shadow:var(--shadow); margin:18px 0 6px;
+  }
+  .tldr h3{margin-top:0}
+  .tldr ol{margin:.2em 0 0}
+
+  /* cards */
+  .cards{display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:14px 0}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .card h4{margin:.1em 0 .4em; color:var(--brand)}
+  .card p{margin:.2em 0; color:var(--ink-2)}
+  @media (max-width:640px){ .cards{grid-template-columns:1fr} }
+
+  /* callout */
+  .callout{
+    border-left:3px solid var(--accent); background:var(--accent-soft);
+    padding:12px 14px; border-radius:0 8px 8px 0; margin:14px 0; font-size:.95rem;
+  }
+  .callout.info{border-color:var(--brand); background:var(--brand-soft)}
+  .callout b{color:var(--ink)}
+
+  /* tables */
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:.92rem; background:var(--panel); border-radius:8px; overflow:hidden; box-shadow:var(--shadow)}
+  th,td{padding:8px 10px; border-bottom:1px solid var(--line); text-align:right; vertical-align:middle}
+  th:first-child,td:first-child{text-align:left}
+  thead th{background:var(--line-2); color:var(--ink-2); font-weight:600; font-size:.82rem; letter-spacing:.02em}
+  tbody tr:last-child td{border-bottom:none}
+  .hl{color:var(--brand); font-weight:700}
+
+  /* figure */
+  figure{margin:18px 0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; box-shadow:var(--shadow)}
+  figcaption{font-size:.88rem; color:var(--muted); text-align:center; margin-top:8px}
+  figure img{display:block; max-width:100%; height:auto; margin:0 auto; border-radius:6px}
+
+  /* details */
+  details{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:12px 0; box-shadow:var(--shadow)}
+  details>summary{cursor:pointer; font-weight:600; color:var(--ink-2)}
+  details[open]>summary{color:var(--brand)}
+  details>div{margin-top:10px}
+
+  /* footer */
+  .foot{margin-top:48px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:.88rem}
+  .tag{display:inline-block; font-size:.75rem; padding:2px 8px; border-radius:999px; background:var(--line-2); color:var(--ink-2); margin-right:4px}
+
+  /* small utils */
+  .small{font-size:.88rem; color:var(--muted)}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media (max-width:640px){ .grid-2{grid-template-columns:1fr} }
+  .scrolltop{position:fixed; right:18px; bottom:18px; background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:8px 12px; box-shadow:var(--shadow); color:var(--ink-2); font-size:.85rem}
+  .img-fallback{background:var(--line-2); color:var(--muted); padding:24px; text-align:center; border-radius:6px; font-size:.9rem}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">MoRe 解读</div>
+  <nav>
+    <a href="#tldr">摘要</a>
+    <a href="#bg">背景</a>
+    <a href="#method">方法</a>
+    <a href="#exp">实验</a>
+    <a href="#train">训练</a>
+    <a href="#review">点评</a>
+    <a href="#ref">参考</a>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <span class="eyebrow">CVPR 2026 · arXiv 2603.05078v2</span>
+    <h1>MoRe: Motion-aware Feed-forward 4D Reconstruction Transformer</h1>
+    <div class="meta">
+      <span>Juntong Fang, Zequn Chen, Weiqi Zhang, Donglin Di, Xuancheng Zhang, Chengmin Yang, Yu-Shen Liu</span>
+      <span class="dot"></span>
+      <span>清华大学软件学院 · 理想汽车 Li Auto</span>
+      <span class="dot"></span>
+      <span>Submitted 5 Mar 2026 · v2 6 Mar 2026</span>
+    </div>
+    <p class="small">
+      项目页：<a href="https://hellexf.github.io/MoRe/" target="_blank" rel="noopener">hellexf.github.io/MoRe</a>
+      &nbsp;·&nbsp;
+      论文：<a href="https://arxiv.org/abs/2603.05078" target="_blank" rel="noopener">arxiv.org/abs/2603.05078</a>
+      &nbsp;·&nbsp;
+      DOI：<a href="https://doi.org/10.48550/arxiv.2603.05078" target="_blank" rel="noopener">10.48550/arXiv.2603.05078</a>
+    </p>
+    <p class="small" style="margin-top:6px">本页插图均来自论文 arXiv 公开 HTML 版本（CC BY 4.0）。需要联网才能加载。</p>
+  </section>
+
+  <!-- Figure 1: teaser -->
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x1.png" alt="MoRe teaser"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.1 加载失败，请直接打开 <a href=\'https://arxiv.org/html/2603.05078v2/x1.png\' target=\'_blank\'>arxiv.org/html/2603.05078v2/x1.png</a></div>'">
+    <figcaption>论文 Fig.1：MoRe 通过 Attention-Forcing 训练策略把"动态运动"和"静态结构"在特征空间里显式解耦，推理时支持流式输入。</figcaption>
+  </figure>
+
+  <div class="tldr" id="tldr">
+    <h3>TL;DR</h3>
+    <ol>
+      <li><b>问题</b>：单目视频的 4D 重建中，运动物体会"污染"相机位姿估计；现有方案要么训练数据以静态为主，要么依赖多阶段优化 + 辅助光流/分割，难以实时与流式部署。</li>
+      <li><b>方法</b>：MoRe 是 <i>feed-forward + 流式</i> 的 4D 重建 Transformer。三招：<b>Attention-Forcing</b>（训练时把 camera token 的注意力对齐到 GT 运动掩码，推理时零开销）、<b>Grouped Causal Attention</b>（同帧双向 + 跨帧因果，配合 KV cache 支持流式）、<b>BA-like 精修</b>（序列结束再做一次全局 token 聚合，相当于一个轻量 BA）。</li>
+      <li><b>结果</b>：在 Sintel / TUM-dynamics / Bonn / KITTI 上 Pose & Depth 全面 SOTA（特别在 streaming 类方法中），KITTI 512×144 上 <b>30.09 FPS</b>（A800），论文称速度/质量 Pareto 优于同期 Stream3R / CUT3R / WinT3R / StreamVGGT / Spann3R。</li>
+    </ol>
+  </div>
+
+  <!-- 1. Background -->
+  <h2 id="bg">1. 背景与动机</h2>
+  <p>4D 重建的目标是同时恢复每帧相机位姿 <code>{gₜ∈ℝ⁹}</code> 与稠密几何 <code>{Dₜ, Pₜ}</code>，是 AR/VR、机器人、数字孪生、沉浸式内容创作的基础模块（论文 §1）。</p>
+  <h3>两条主流路线，各有痛点</h3>
+  <div class="grid-2">
+    <div class="card">
+      <h4>经典几何法 (SfM/MVS/SLAM)</h4>
+      <p>在受控静态环境下精度高，但一旦物体形变、运动或相机大范围运动会显著退化；动态 SLAM 需额外分割/光流管线。</p>
+    </div>
+    <div class="card">
+      <h4>Feed-forward 深度法 (DUSt3R/MASt3R/MapAnything/VGGT/Fast3R)</h4>
+      <p>单次前向得到 pose + depth，泛化强；但训练数据以静态为主，<b>遇到运动物体会把"运动"误当"相机"建模</b>，且注意力随序列长度二次增长，难做流式。</p>
+    </div>
+    <div class="card">
+      <h4>混合优化管线 (MonST3R / Align3R / MegaSaM / Uni4D)</h4>
+      <p>集成深度 + 光流 + 运动分割 + 迭代 BA，能处理动态但<b>多阶段、计算贵、难实时</b>。</p>
+    </div>
+    <div class="card">
+      <h4>流式方法 (CUT3R / Stream3R / WinT3R / StreamVGGT)</h4>
+      <p>借用 LLM causal attention + KV cache 支持长序列；缺点是标准 causal mask 把同一帧内 token 也压成 flat 序列，<b>破坏帧内空间对应</b>，且误差会累积漂移。</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>MoRe 的核心问题陈述</b>：能否设计一个 <i>fast + generalizable</i> 的框架，<i>同时</i> 处理相机和物体运动，支持流式/长序列，并给出准确的 pose + depth —— 且在推理时<b>不依赖任何显式运动先验</b>。
+  </div>
+
+  <h2 id="contrib">2. 核心贡献</h2>
+  <ol>
+    <li>统一框架 MoRe，<b>联合预测</b>相机位姿、深度、点图和运动掩码，支持动态 4D 场景。</li>
+    <li><b>Attention-Forcing</b> 策略：训练期显式监督 + 隐式几何一致性，把"动 vs 静"从特征空间中分离，推理期完全 <i>test-time-free</i>。</li>
+    <li><b>时序感知流式推理</b>：Grouped Causal Attention + BA-like token 聚合，兼顾长时依赖与实时性。</li>
+    <li>在多个 benchmark 上取得 SOTA，验证零样本泛化能力。</li>
+  </ol>
+
+  <!-- 3. Method -->
+  <h2 id="method">3. 方法详解</h2>
+
+  <h3>3.1 问题形式化</h3>
+  <p>给定单目视频 <code>{Iₜ∈ℝ^(3×H×W)}, t=1..T</code>，目标输出每帧的 <code>{Dₜ, gₜ, Pₜ, Mₜ}</code>，即 <b>流式</b>地联合估计 depth / camera (9D, 含内外参+尺度) / 动态点图 / 运动掩码 (论文 Eq.2)：</p>
+<pre>{Dₜ, gₜ, Pₜ, Mₜ}ₜ₌₁ᵀ = f_θ( {Cₜ}ₜ₌₁ᵀ⁻¹, I_{T-1} )</pre>
+  <p>其中 <code>Cₜ</code> 是第 t 帧的缓存信息。运动掩码在训练时是 GT，<b>推理时由模型自己输出，不再依赖外部 mask</b>。</p>
+
+  <h3>3.2 Attention-Forcing (核心创新 ①)</h3>
+  <h4>动机：VGGT 为什么在动态场景会失败？</h4>
+  <p>论文 §3.2 给出关键观察：把 VGGT 的 camera token 注意力图可视化后，<b>当场景中存在运动物体时，camera token 的注意力会"被动态区吸走"</b>，均匀地散布到整个图像上（论文 Fig. 3 右），导致相机估计被严重污染。</p>
+
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x3.png" alt="Camera token attention comparison"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.3 加载失败</div>'">
+    <figcaption>论文 Fig.3：camera token 注意力可视化。VGGT 在运动场景下注意力被"吸"到运动区（左静态场景正常 / 右动态场景异常）。</figcaption>
+  </figure>
+
+  <h4>做法</h4>
+  <p>把 GT 运动掩码 <code>Mₜ</code> 按 patch size <code>s×s</code> 切成 mask token <code>{mᵢ}</code>，定义每个 image token 的"运动得分"（论文 Eq.3）：</p>
+<pre>aᵢ = 1 − (1/s²) · Σ_{(u,v)∈mᵢ} mᵢ(u,v)   ∈ [0,1]</pre>
+  <p><code>aᵢ</code> 越大表示该 token 越"静"。然后在训练时用 Eq.(8) 的 motion-gated 损失约束 camera token 的注意力分布 <code>{αᵢ}</code>：</p>
+<pre>L_attn = (1/M) · Σᵢ max(0, aᵢ − C) · αᵢ</pre>
+  <p><b>关键设计</b>：阈值 <code>C</code> 让"<i>静态区</i>"的 token 不被强制参与 loss 分配，<i>动态区</i>的 token 才被监督"压低注意力"，<b>避免 KL-based 损失在静态场景下引入的归一化偏置</b>（论文附录 §9.3 给出 KL vs motion-gated 的消融对比）。</p>
+  <div class="callout info">
+    <b>推理时完全 test-time-free</b>：没有引入任何额外输出头或后处理。MoRe 仍然以原始端到端形式输出 pose/depth/point-map/mask，但内部特征已"学会"忽略动态物。
+  </div>
+
+  <h3>3.3 Grouped Causal Attention (核心创新 ②)</h3>
+  <h4>为什么不能直接搬 LLM 的 causal mask？</h4>
+  <p>LLM 把 token 当成平坦序列，用上三角 causal mask 强制自回归。但图像 token 是 <b>2D 空间结构</b>，同一帧内的 token 必须<b>互相看见</b>才能维护空间一致性。</p>
+  <p>MoRe 的解法：<b>Frame-wise Causal Mask</b> —— 跨帧因果，同帧内全连接（论文 Fig. 4）。</p>
+
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x4.png" alt="Grouped Causal Attention mask"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.4 加载失败</div>'">
+    <figcaption>论文 Fig.4：左为标准上三角 causal mask（破坏帧内空间对应），右为 MoRe 使用的 frame-wise causal mask（同帧全连接、跨帧因果）。</figcaption>
+  </figure>
+
+  <h4>流式推理 + KV cache</h4>
+  <p>首帧初始化 KV cache，之后每帧 <code>Iₜ</code> 只需与历史 KV 拼接后做 attention（论文 Eq.4）。配合 <b>sliding window</b>（论文 §8.1 提及，参考 StreamingLLM / Attention Sink）避免 KV 无限增长。</p>
+
+  <h3>3.4 BA-like 精修 (核心创新 ③)</h3>
+  <p>严格因果下 camera token 只能看"自己 + 过去"，长序列会丢失全局一致性。MoRe 的解法很朴素：</p>
+  <ol>
+    <li>流式阶段先快速得到一份 camera token <code>Qₜᶜᵃᵐ</code> 与每帧 KV；</li>
+    <li>序列结束后，对每个 camera token <b>再跑一次</b> 跨全部 <code>[K₁:ₜ, V₁:ₜ]</code> 的 attention（论文 Eq.5），相当于一个轻量 BA，<b>不增加额外监督</b>，仅靠特征对齐修正累积漂移。</li>
+  </ol>
+  <p>训练时通过 <b>复制 camera token</b> 显式监督两路（streaming 路径 + 聚合路径）的相对位姿（论文 §3.4 末尾），其中复制 token 全时序保留梯度，原始 token 早期帧 detach，避免 BPTT 过深。</p>
+
+  <h3>3.5 训练目标（四类损失）</h3>
+  <table>
+    <thead><tr><th>损失</th><th>公式</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td>Confidence-weighted regression</td><td><code>L_conf = Σ (ĉᵢ·‖ŷᵢ−yᵢ‖² − λ·log ĉᵢ)</code> · Eq.(6)</td><td>深度/点图回归，同时校准置信度</td></tr>
+      <tr><td>Motion BCE</td><td><code>L_motion = −(1/N)Σ [Mᵢ log M̂ᵢ + ...]</code> · Eq.(7)</td><td>运动掩码监督</td></tr>
+      <tr><td>Attention alignment</td><td><code>L_attn = (1/M)Σ max(0, aᵢ−C)·αᵢ</code> · Eq.(8)</td><td>把 camera token 注意力拉向静态区</td></tr>
+      <tr><td>Camera (relative pose)</td><td><code>L_cam = (1/T(T−1))Σ (θ_R̂ + ‖t̂−t‖)</code> · Eq.(9)</td><td>两路 camera token 上的相对位姿监督</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.6 整体 Pipeline（论文 Fig. 2）</h3>
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x2.png" alt="MoRe method overview"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.2 加载失败</div>'">
+    <figcaption>论文 Fig.2：MoRe 整体方法示意。训练时用 Attention-Forcing 让注意力对齐到 GT 运动掩码；流式阶段用 Grouped Causal Attention 替换全局 attention。</figcaption>
+  </figure>
+
+  <!-- 4. Experiments -->
+  <h2 id="exp">4. 实验与结果</h2>
+
+  <h3>4.1 相机位姿估计 (论文 Table 1)</h3>
+  <p>在 Sintel（合成动态）、TUM-dynamics（真实动态）、Bonn（真实动态）、ScanNet（静态室内）四个数据集，<b>Sim(3) 对齐后</b>报告 ATE↓ / RPE<sub>trans</sub>↓ / RPE<sub>rot</sub>↓。MoRe 在 streaming 类中 SOTA，与 full-attention SOTA π³ 持平但训练数据更少。</p>
+  <details>
+    <summary>展开/折叠完整 Table 1 (Pose Estimation)</summary>
+    <div>
+      <p class="small">注：FA = Full Attention。最好的 streaming 结果以高亮标出。</p>
+      <table>
+        <thead>
+          <tr><th>Method</th><th>Type</th><th colspan="3">Sintel</th><th colspan="3">Bonn</th><th colspan="3">TUM-dynamics</th><th colspan="3">ScanNet (static)</th></tr>
+          <tr><th></th><th></th><th>ATE↓</th><th>RPE<sub>t</sub>↓</th><th>RPE<sub>r</sub>↓</th><th>ATE↓</th><th>RPE<sub>t</sub>↓</th><th>RPE<sub>r</sub>↓</th><th>ATE↓</th><th>RPE<sub>t</sub>↓</th><th>RPE<sub>r</sub>↓</th><th>ATE↓</th><th>RPE<sub>t</sub>↓</th><th>RPE<sub>r</sub>↓</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>MapAnything</td><td>FA</td><td>0.2104</td><td>0.0919</td><td>2.7396</td><td>0.0248</td><td>0.0132</td><td>0.6927</td><td>0.0244</td><td>0.0161</td><td>0.3871</td><td>0.0603</td><td>0.0280</td><td>0.8490</td></tr>
+          <tr><td>VGGT</td><td>FA</td><td>0.1715</td><td>0.0617</td><td>0.4695</td><td>0.0141</td><td>0.0100</td><td>0.6323</td><td>0.0109</td><td>0.0092</td><td>0.2992</td><td>0.0347</td><td>0.0151</td><td>0.3758</td></tr>
+          <tr><td>MoRe (FA)</td><td>FA</td><td>0.0877</td><td>0.0580</td><td>0.3899</td><td>0.0138</td><td>0.0099</td><td>0.6267</td><td>0.0115</td><td>0.0088</td><td>0.2980</td><td>0.0375</td><td>0.0147</td><td>0.3847</td></tr>
+          <tr><td>Spann3R</td><td>Streaming</td><td>0.3313</td><td>0.1111</td><td>4.4952</td><td>0.0344</td><td>0.0212</td><td>2.2539</td><td>0.0421</td><td>0.0333</td><td>0.8120</td><td>0.0651</td><td>0.0339</td><td>0.9348</td></tr>
+          <tr><td>CUT3R</td><td>Streaming</td><td>0.2163</td><td>0.0756</td><td>0.6518</td><td>0.0420</td><td>0.0094</td><td>0.6825</td><td>0.0438</td><td>0.0134</td><td>0.4210</td><td>0.0929</td><td>0.0223</td><td>0.5811</td></tr>
+          <tr><td>StreamVGGT</td><td>Streaming</td><td>0.4159</td><td>0.1097</td><td>1.1056</td><td>0.0451</td><td>0.0148</td><td>0.5982</td><td>0.0760</td><td>0.0317</td><td>0.7012</td><td>0.1436</td><td>0.0437</td><td>1.6533</td></tr>
+          <tr><td>WinT3R</td><td>Streaming</td><td>0.2251</td><td>0.0972</td><td>1.0922</td><td>0.0366</td><td>0.0084</td><td>0.7170</td><td>0.0700</td><td>0.0221</td><td>0.7325</td><td>0.0618</td><td>0.0204</td><td>0.7028</td></tr>
+          <tr><td>Stream3R</td><td>Streaming</td><td>0.2144</td><td>0.0764</td><td>0.8674</td><td>0.0235</td><td>0.0108</td><td>0.6664</td><td>0.0240</td><td>0.0123</td><td>0.3180</td><td>0.0521</td><td>0.0215</td><td>0.9919</td></tr>
+          <tr><td class="hl">MoRe</td><td>Streaming</td><td class="hl">0.1474</td><td>0.0776</td><td class="hl">0.6157</td><td class="hl">0.0211</td><td>0.0117</td><td class="hl">0.6496</td><td>0.0260</td><td>0.0122</td><td>0.3201</td><td>0.0605</td><td>0.0212</td><td class="hl">0.5595</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Sintel ATE：MoRe streaming 0.1474 显著优于 Stream3R 0.2144（≈ −31%）。Bonn/TUM-dynamics 上 RPE<sub>rot</sub> 全面领先 streaming baseline。ScanNet（静态）上 MoRe 仍保持有竞争力的 RPE<sub>rot</sub>=0.5595，说明 Attention-Forcing 没有"伤害"静态场景。</p>
+    </div>
+  </details>
+
+  <h3>4.2 视频深度估计 (论文 Table 2)</h3>
+  <p>Sintel / Bonn / TUM-dynamics / KITTI 上 Abs-Rel↓ / δ&lt;1.25↑。</p>
+  <details>
+    <summary>展开/折叠完整 Table 2 (Video Depth)</summary>
+    <div>
+      <table>
+        <thead>
+          <tr><th>Method</th><th>Type</th><th colspan="2">Sintel</th><th colspan="2">Bonn</th><th colspan="2">TUM-dyn</th><th colspan="2">KITTI</th></tr>
+          <tr><th></th><th></th><th>Abs-Rel↓</th><th>δ&lt;1.25↑</th><th>Abs-Rel↓</th><th>δ&lt;1.25↑</th><th>Abs-Rel↓</th><th>δ&lt;1.25↑</th><th>Abs-Rel↓</th><th>δ&lt;1.25↑</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Flare</td><td>FA</td><td>0.729</td><td>0.336</td><td>0.116</td><td>0.897</td><td>0.152</td><td>0.790</td><td>0.356</td><td>0.570</td></tr>
+          <tr><td>MapAnything</td><td>FA</td><td>0.632</td><td>0.461</td><td>0.125</td><td>0.859</td><td>0.241</td><td>0.813</td><td>0.277</td><td>0.742</td></tr>
+          <tr><td>VGGT</td><td>FA</td><td>0.387</td><td>0.584</td><td>0.055</td><td>0.970</td><td>0.132</td><td>0.901</td><td>0.073</td><td>0.961</td></tr>
+          <tr><td>MoRe (FA)</td><td>FA</td><td>0.335</td><td>0.645</td><td>0.055</td><td>0.971</td><td>0.120</td><td>0.902</td><td>0.066</td><td>0.967</td></tr>
+          <tr><td>Spann3R</td><td>Streaming</td><td>0.740</td><td>0.364</td><td>0.229</td><td>0.729</td><td>0.264</td><td>0.645</td><td>0.422</td><td>0.358</td></tr>
+          <tr><td>CUT3R</td><td>Streaming</td><td>1.363</td><td>0.434</td><td>0.076</td><td>0.949</td><td>0.160</td><td>0.856</td><td>0.124</td><td>0.873</td></tr>
+          <tr><td>StreamVGGT</td><td>Streaming</td><td>0.698</td><td>0.591</td><td>0.058</td><td>0.972</td><td>0.156</td><td>0.889</td><td>0.173</td><td>0.722</td></tr>
+          <tr><td>WinT3R</td><td>Streaming</td><td>0.830</td><td>0.537</td><td>0.071</td><td>0.912</td><td>0.177</td><td>0.808</td><td>0.201</td><td>0.601</td></tr>
+          <tr><td>Stream3R</td><td>Streaming</td><td>0.397</td><td>0.632</td><td>0.070</td><td>0.952</td><td>0.151</td><td>0.898</td><td>0.079</td><td>0.949</td></tr>
+          <tr><td class="hl">MoRe</td><td>Streaming</td><td class="hl">0.254</td><td class="hl">0.637</td><td>0.068</td><td>0.961</td><td>0.173</td><td>0.868</td><td class="hl">0.072</td><td class="hl">0.966</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Sintel Abs-Rel：MoRe streaming 0.254 显著优于 Stream3R 0.397（−36%），与自身 FA 0.335 相比提升 24%。KITTI 上 MoRe 0.072 / 0.966 反超部分 FA 方法。</p>
+    </div>
+  </details>
+
+  <h3>4.3 定性对比：Full-Attention（论文 Fig. 6）</h3>
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x6.png" alt="Qualitative comparison (full attention)"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.6 加载失败</div>'">
+    <figcaption>论文 Fig.6：MoRe (FA) 与其他方法在真实动态场景上的定性重建对比。</figcaption>
+  </figure>
+
+  <h3>4.4 定性对比：Streaming（论文 Fig. 7）</h3>
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x7.png" alt="Qualitative comparison (streaming)"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.7 加载失败</div>'">
+    <figcaption>论文 Fig.7：MoRe (Streaming) 与其他流式方法的定性对比，在速度与质量之间取得较优平衡。</figcaption>
+  </figure>
+
+  <h3>4.5 消融研究 (论文 Table 3 / 4)</h3>
+  <div class="cards">
+    <div class="card">
+      <h4>Attention-Forcing</h4>
+      <p>Sintel ATE：<code>w/o</code> 0.163 → <code>w/</code> 0.147；RPE<sub>rot</sub> 0.660 → 0.616。TUM-dyn ATE 0.028 → 0.026。验证了 motion mask 监督注意力对几何稳定性的帮助。</p>
+    </div>
+    <div class="card">
+      <h4>Grouped Causal Attention</h4>
+      <p>Sintel Abs-Rel：<code>w/o GCA</code> 0.277 → <code>w/ GCA</code> 0.254；δ&lt;1.25 0.592 → 0.637。Bonn/KITTI 同步提升。frame-wise mask 既保持时序因果又维护帧内空间一致。</p>
+    </div>
+    <div class="card">
+      <h4>BA-like Refinement</h4>
+      <p>去掉后 Sintel ATE 0.155 → full 0.147；RPE<sub>rot</sub> 0.619 → 0.616。提升虽小但稳定，体现"轻量后置"对累积漂移的修正。</p>
+    </div>
+  </div>
+
+  <h3>4.6 推理效率 (论文 Table 5 · KITTI 512×144, A800)</h3>
+  <p>FPS（越高越好）：VGGT <b>7.32</b> · Spann3R 13.55 (224×224) · CUT3R <b>16.58</b> · Stream3R<sub>β</sub> 12.95 · Stream3R<sub>α</sub> <b>23.48</b> · Stream3R<sub>β</sub>-W5 32.93 · <b>MoRe 30.09</b>。</p>
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x9.png" alt="Stream qualitative + efficiency"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.9 加载失败</div>'">
+    <figcaption>论文 Fig.9：MoRe 与同期 streaming 方法的定性 + 效率对比。</figcaption>
+  </figure>
+
+  <!-- 5. Training -->
+  <h2 id="train">5. 训练与数据</h2>
+
+  <h3>5.1 训练配置 (论文 §6)</h3>
+  <table>
+    <thead><tr><th>项</th><th>配置</th></tr></thead>
+    <tbody>
+      <tr><td>优化器</td><td>AdamW</td></tr>
+      <tr><td>迭代数</td><td>100K</td></tr>
+      <tr><td>学习率</td><td>peak 1×10⁻⁶（warmup + 余弦/类似调度，论文未给完整曲线）</td></tr>
+      <tr><td>每 iter 采样</td><td>2–24 帧 / 序列，时序间隔 1–5</td></tr>
+      <tr><td>图像尺寸</td><td>长边 518，短边随机 ×0.8–1.2</td></tr>
+      <tr><td>硬件</td><td>64 × NVIDIA A800，约 2 天</td></tr>
+      <tr><td>精度 / 显存</td><td>bfloat16 + gradient checkpointing</td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.2 训练数据 (12 个数据集)</h3>
+  <div class="cards">
+    <div class="card"><h4>动态</h4><p>Dynamic Replica · PointOdyssey · Spring · Virtual KITTI · Waymo · OmniWorld-Game</p></div>
+    <div class="card"><h4>静态 / 室内</h4><p>ScanNet · BlendedMVS · Hypersim · ARKitScenes · TartanAir</p></div>
+    <div class="card"><h4>物体级</h4><p>Co3Dv2</p></div>
+  </div>
+  <p class="small">为保证均衡，序列数较少的数据集按比例复制过采样。</p>
+
+  <h3>5.3 运动掩码生成 Pipeline (论文 §7)</h3>
+  <p>现有数据集普遍缺高质量运动掩码。MoRe 提出一个<u>可复现的伪标签生成流程</u>：用 SAM2 做语义分割、SEA-RAFT 估光流、GT pose + 内参算 ego flow，比较两者差异，2σ 之外即视为运动区 (Eq.10-12)。</p>
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x8.png" alt="Motion mask extraction qualitative"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.8 加载失败</div>'">
+    <figcaption>论文 Fig.8：在 DAVIS 数据集上的运动掩码提取结果（raw 与 SAM2 精修后两版）。</figcaption>
+  </figure>
+
+  <h3>5.4 注意力对齐可视化 (论文 Fig. 10)</h3>
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x10.png" alt="Attention alignment visualization"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.10 加载失败</div>'">
+    <figcaption>论文 Fig.10：训练前后 camera token 的注意力热力图对比。注意训练后注意力被显著压制在动态物体上，集中在静态背景。</figcaption>
+  </figure>
+
+  <h3>5.5 流式推理示意 (论文 Fig. 5)</h3>
+  <figure>
+    <img loading="lazy" src="https://arxiv.org/html/2603.05078v2/x5.png" alt="Streaming inference pipeline"
+         onerror="this.outerHTML='<div class=\'img-fallback\'>论文 Fig.5 加载失败</div>'">
+    <figcaption>论文 Fig.5：流式推理 pipeline。序列结束后用复制的 camera token 再做一次跨全部 KV 的 attention，作为轻量 BA-like 精修。</figcaption>
+  </figure>
+
+  <!-- 6. review -->
+  <h2 id="review">6. 个人点评</h2>
+
+  <h3>6.1 优势</h3>
+  <ul>
+    <li><b>test-time-free 解决动态污染</b>：Attention-Forcing 是个非常优雅的 trick —— 没引入新的 head、没引入光流/分割的额外监督，推理时单次前向，且在 Sintel/Bonn/TUM-dynamics 上 streaming SOTA。</li>
+    <li><b>流式 + 长序列友好</b>：Frame-wise causal + KV cache + sliding window，KITTI 30 FPS 实测，论文给出多种长序列定性结果。</li>
+    <li><b>端到端多任务</b>：depth / pose / point-map / motion-mask 统一一个 Transformer，无需分阶段管线。</li>
+    <li><b>训练成本相对友好</b>：64×A800 × 2 天，<i>对</i> 12 个数据集的覆盖范围而言，门槛并不夸张。</li>
+  </ul>
+
+  <h3>6.2 局限 (论文 §10 直接总结)</h3>
+  <ul>
+    <li><b>依赖运动掩码标注</b>：Attention-Forcing 训练时强依赖 GT mask 质量，论文自建了一个 SAM2 + SEA-RAFT 的伪标签管线，但本质上仍是"伪监督"。</li>
+    <li><b>长时依赖仍有限</b>：流式 + sliding window 对极长序列的全局一致性仍是近似方案；BA-like 精修是事后的、不能用于在线场景。</li>
+    <li><b>极快/非刚体运动</b>：rapid motion + motion blur 下，attention alignment 不可靠（论文原文已点出）。</li>
+    <li><b>遮挡与外观剧变</b>：当前未显式处理；4D 一致性在严重遮挡下仍会出 artifact。</li>
+  </ul>
+
+  <h3>6.3 一些延伸思考</h3>
+  <ul>
+    <li><b>与 π³ / VGGT 的关系</b>：MoRe 选择把"运动感知"做成训练时的隐式偏置，而不是网络架构上的硬分支。这条路线在工业部署里通常更受欢迎 —— 推理 pipeline 不变。是否会在更大 backbone（如 7B 级 VLM）上依然有效，值得后续工作验证。</li>
+    <li><b>关于 attention-forcing 损失的扩展性</b>：motion-gated 损失 (Eq.8) 实际是一个通用"先验对齐"框架 —— 未来可被光流、不确定性、深度边界等替代监督替换，把"软知识"注入 Transformer。</li>
+    <li><b>BA-like 精修的工程含义</b>：它把 BA 思想（多次最小化重投影误差）替换为"额外一次 attention"，从数值优化变成了<i>特征空间内的近似 BA</i>。在 streaming 框架下这种替换尤其划算。</li>
+    <li><b>对 AR/AR 眼镜的潜在影响</b>：30 FPS 流式 + test-time-free 极贴近 AR 眼镜的算力/功耗预算，是工业落地最有说服力的组合。</li>
+  </ul>
+
+  <h3>6.4 一句话总结</h3>
+  <div class="callout">
+    MoRe 的核心是<i>把"动态物会污染相机估计"这件事从数据分布问题</i>，<b>变成一个可监督的注意力先验</b>；再用 frame-wise causal 把这套方法低成本地搬到流式 + KV cache 框架里。对想做 4D 重建落地的工程团队，这是 2026 年最值得精读的一篇。
+  </div>
+
+  <h2 id="ref">7. 关键参考</h2>
+  <ul>
+    <li>论文：<a href="https://arxiv.org/abs/2603.05078" target="_blank" rel="noopener">arxiv.org/abs/2603.05078</a>（v2, 2026-03-06）</li>
+    <li>项目页：<a href="https://hellexf.github.io/MoRe/" target="_blank" rel="noopener">hellexf.github.io/MoRe</a></li>
+    <li>VGGT (CVPR'25)：<a href="https://arxiv.org/abs/2503.11692" target="_blank" rel="noopener">visual geometry grounded transformer</a></li>
+    <li>Stream3R (arXiv 2508.10893)：<a href="https://arxiv.org/abs/2508.10893" target="_blank" rel="noopener">scalable sequential 3D reconstruction with causal transformer</a></li>
+    <li>CUT3R (CVPR'25)：<a href="https://arxiv.org/abs/2412.07319" target="_blank" rel="noopener">continuous 3D perception with persistent state</a></li>
+    <li>π³ (arXiv 2507.13347)：<a href="https://arxiv.org/abs/2507.13347" target="_blank" rel="noopener">permutation-equivariant visual geometry learning</a></li>
+    <li>MonST3R (CVPR'25)：<a href="https://arxiv.org/abs/2411.03540" target="_blank" rel="noopener">a simple approach for estimating geometry in the presence of motion</a></li>
+    <li>SAM2 (arXiv 2408.00714)：<a href="https://arxiv.org/abs/2408.00714" target="_blank" rel="noopener">segment anything in images and videos</a></li>
+    <li>StreamingLLM (arXiv 2309.17453)：<a href="https://arxiv.org/abs/2309.17453" target="_blank" rel="noopener">efficient streaming language models with attention sinks</a></li>
+  </ul>
+
+  <footer class="foot">
+    <div>
+      <span class="tag">#4D Reconstruction</span>
+      <span class="tag">#Transformer</span>
+      <span class="tag">#Streaming</span>
+      <span class="tag">#Attention-Forcing</span>
+      <span class="tag">#CVPR 2026</span>
+    </div>
+    <p style="margin-top:10px">解读基于 arXiv:2603.05078v2 公开内容整理。所有定量数字与公式均来自论文正文与附录。插图直接来自论文 arxiv HTML 公开版本（CC BY 4.0），仅做图注翻译/重写，版权归原作者。</p>
+  </footer>
+
+</main>
+
+<a class="scrolltop" href="#">↑ 顶部</a>
+</body>
+</html>
