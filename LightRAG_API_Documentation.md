@@ -754,6 +754,8 @@ LightRAG 服务包含部分 Ollama API 兼容接口。
 
 ### 问题：
 
+https://arxiv.org/pdf/2603.05078
+
 发现的 Bug 🐞(kb_list)
 通过逐参数隔离确认:
 
