@@ -750,3 +750,32 @@ LightRAG 服务包含部分 Ollama API 兼容接口。
 **包含完整的检索数据，从 `data.chunks` 路径访问，这正是 `forum_client.py` 内部使用的路径。**
 
 > **当前 `rag_api.py` 的问题**: `retrieve()` 方法调 `/query` 并从 `response['context']['chunks']` 取数据——但这个路径在 LightRAG 的 `/query` 响应中**根本不存在**。`/query` 不返回 `context` 字段。应改为调 `/query/data` 并从 `response['data']['chunks']` 取数据。
+
+
+### 问题：
+
+https://arxiv.org/pdf/2603.05078
+
+发现的 Bug 🐞(kb_list)
+通过逐参数隔离确认:
+
+page_size < 10 → HTTP 422。实测 3/5/8 全失败,10/20 正常,page=2 也正常。硬下限是 10,但 schema 只写了"默认 20"、没说最小值。⚠️ 第一轮我曾怀疑 sort_by/status_filter 坏了,是误判——那些调用恰好都用了 page_size=3/5,真凶是 page_size。
+
+status_filter 完全失效 → HTTP 422(任何取值,连有 4123 篇文档的 PROCESSED 都 422)。讽刺的是工具说明里专门推荐用 status_filter=FAILED 排查失败文档——这个被官方文档推荐的用法本身是坏的。
+
+sort_by=file_size 返回 200 但不实际排序——输出顺序与默认(updated_at 倒序)完全一致,排序参数疑似被静默忽略。
+
+边界处理 — 正确 ✅
+kb_query 查询 < 3 字符("x"/"xy")→ 干净的 HTTP 400(服务端强制最小长度)
+分页 page=2 正常(has_prev/has_next 正确)
+老问题仍在 ⚠️
+响应体积过大:kb_status 夹带数千行 history_messages(52K),kb_query 动辄 74K–140K(实体描述用 <SEP> 拼接大量重复变体),都会溢出到文件,得用 jq 抽字段才好用。
+我已把这些操作性坑点存进记忆(openubmc-kb-mcp-tool-gotchas.md),下次直接用。
+
+给工具维护方的可落地建议(需要的话我整理成 issue):
+
+kb_list 修复 page_size < 10 的 422(或在 schema 标注 minimum: 10)
+修复 status_filter —— 当前完全不可用,且文档在推荐它
+sort_by 要么真正生效,要么从 schema 移除
+kb_status 截断/省略 history_messages;kb_query 实体描述去重,降低响应体积
+要我把第 1–4 条整理成一份给维护方的反馈/issue 吗?
