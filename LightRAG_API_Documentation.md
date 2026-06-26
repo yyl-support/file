@@ -1,3 +1,5 @@
+https://github.com/HellexF/MoRe/tree/main
+
 # LightRAG API 文档
 
 > 基于 `lightrag-cn4.test.osinfra.cn` 的 OpenAPI 规范分析生成。
