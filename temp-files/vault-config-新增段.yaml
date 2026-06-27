@@ -9,55 +9,55 @@ oidc:
   client_secret: ""
   authorize_url: "https://omapi.osinfra.cn/oneid/oidc/authorize"
   token_url: "https://omapi.osinfra.cn/oneid/oidc/token"
-  userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/userinfo"
+  userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/user"
   scope: "openid profile"
-  redirect_uri: "https://rag.test.osinfra.cn/api/v1/rag/auth/callback"
+  redirect_uri: ""
 
 rate_limit:
   user_hourly_limit: 100
   window_seconds: 3600
 
-rbac:
-  knowledge_upload_roles:
-    - huawei_maintainer
-    - robot_service
-  role_claim_mapping:
-    huawei_maintainer: "https://omapi.osinfra.cn/claims/roles"
+retrieval:
+  base_url: "https://lightrag-cn4.test.osinfra.cn"
+  query_endpoint: "/query"
+  verify_ssl: true
 
-external_api:
-  enabled: true
-  host: "0.0.0.0"
-  port: 5001
-  debug: false
+database:
+  host: "${DB_HOST}"
+  port: 5432
+  database: "${DB_NAME}"
+  user: "${DB_USER}"
+  password: "${DB_PASSWORD}"
+  sslmode: "prefer"
 
 # ═════════════════════════════════════════
-# 正式环境（上线后切换到这套）
+# 正式环境
 # ═════════════════════════════════════════
 
-# flask_secret_key: "<生成新的随机32字节>"
+flask_secret_key: ""
 
-# oidc:
-#   client_id: ""
-#   client_secret: ""
-#   authorize_url: "https://omapi.osinfra.cn/oneid/oidc/authorize"
-#   token_url: "https://omapi.osinfra.cn/oneid/oidc/token"
-#   userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/userinfo"
-#   scope: "openid profile"
-#   redirect_uri: "https://rag.openubmc.cn/api/v1/rag/auth/callback"
-#
-# rate_limit:
-#   user_hourly_limit: 100
-#   window_seconds: 3600
-#
-# rbac:
-#   knowledge_upload_roles:
-#     - huawei_maintainer
-#     - robot_service
-#   role_claim_mapping:
-#     huawei_maintainer: "https://omapi.osinfra.cn/claims/roles"
-#
-# external_api:
-#   enabled: true
-#   host: "0.0.0.0"
-#   port: 5001
-#   debug: false
+oidc:
+  client_id: ""
+  client_secret: ""
+  authorize_url: "https://omapi.osinfra.cn/oneid/oidc/authorize"
+  token_url: "https://omapi.osinfra.cn/oneid/oidc/token"
+  userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/user"
+  scope: "openid profile"
+  redirect_uri: "https://rag.openubmc.cn/api/v1/rag/auth/callback"
+
+rate_limit:
+  user_hourly_limit: 100
+  window_seconds: 3600
+
+retrieval:
+  base_url: ""
+  query_endpoint: "/query"
+  verify_ssl: true
+
+database:
+  host: "${DB_HOST}"
+  port: 5432
+  database: "${DB_NAME}"
+  user: "${DB_USER}"
+  password: "${DB_PASSWORD}"
+  sslmode: "prefer"
