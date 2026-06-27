@@ -170,28 +170,17 @@ gitcode:
   skip_dirs:
    - 'images'
 
+flask_secret_key: "37b69fe6daf6fe887ef538ab6d9fd97e235b6d0ac69e2106a5f70031ad200ffe"
+
 oidc:
   client_id: ""
   client_secret: ""
   authorize_url: "https://omapi.osinfra.cn/oneid/oidc/authorize"
   token_url: "https://omapi.osinfra.cn/oneid/oidc/token"
-  userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/userinfo"
+  userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/user"
   scope: "openid profile"
-  redirect_uri: "https://rag.test.osinfra.cn/api/v1/rag/auth/callback"
+  redirect_uri: "https://rag.openubmc.cn/api/v1/rag/auth/callback"
 
 rate_limit:
   user_hourly_limit: 100
   window_seconds: 3600
-
-rbac:
-  knowledge_upload_roles:
-    - huawei_maintainer
-    - robot_service
-  role_claim_mapping:
-    huawei_maintainer: "https://omapi.osinfra.cn/claims/roles"
-
-external_api:
-  enabled: true
-  host: "0.0.0.0"
-  port: 5001
-  debug: false
