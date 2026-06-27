@@ -173,13 +173,13 @@ gitcode:
 flask_secret_key: "37b69fe6daf6fe887ef538ab6d9fd97e235b6d0ac69e2106a5f70031ad200ffe"
 
 oidc:
-  client_id: ""
-  client_secret: ""
+  client_id: "6758f36c329a60ac4b25403c"
+  client_secret: "0acf030acd6d1bf50e05954d161772f8"
   authorize_url: "https://omapi.osinfra.cn/oneid/oidc/authorize"
   token_url: "https://omapi.osinfra.cn/oneid/oidc/token"
   userinfo_url: "https://omapi.osinfra.cn/oneid/oidc/user"
   scope: "openid profile"
-  redirect_uri: "https://rag.openubmc.cn/api/v1/rag/auth/callback"
+  redirect_uri: "<生产环境域名待定>/api/v1/rag/auth/callback"
 
 rate_limit:
   user_hourly_limit: 100
