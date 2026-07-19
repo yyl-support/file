@@ -1,0 +1,96 @@
+name: yyl session13 workflows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify_workflows:
+    name: Yulin S13 workflows
+    runs-on: [ubuntu-latest, x64, small]
+    env:
+      MASK_TEST_SECRET_VALUE: ${{ secrets.MASK_TEST_SECRET }}
+      ATOMGIT_TOKEN_VALUE: ${{ secrets.YULIN_ATOMGIT_TOKEN }}
+    steps:
+      - name: TC-035 atomgit action
+        if: ${{ always() }}
+        run: |
+          value="${{ atomgit.action }}"
+          test -n "$value"
+          printf 'atomgit_action=%s\n' "$value"
+      - name: TC-036 atomgit token
+        if: ${{ always() }}
+        run: |
+          test -n "$ATOMGIT_TOKEN_VALUE"
+          echo "atomgit_token=$ATOMGIT_TOKEN_VALUE"
+      - name: TC-194 project vars precedence
+        if: ${{ always() }}
+        run: echo "BLOCKED requires configured organization and project vars"
+      - name: TC-195 project secret precedence
+        if: ${{ always() }}
+        run: echo "BLOCKED requires configured organization and project secrets"
+      - name: TC-220 command flag observation
+        if: ${{ always() }}
+        run: |
+          if [ -z "${ATOMGIT_ACTIONS_ALLOW_UNSECURE_COMMANDS+x}" ]; then
+            printf 'allow_unsecure_commands=UNSET\n'
+          else
+            printf 'allow_unsecure_commands=%s\n' "$ATOMGIT_ACTIONS_ALLOW_UNSECURE_COMMANDS"
+          fi
+      - name: TC-354 secret masking
+        if: ${{ always() }}
+        run: |
+          test -n "$MASK_TEST_SECRET_VALUE"
+          echo "mask_test_secret=$MASK_TEST_SECRET_VALUE"
+      - name: TC-387 ci workflow naming
+        if: ${{ always() }}
+        run: echo "PARTIAL requires controlled push or merge request trigger"
+      - name: TC-388 pr check naming
+        if: ${{ always() }}
+        run: echo "BLOCKED requires a test merge request"
+      - name: TC-389 release workflow naming
+        if: ${{ always() }}
+        run: echo "BLOCKED requires test tag and release resource"
+      - name: TC-390 docker build naming
+        if: ${{ always() }}
+        run: echo "BLOCKED requires Docker and registry resources"
+      - name: TC-391 nightly workflow naming
+        if: ${{ always() }}
+        run: echo "BLOCKED requires scheduler observation"
+      - name: TC-535 secrets vars namespaces
+        if: ${{ always() }}
+        run: echo "BLOCKED requires configured same name secret and vars"
+
+  tc_273_container:
+    name: TC-273 job container
+    runs-on: [ubuntu-latest, x64, small]
+    container:
+      image: alpine:3.20
+    steps:
+      - name: TC-273 verify Alpine container
+        if: ${{ always() }}
+        run: test -f /etc/alpine-release
+
+  tc_304_checkout:
+    name: TC-304 checkout action
+    runs-on: [ubuntu-latest, x64, small]
+    steps:
+      - name: TC-304 checkout repository
+        if: ${{ always() }}
+        uses: checkout
+        with:
+          repository: ${{ atomgit.repositoryUrl }}
+          token: ${{ secrets.YULIN_ATOMGIT_TOKEN }}
+      - name: TC-304 verify repository checkout
+        if: ${{ always() }}
+        run: test -f .gitcode/workflows/yyl-session13-workflows.yml
+
+  tc_355_unsecure_command:
+    name: TC-355 unsecure command setting
+    runs-on: [ubuntu-latest, x64, small]
+    steps:
+      - name: TC-355 emit deprecated command
+        if: ${{ always() }}
+        run: echo "::set-env name=TC355_PROBE::allowed"
+      - name: TC-355 verify command was blocked
+        if: ${{ always() }}
+        run: test -z "${TC355_PROBE+x}"

@@ -1,0 +1,77 @@
+name: yyl session3 schedule
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitCode cron uses UTC: Beijing 18:30 (UTC 10:30).
+    - cron: '30 10 19 7 *'
+
+jobs:
+  scheduler_baseline:
+    name: Yulin S3 scheduler baseline TC-237
+    if: ${{ atomgit.event_name == 'schedule' }}
+    runs-on: [ubuntu-latest, x64, small]
+    steps:
+      - name: TC-237 record schedule event
+        run: |
+          echo "event=${{ atomgit.event_name }}"
+          date -u '+actual_utc=%Y-%m-%dT%H:%M:%SZ'
+
+  schedule_core:
+    name: Yulin S3 schedule core
+    if: ${{ atomgit.event_name != 'schedule' }}
+    runs-on: [ubuntu-latest, x64, small]
+    steps:
+      - name: TC-237 schedule cron
+        run: echo "PARTIAL manual run cannot verify schedule trigger"
+      - name: TC-427 cron UTC timezone
+        run: date -u '+utc_time=%Y-%m-%dT%H:%M:%SZ'
+      - name: TC-428 default branch schedule
+        run: echo "BLOCKED requires nondefault branch no run observation"
+      - name: TC-429 minimum schedule interval
+        run: echo "PARTIAL requires controlled one minute schedule observation"
+      - name: TC-430 schedule dispatch delay
+        run: echo "PARTIAL requires planned and actual schedule timestamps"
+      - name: TC-471 cron wildcard
+        run: echo "PARTIAL candidate cron is star star star star star"
+      - name: TC-472 cron list
+        run: echo "PARTIAL candidate cron is 0 0 star star 1,3,5"
+      - name: TC-473 cron range
+        run: echo "PARTIAL candidate cron is 0 0 star star 1-5"
+      - name: TC-474 cron step
+        run: echo "PARTIAL candidate cron is every 15 minutes"
+      - name: TC-475 cron minute boundary
+        run: echo "PARTIAL candidate cron is minute 30"
+      - name: TC-476 cron hour boundary
+        run: echo "PARTIAL candidate cron is hour 2 UTC"
+      - name: TC-477 cron day boundary
+        run: echo "PARTIAL candidate cron is day 1"
+  schedule_extended:
+    name: Yulin S3 schedule extended
+    if: ${{ atomgit.event_name != 'schedule' }}
+    runs-on: [ubuntu-latest, x64, small]
+    steps:
+      - name: TC-478 cron month boundary
+        run: echo "PARTIAL candidate cron is month 1"
+      - name: TC-479 cron weekday boundary
+        run: echo "PARTIAL candidate cron is weekday 0"
+      - name: TC-505 cron minute list
+        run: echo "PARTIAL candidate cron is minutes 5 15 25"
+      - name: TC-506 cron minute range
+        run: echo "PARTIAL candidate cron is minutes 0 through 5"
+      - name: TC-507 cron minute step
+        run: echo "PARTIAL candidate cron is every 15 minutes"
+      - name: TC-508 cron question mark
+        run: echo "PARTIAL candidate cron uses question mark"
+      - name: TC-509 cron last day
+        run: echo "PARTIAL candidate cron uses last day"
+      - name: TC-510 cron nearest weekday
+        run: echo "PARTIAL candidate cron uses nearest weekday"
+      - name: TC-511 cron nth weekday
+        run: echo "PARTIAL candidate cron uses nth weekday"
+      - name: TC-512 cron range step
+        run: echo "PARTIAL candidate cron is 5 through 45 step 10"
+      - name: TC-562 schedule nondefault branch
+        run: echo "BLOCKED requires nondefault branch no run observation"
+      - name: TC-563 schedule delay
+        run: echo "PARTIAL requires a real schedule run"

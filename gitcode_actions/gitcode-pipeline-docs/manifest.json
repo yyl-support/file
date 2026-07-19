@@ -1,0 +1,242 @@
+﻿[
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/",
+        "File":  "docs/help/home/org_project/pipeline.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/action-development/",
+        "File":  "docs/help/home/org_project/pipeline/action-development.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/action-development/action-yml-metadata-syntax",
+        "File":  "docs/help/home/org_project/pipeline/action-development/action-yml-metadata-syntax.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/action-development/plugin-development-guide",
+        "File":  "docs/help/home/org_project/pipeline/action-development/plugin-development-guide.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/action-development/plugin-packaging",
+        "File":  "docs/help/home/org_project/pipeline/action-development/plugin-packaging.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/action-development/plugin-project-structure",
+        "File":  "docs/help/home/org_project/pipeline/action-development/plugin-project-structure.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/action-development/plugin-security-specification",
+        "File":  "docs/help/home/org_project/pipeline/action-development/plugin-security-specification.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/action-development/runtime-environment-variables",
+        "File":  "docs/help/home/org_project/pipeline/action-development/runtime-environment-variables.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/action-development/top-level-fields",
+        "File":  "docs/help/home/org_project/pipeline/action-development/top-level-fields.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/core-concepts/",
+        "File":  "docs/help/home/org_project/pipeline/core-concepts.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/core-concepts/artifacts-and-cache",
+        "File":  "docs/help/home/org_project/pipeline/core-concepts/artifacts-and-cache.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/core-concepts/runner-and-environment",
+        "File":  "docs/help/home/org_project/pipeline/core-concepts/runner-and-environment.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/core-concepts/trigger-events",
+        "File":  "docs/help/home/org_project/pipeline/core-concepts/trigger-events.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/core-concepts/variables-secrets-context-expressions",
+        "File":  "docs/help/home/org_project/pipeline/core-concepts/variables-secrets-context-expressions.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/core-concepts/workflow-job-step-action",
+        "File":  "docs/help/home/org_project/pipeline/core-concepts/workflow-job-step-action.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/examples/",
+        "File":  "docs/help/home/org_project/pipeline/examples.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/examples/go-ci",
+        "File":  "docs/help/home/org_project/pipeline/examples/go-ci.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/examples/java-gradle-ci",
+        "File":  "docs/help/home/org_project/pipeline/examples/java-gradle-ci.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/examples/java-maven-ci",
+        "File":  "docs/help/home/org_project/pipeline/examples/java-maven-ci.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/examples/nodejs-ci",
+        "File":  "docs/help/home/org_project/pipeline/examples/nodejs-ci.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/examples/pr-code-check-example",
+        "File":  "docs/help/home/org_project/pipeline/examples/pr-code-check-example.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/examples/python-ci",
+        "File":  "docs/help/home/org_project/pipeline/examples/python-ci.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/overview",
+        "File":  "docs/help/home/org_project/pipeline/overview.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/pipeline-intro1",
+        "File":  "docs/help/home/org_project/pipeline/pipeline-intro1.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/quick-start",
+        "File":  "docs/help/home/org_project/pipeline/quick-start.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/runner-management/",
+        "File":  "docs/help/home/org_project/pipeline/runner-management.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/runner-management/configuring-images-toolchains",
+        "File":  "docs/help/home/org_project/pipeline/runner-management/configuring-images-toolchains.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/runner-management/selecting-runner-labels",
+        "File":  "docs/help/home/org_project/pipeline/runner-management/selecting-runner-labels.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/runner-management/using-hosted-runners",
+        "File":  "docs/help/home/org_project/pipeline/runner-management/using-hosted-runners.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/runner-management/using-self-hosted-runners",
+        "File":  "docs/help/home/org_project/pipeline/runner-management/using-self-hosted-runners.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/running-pipelines/",
+        "File":  "docs/help/home/org_project/pipeline/running-pipelines.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/running-pipelines/manually-trigger-pipeline",
+        "File":  "docs/help/home/org_project/pipeline/running-pipelines/manually-trigger-pipeline.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/running-pipelines/rerun-failed-jobs",
+        "File":  "docs/help/home/org_project/pipeline/running-pipelines/rerun-failed-jobs.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/running-pipelines/view-job-logs",
+        "File":  "docs/help/home/org_project/pipeline/running-pipelines/view-job-logs.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/running-pipelines/view-run-results",
+        "File":  "docs/help/home/org_project/pipeline/running-pipelines/view-run-results.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/security-permissions/",
+        "File":  "docs/help/home/org_project/pipeline/security-permissions.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/security-permissions/pr-mr-pipeline-security",
+        "File":  "docs/help/home/org_project/pipeline/security-permissions/pr-mr-pipeline-security.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/security-permissions/token-permissions",
+        "File":  "docs/help/home/org_project/pipeline/security-permissions/token-permissions.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/security-permissions/using-secrets",
+        "File":  "docs/help/home/org_project/pipeline/security-permissions/using-secrets.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/syntax-reference/",
+        "File":  "docs/help/home/org_project/pipeline/syntax-reference.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/syntax-reference/context",
+        "File":  "docs/help/home/org_project/pipeline/syntax-reference/context.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/syntax-reference/expressions",
+        "File":  "docs/help/home/org_project/pipeline/syntax-reference/expressions.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/syntax-reference/runner-images-tools",
+        "File":  "docs/help/home/org_project/pipeline/syntax-reference/runner-images-tools.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/syntax-reference/trigger-events",
+        "File":  "docs/help/home/org_project/pipeline/syntax-reference/trigger-events.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/syntax-reference/variables",
+        "File":  "docs/help/home/org_project/pipeline/syntax-reference/variables.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/syntax-reference/workflow-commands",
+        "File":  "docs/help/home/org_project/pipeline/syntax-reference/workflow-commands.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/configure-conditional-execution",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/configure-conditional-execution.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/configure-dependencies-order",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/configure-dependencies-order.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/configure-jobs",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/configure-jobs.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/configure-matrix-builds",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/configure-matrix-builds.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/configure-steps",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/configure-steps.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/configure-triggers",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/configure-triggers.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/pass-output-between-jobs",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/pass-output-between-jobs.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/upload-download-artifacts",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/upload-download-artifacts.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/using-actions",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/using-actions.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/using-dependency-cache",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/using-dependency-cache.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/using-script-commands",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/using-script-commands.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/using-variables-secrets",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/using-variables-secrets.html"
+    },
+    {
+        "Url":  "https://docs.gitcode.com/docs/help/home/org_project/pipeline/writing-pipelines/workflow-file-location-structure",
+        "File":  "docs/help/home/org_project/pipeline/writing-pipelines/workflow-file-location-structure.html"
+    }
+]

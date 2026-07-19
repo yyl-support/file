@@ -1,0 +1,75 @@
+name: yyl session2 vars
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify_scoped_vars:
+    name: Yulin S2 scoped vars
+    runs-on: [ubuntu-latest, x64, small]
+    steps:
+      - name: TC-005 organization vars
+        if: ${{ always() }}
+        run: |
+          value="${{ vars.ORG_VAR }}"
+          test -n "$value"
+          printf 'organization_var_present=true\n'
+      - name: TC-006 project vars
+        if: ${{ always() }}
+        run: |
+          value="${{ vars.PROJ_VAR }}"
+          test -n "$value"
+          printf 'project_var_present=true\n'
+      - name: TC-007 project vars override
+        if: ${{ always() }}
+        run: |
+          value="${{ vars.DUP }}"
+          test "$value" = "project_value"
+          printf 'project_var_override=true\n'
+
+  tc_533_vars_baseline:
+    name: TC-533 vars baseline
+    runs-on: [ubuntu-latest, x64, small]
+    env:
+      SAME_NAME: ${{ vars.SAME_NAME }}
+    steps:
+      - name: TC-533 verify vars reaches shell
+        if: ${{ always() }}
+        run: |
+          echo "shell_same_name=${SAME_NAME:-UNSET}"
+          echo "expression_vars_same_name=${{ vars.SAME_NAME }}"
+          echo "OBSERVE expected_shell_same_name=vars_value"
+
+  tc_533_env_override:
+    name: TC-533 env overrides vars
+    runs-on: [ubuntu-latest, x64, small]
+    env:
+      SAME_NAME: env_value
+    steps:
+      - name: TC-533 verify env wins
+        if: ${{ always() }}
+        run: |
+          echo "shell_same_name=${SAME_NAME:-UNSET}"
+          echo "expression_env_same_name=${{ env.SAME_NAME }}"
+          echo "expression_vars_same_name=${{ vars.SAME_NAME }}"
+          echo "OBSERVE expected_shell_same_name=env_value"
+
+  tc_534_system_baseline:
+    name: TC-534 system baseline
+    runs-on: [ubuntu-latest, x64, small]
+    steps:
+      - name: TC-534 observe system value
+        if: ${{ always() }}
+        run: |
+          echo "shell_atomgit_sha=${ATOMGIT_SHA:-UNSET}"
+          test -n "$ATOMGIT_SHA"
+
+  tc_534_vars_override:
+    name: TC-534 reserved system variable constraint
+    runs-on: [ubuntu-latest, x64, small]
+    steps:
+      - name: TC-534 record unsupported same-name setup
+        if: ${{ always() }}
+        run: |
+          echo "BLOCKED GitCode reserves ATOMGIT_ names, so vars.ATOMGIT_SHA cannot be configured"
+          echo "configured_non_equivalent_var=${{ vars.YULIN_ATOMGIT_SHA }}"
