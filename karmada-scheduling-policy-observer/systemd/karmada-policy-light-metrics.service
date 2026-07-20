@@ -1,0 +1,17 @@
+[Unit]
+Description=Karmada production scheduling policy light metrics
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=karmada-observer
+Group=karmada-observer
+WorkingDirectory=/opt/karmada-scheduling-automation
+EnvironmentFile=/etc/karmada-policy-observation.env
+ExecStart=/opt/karmada-scheduling-automation/62-policy-light-metrics.sh --once
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=full
+ReadWritePaths=/var/lib/karmada-policy-observation

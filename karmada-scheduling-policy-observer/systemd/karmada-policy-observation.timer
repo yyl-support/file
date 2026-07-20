@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Karmada policy full observation hourly
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=2m
+Unit=karmada-policy-observation.service
+
+[Install]
+WantedBy=timers.target

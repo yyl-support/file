@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.karmada.production-policy-observation</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/gorden/huawei/code/karmada/正式/调度优化自动化/60-policy-observation.sh</string>
+    <string>--once</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>3600</integer>
+  <key>StandardOutPath</key>
+  <string>/Users/gorden/huawei/code/karmada/正式/调度优化自动化/runtime/policy-observation/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/gorden/huawei/code/karmada/正式/调度优化自动化/runtime/policy-observation/launchd.err.log</string>
+</dict>
+</plist>

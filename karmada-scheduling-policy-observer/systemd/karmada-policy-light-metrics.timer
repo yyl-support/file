@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Karmada policy light metrics every ten minutes
+
+[Timer]
+OnBootSec=2m
+OnUnitInactiveSec=10m
+Persistent=true
+RandomizedDelaySec=30s
+Unit=karmada-policy-light-metrics.service
+
+[Install]
+WantedBy=timers.target
