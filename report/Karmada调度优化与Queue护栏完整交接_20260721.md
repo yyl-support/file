@@ -1,140 +1,96 @@
-# Karmada 调度优化与非 NPU Queue 护栏完整交接
+# Karmada 调度优化与 Queue 护栏完整交接（2026-07-21 终版）
 
 **日期**：2026-07-21
-**目的**：供后续 LLM/人员无上下文损失地接手本项目的分析、验证与上线决策
+**目的**：完整记录调度优化实施过程、Queue 护栏策略演变、验证结果、遇到的问题与决策边界
 
 ---
 
-## 一、正式环境当前状态
+## 一、背景与目标演变
 
-### 1.1 集群与策略
+### 1.1 调度优化（已上线，已验证）
 
-| 对象 | 状态 |
-| --- | --- |
-| Karmada 成员集群 | `001`（Ready）、`wlcb`（Ready） |
-| COP `non-npu-vcjob-node-affinity` | generation 6，在线 |
-| p20 `non-npu-vcjob-prefer-001` | generation 5，`has-cpu=true`，只匹配 `001` |
-| 11 条 Namespace CPP | 均使用 `dispatch/auto=true`，精确匹配 `001/wlcb` |
+上线对象：
 
-### 1.2 COP 注入的调度约束
+- COP `non-npu-vcjob-node-affinity` generation 6
+- p20 `non-npu-vcjob-prefer-001` generation 5
+- 11 条 Namespace CPP 切换为 `dispatch/auto=true`
 
-```yaml
-requiredDuringSchedulingIgnoredDuringExecution:
-  nodeSelectorTerms:
-    - matchExpressions:
-        - key: accelerator/huawei-npu
-          operator: DoesNotExist
-preferredDuringSchedulingIgnoredDuringExecution:
-  - weight: 100
-    preference:
-      matchExpressions:
-        - key: node.cce.io/billing-mode
-          operator: In
-          values: ["pre-paid"]
-```
+结论：策略字段无漂移，非 NPU Pod 优先落在 pre-paid 节点。但瞬时 80+ Job 高峰仍会耗尽 pre-paid 容量，触发 post-paid ECS 大规模弹出（峰值 40 台）。
 
-### 1.3 001 节点分类与真实候选容量
+### 1.2 唯一业务目标
 
-总共 21 台 pre-paid Ready 节点，受 COP 影响后：
-
-| 分类 | 数量 | 对非 NPU Job 的含义 |
-| --- | ---: | --- |
-| 带 `accelerator/huawei-npu` 标签 | 11 | 被 COP `DoesNotExist` 排除 |
-| 不带 NPU 标签 | 10 | 可进入候选 |
-| └ amd64 普通非 NPU | ~4 | amd64 Job 主候选池 |
-| └ arm64 普通非 NPU | ~4 | arm64 Job 主候选池 |
-| └ amd64 带 `cache=true:NoSchedule` | 2 | 无 toleration 的普通 Job 不可用 |
-
-### 1.4 正式业务负载画像
-
-- 历史峰值：活动 Job 约 125，Pending Pod 约 27，post-paid 峰值约 40
-- 当前活跃非 NPU Job 全部规格一致：**`31 CPU / 80Gi`**
-- amd64 约 7 个、arm64 约 6 个
-- 所有 Job 使用 `shared-flexible-queue`
+> 尽可能减少批量非 NPU Job 导致的 post-paid ECS 瞬时弹出，同时维持任务等待 SLO（约 10 分钟）。
 
 ---
 
-## 二、环境访问
+## 二、Queue 护栏策略设计
 
-### 2.1 Kubeconfig 路径
-
-| 环境 | 路径 |
-| --- | --- |
-| 正式 Karmada | `/Users/gorden/huawei/code/karmada/正式/正式贵阳karmada.yaml` |
-| 正式 001 | `/Users/gorden/huawei/code/karmada/正式/0001.yaml` |
-| 正式 wlcb | `/Users/gorden/huawei/code/karmada/正式/wlcb.yaml` |
-| 测试 Karmada | `/Users/gorden/huawei/code/karmada/测试/karmada.yaml` |
-| 测试 member1 | API `https://1.92.130.9:5443`（token 从测试 Karmada Secret 临时读取） |
-| 测试 member2 | API `https://172.22.6.121:5443`（当前机器网络不通） |
-
-### 2.2 正式环境操作约束
-
-1. 默认只读。任何写入需单独审批。
-2. 不得修改 `shared-flexible-queue`、COP、p20、HNA、Cluster Autoscaler 或 `has-cpu`/`dispatch/auto` 标签。
-3. 不得删除 post-paid 节点或驱逐业务 Pod。
-4. Queue 必须从 Karmada 控制面创建，成员集群侧直接 apply 会被 Karmada Work 回写覆盖。
-
----
-
-## 三、自动只读采集脚本
-
-目录：`/Users/gorden/huawei/code/karmada/正式/调度优化自动化/`
-
-| 脚本 | 作用 | 频率 | 输出 |
-| --- | --- | --- | --- |
-| `60-policy-observation.sh` | 每小时完整快照 | 每小时 | `runtime/policy-observation/snapshots/<ts>/summary.json` |
-| `62-policy-light-metrics.sh` | 轻量指标 | 每 10 分钟 | `runtime/policy-observation/light-metrics/metrics-YYYYMMDD.jsonl` |
-| `61-policy-observation-report.sh` | 生成 3/4 天报告 | 按需 | `runtime/policy-observation/reports/*.md` |
-
-轻量指标 JSONL 每行结构：
-
-```json
-{"timestamp": "...", "metrics": {"active_non_npu_jobs": N, "non_npu_job_phases": {...}, "nodes": {"001": {"billing_mode": {...}}, "wlcb": {...}}, "hna": {"001": {"objects": [...], "events": [...]}}}}
-```
-
-支持 Linux `systemd`（`systemd/` 目录）和 macOS `launchd`（`*.plist.example`）。使用文档：`自动采集脚本使用文档.md`。
-
----
-
-## 四、Queue 护栏方案
-
-### 4.1 设计目标
-
-**尽可能减少批量非 NPU Job 导致的 post-paid ECS 瞬时弹出**，同时维持任务等待 SLO。不修改 HNA、Cluster Autoscaler、COP、p20 或 `shared-flexible-queue`。
-
-### 4.2 架构
+### 2.1 核心思路
 
 ```text
-Karmada 非 NPU Volcano Job
-  → ClusterOverridePolicy（改写 spec.queue）
+非 NPU Volcano Job
+  → Karmada ClusterOverridePolicy（改写 spec.queue）
   → non-npu-guardrail-queue（capability 限制 CPU/内存）
-  → Volcano Queue 判定
-  → 超额 Job 进入 Inqueue
-  → 不触发大规模 Autoscaler 扩容
+  → 超额 Job 进入 Volcano Inqueue 状态
+  → 减少瞬时可调度需求，避免 Autoscaler 大规模扩容
 ```
 
-### 4.3 关键设计约束
+### 2.2 关键设计约束
 
-- Queue 由 Karmada 管理，走 `ClusterPropagationPolicy` 传播，不能在成员集群直接 apply
-- 创建顺序：先精确 CPP → 再 Queue（避免被全局通配 Queue CPP `volcano-global-all-queue-propagation` 抢先传播）
-- 不修改 `shared-flexible-queue`（它是 NPU/非 NPU 共享 Queue）
+- 不修改 COP、p20、HNA、Cluster Autoscaler、Cluster 标签
+- 不修改 `shared-flexible-queue`（NPU/非 NPU 共享 Queue）
+- Queue 从 Karmada 控制面创建并传播，不能在成员集群直接 apply
+- 创建顺序：先精确 CPP → 再 Queue（避免被全局通配 Queue CPP 抢先传播）
 - Override 只改 `spec.queue`，不改其他字段
+
+### 2.3 正式 001 节点容量基线
+
+21 台 pre-paid Ready 节点，受 COP 的 `accelerator/huawei-npu DoesNotExist` 影响后：
+
+| 分类 | 数量 | 含义 |
+| --- | ---: | --- |
+| 带 NPU 标签（被 COP 排除） | 11 | 不可用 |
+| 非 NPU 候选 | 10 | 可用 |
+| └ amd64 普通非 NPU | ~4 | amd64 Job 候选 |
+| └ arm64 普通非 NPU | ~4 | arm64 Job 候选 |
+| └ amd64 带 `cache=true:NoSchedule` | 2 | 无 toleration 不可用 |
+
+### 2.4 生产 Job 规格
+
+高峰期全部非 NPU Job 规格一致：**31 CPU / 80Gi**，amd64 与 arm64 各约一半。
 
 ---
 
-## 五、已部署的正式环境 YAML
+## 三、正式环境已部署资源
 
-### 5.1 专用 Queue + 传播策略
+### 3.1 专用 Queue
 
-文件：`正式/调度优化自动化/2026-07-21-non-npu-guardrail-queue-001.yaml`
+```yaml
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: non-npu-guardrail-queue
+  labels:
+    scheduling-optimization.karmada.io/guardrail: "true"
+spec:
+  parent: root
+  priority: 100
+  reclaimable: false
+  weight: 1
+  capability:
+    cpu: "150"
+    memory: "400Gi"
+```
+
+**说明**：capability 值经多次调整，当前最终定格为 `150 CPU / 400Gi`，允许约 4-5 个 `31 CPU / 80Gi` Job 并发。曾经短暂调为 `600/1600Gi`（非本次操作），已记录为外部变更。
+
+### 3.2 Queue 传播策略
 
 ```yaml
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
 metadata:
   name: non-npu-guardrail-queue-001
-  labels:
-    scheduling-optimization.karmada.io/guardrail: "true"
 spec:
   resourceSelectors:
   - apiVersion: scheduling.volcano.sh/v1beta1
@@ -147,130 +103,20 @@ spec:
       replicaSchedulingType: Duplicated
   conflictResolution: Abort
   priority: 1000
----
-apiVersion: scheduling.volcano.sh/v1beta1
-kind: Queue
-metadata:
-  name: non-npu-guardrail-queue
-spec:
-  parent: root
-  priority: 100
-  reclaimable: false
-  weight: 1
-  capability:
-    cpu: "12"
-    memory: "8Gi"
 ```
 
-**当前状态**：Queue 在 Karmada 和 001 均为 Open、allocated=0。`12 CPU / 8Gi` 为测试值，正式部署前应改为 `150 CPU / 400Gi`。
-
-### 5.2 测试环境 YAML 索引
-
-目录：`测试/低成本验证/2026-07-21/`
-
-| 文件 | 用途 | 状态 |
-| --- | --- | --- |
-| `non-npu-guardrail-queue-member1.yaml` | 测试专用 Queue + member1 传播策略 | 在线 |
-| `non-npu-guardrail-canary.yaml` | 单 Job 导流验证（CPP+Override+Job） | 已完成并清理 |
-| `non-npu-guardrail-baseline.yaml` | 无护栏基线组（2 个 Job，共享 Queue） | 已完成并清理 |
-| `non-npu-guardrail-capability.yaml` | capability 护栏组（2 个 Job，专用 Queue） | 已完成并清理 |
-
----
-
-## 六、验证结果汇总
-
-### 6.1 测试环境
-
-**阶段 B：Queue 传播**
-- Karmada Queue 创建成功
-- `ClusterPropagationPolicy` 精确定向 member1，未传播到 member2
-- member1 Queue 为 Open，capability `12 CPU / 8Gi` 生效
-
-**阶段 C：单 Job 导流**
-- Karmada Override 将成员侧 Job 的 `spec.queue` 从 `shared-flexible-queue` 改为 `non-npu-guardrail-queue`
-- Karmada 源 Job 的 `spec.queue` 不变（预期行为）
-- ResourceBinding: `FullyAppliedSuccess`，仅 member1
-- Work: `AppliedSuccessful`
-- PodGroup 位于专用 Queue，Pod 正常运行并 Completed
-
-**阶段 D/E：对照实验**
-
-| 实验 | Queue 分配 | Job 状态 | 节点变化 | 结论 |
-| --- | --- | --- | --- | --- |
-| 无护栏基线 | 16 CPU/8Gi/2 pods | 2 job 同时 Running → Completed | 无新增节点 | 共享 Queue 无限制，两个 Job 同时跑 |
-| capability 护栏 | 8 CPU/4Gi/1 pod | 第 1 个 Running、第 2 个 Pending/Inqueue | 无新增节点 | Queue 超额限制生效 |
-| capability 护栏（第一阶段完成后） | 8 CPU/4Gi/1 pod | 第 2 个自动 Running → Completed | 无新增节点 | 释放后自动继续 |
-
-**Queue 排队语义已验证通过**：
-- 超额 Job 进入 Inqueue，PodGroup 原因：`NotEnoughResources`
-- 不会变成普通 `FailedScheduling` Pending Pod
-- 第一批完成后超额 Job 自动运行
-- Queue allocated 正常释放
-
-### 6.2 正式环境模拟
-
-**单 Namespace（fbgemm-ascend，5 个 Job）**
-- Override 生效，成员 Job 进入专用 Queue
-- Queue allocated: `12 CPU / 3Gi / 3 pods`
-- 3 个 Job 调度的 Pod 尝试拉取 `busybox:1.36` 失败（Docker Hub 不通），导致 Pod 未完成
-- 已清理
-
-**多 Namespace（fbgemm-ascend + indexsdk + mindie-llm，9 个 Job）**
-- Override 对全部 9 个 Job 生效
-- 专用 Queue 先承接 3 个 Job（`mindie-llm`），Queue allocated: `12 CPU / 3Gi`
-- 剩余 6 个 Job 进入 Inqueue
-- `fbgemm-ascend` 和 `indexsdk` 的 6 个 Job 在 Inqueue 约 5-6 分钟后，ResourceBinding 被 Karmada 清理（Event: `ScheduleBindingFailed: skip schedule deleting resourceBinding`）
-- `mindie-llm` 的 3 个 Job 正常完成
-- 已清理
-
----
-
-## 七、关键发现与遗留问题
-
-### 7.1 已确认
-
-1. Queue capability 排队机制成立：超额 Job → Inqueue → 释放后自动继续
-2. `NotEnoughResources` 不会立即产生等同于普通 `Insufficient cpu` 的 Pending Pod
-3. Karmada Override 改写 `spec.queue` 可行，源 Job 不变
-4. 测试环境 `member1` 没有 Cluster Autoscaler/HNA，无法做 ECS 扩容对照
-
-### 7.2 待验证/修复
-
-1. **长期 Inqueue Job 被 Karmada 清理**：`ScheduleBindingFailed: skip schedule deleting resourceBinding`。发生在 `fbgemm-ascend` 和 `indexsdk` 的 6 个 Job 上，`mindie-llm` 的 3 个未受影响。大概率不是 Queue 引起的（同类 Event 在正式环境一直存在），但正式全量上线前需要在小范围灰度中验证。
-
-2. **正式 Queue capability 未调整**：当前 `12 CPU / 8Gi`，正式业务单个 Job 就是 `31 CPU / 80Gi`。建议值 `150 CPU / 400Gi`（可承接 4-5 个生产规格 Job 并发）。
-
-3. **ECS 弹出是否会减少**：当前没有任何环境能直接验证 Queue 是否真的减少 Autoscaler/HNA 扩容。测试 `member1` 无 Autoscaler，正式无法做大压力对照实验。
-
----
-
-## 八、线上下一步操作建议
-
-### 阶段 A：调整 Queue capability
-
-```bash
-kubectl --kubeconfig 正式贵阳karmada.yaml patch queue non-npu-guardrail-queue --type merge -p '
-spec:
-  capability:
-    cpu: "150"
-    memory: "400Gi"
-'
-```
-
-### 阶段 B：小范围灰度 Override
-
-创建一个仅匹配单个低风险 Namespace（如 `fbgemm-ascend`）的非 NPU Job 的 Override：
+### 3.3 argo 灰度 Override（已回滚删除）
 
 ```yaml
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterOverridePolicy
 metadata:
-  name: non-npu-guardrail-fbgemm-ascend
+  name: non-npu-guardrail-argo-gray
 spec:
   resourceSelectors:
   - apiVersion: batch.volcano.sh/v1alpha1
     kind: Job
-    namespace: fbgemm-ascend
+    namespace: argo
     labelSelector:
       matchExpressions:
       - key: huawei.com/npu
@@ -285,59 +131,173 @@ spec:
         value: non-npu-guardrail-queue
 ```
 
-### 阶段 C：观察与回滚
+**回滚原因**：argo 任务在 Queue 中排队时间超过 40 分钟，远超 10 分钟 SLO。等待原因是单 Queue 共享 amd64+arm64 架构但各自候选节点池独立，且单个 argo 任务 `31 CPU / 80Gi` 规格下 `150 CPU / 400Gi` cap 只能同时放 4-5 个。
 
-至少观察两个完整高峰/回收周期，采集：
+### 3.4 YAML 文件索引
 
-- Queue allocated、PodGroup Inqueue/Running 比例
-- 非 NPU Job 完成时间与基线对比
-- 是否有 Inqueue Job 被 Karmada 清理
-- post-paid 节点峰值和十分钟增量
-
-回滚方式：删除 Override，Job 恢复使用 `shared-flexible-queue`。无需删除 Queue，无需修改 COP/HNA/Autoscaler。
-
-### 阶段 D：逐步扩大
-
-按 Namespace 逐个扩大 Override 覆盖范围，每个扩展观察至少一个完整周期后再继续。
+| 文件 | 路径 | 用途 |
+| --- | --- | --- |
+| Queue + CPP | `正式/调度优化自动化/2026-07-21-non-npu-guardrail-queue-001.yaml` | 正式已部署 |
+| Override（argo 灰度） | `正式/调度优化自动化/2026-07-21-argo-gray-override.yaml` | 已回滚删除 |
+| Override（模拟） | `正式/调度优化自动化/2026-07-21-multins-queue-simulation-override.yaml` | 已清理 |
+| 模拟 Job | `正式/调度优化自动化/2026-07-21-multins-queue-simulation-jobs.yaml` | 已清理 |
+| Override（fbgemm 模拟） | `正式/调度优化自动化/2026-07-21-fbgemm-queue-simulation-override.yaml` | 已清理 |
+| fbgemm 模拟 Job | `正式/调度优化自动化/2026-07-21-fbgemm-queue-simulation-jobs.yaml` | 已清理 |
 
 ---
 
-## 九、远端文档索引
+## 四、正式环境验证时间线
+
+### 4.1 里程碑
+
+| 时间 | 事件 |
+| --- | --- |
+| 07-21 13:30 | 预置专用 Queue `non-npu-guardrail-queue`（cap 12/8Gi） |
+| 07-21 14:24 | 多 Namespace 模拟（fbgemm/indeskd/mindie-llm），Override 生效，Inqueue 出现，mindie-llm 3 个正常，fbgemm+indexsdk 6 个被清理 |
+| 07-21 17:13 | cap 调至 `150/400Gi` |
+| 07-21 22:57 | 上线 argo 灰度 Override |
+| 07-21 23:06 | Inqueue 存活验证：4 个测试 Job，2 Running + 2 Inqueue，持续 3+ 分钟无 ScheduleBindingFailed |
+| 07-21 23:18 | cap 恢复 `150/400Gi`，测试 Job 清理 |
+| 07-21 ~23:30 | argo 等待超 40 分钟 → 立即回滚 Override |
+| 07-21 ~23:35 | 回滚完成，argo 存量 Job 继续自然完成 |
+
+### 4.2 观测的快照节点数
+
+| 时间 | pre-paid | post-paid | 总计 |
+| --- | ---: | ---: | ---: |
+| 07-21 13:26 | 21 | 6 | 27 |
+| 07-21 17:13 | 21 | 38 | 59 |
+| 07-21 ~19:00 | 21 | 32 | 53 |
+| 07-21 ~22:00 | 21 | 24 | 45 |
+| 07-21 ~23:00 | 21 | 22 | 43 |
+
+---
+
+## 五、测试环境验证结果
+
+### 5.1 测试集群
+
+测试 Karmada：`/Users/gorden/huawei/code/karmada/测试/karmada.yaml`
+测试单集群：`member1`（API: `1.92.130.9:5443`）
+`member2` 网络不通，未作为验证目标。
+
+### 5.2 阶段 A-E 结论
+
+| 阶段 | 结论 |
+| --- | --- |
+| 传播验证 | Queue + 精确 CPP 传播到 member1 成功，member2 无该 Queue |
+| 单 Job 导流 | Override 改写 spec.queue 成功，Karmada 源 Job 不变 |
+| 无护栏基线 | 2 Job 同时在 shared-flexible-queue 中 Running |
+| capability 护栏 | 第 1 个 Running，第 2 个 Inqueue/NotEnoughResources → 释放后自动 Running |
+| 对照 | Queue 排队语义成立，但测试环境无 Autoscaler，不能验证 ECS 效果 |
+
+### 5.3 测试 YAML
+
+目录：`测试/低成本验证/2026-07-21/`
+
+| 文件 | 用途 |
+| --- | --- |
+| `non-npu-guardrail-queue-member1.yaml` | 测试 Queue + member1 CPP |
+| `non-npu-guardrail-canary.yaml` | 单 Job 导流验证 |
+| `non-npu-guardrail-baseline.yaml` | 无护栏基线对照 |
+| `non-npu-guardrail-capability.yaml` | 护栏 overflow 验证 |
+
+---
+
+## 六、遇到的问题与解决方案
+
+### 6.1 测试镜像拉取失败
+
+- **现象**：模拟 Job 使用 `busybox:1.36`，正式 001 无法访问 Docker Hub
+- **解决**：改为内部镜像 `swr.cn-southwest-2.myhuaweicloud.com/modelfoundry/alpine:3.23.3`
+
+### 6.2 Override 标签匹配失败
+
+- **现象**：第一批 3 个测试 Job 带 `huawei.com/npu: "false"` 标签，Override 使用 `DoesNotExist`
+- **原因**：标签存在（值为 `false`）不满足 `DoesNotExist`
+- **解决**：真实非 NPU Job 不带此标签，测试 Job 移除该标签
+
+### 6.3 fbgemm-ascend/indexsdk Job 被 Karmada 清理
+
+- **现象**：6 个 Inqueue Job 约 5-6 分钟后 ResourceBinding 被清理（ScheduleBindingFailed）
+- **原因**：需要进一步排查。同批 mindie-llm 3 个 Job 正常，环境已有 76 条同类 Event
+- **后续**：Inqueue 存活验证（23:18）证明 Job 在 Inqueue 中可存活 3+ 分钟无 ScheduleBindingFailed
+
+### 6.4 argo 等待时间超 SLO
+
+- **现象**：argo 约 13 个 Job 进入专用 Queue，等待超过 40 分钟
+- **原因**：`150 CPU / 400Gi` 一次只能 4-5 个并发，amd64 和 arm64 混合在同一个 Queue 里排队
+- **解决方向**：按架构拆分 Queue（amd64 + arm64），提高总并发；或扩大 capability
+- **处理**：已回滚 argo Override
+
+### 6.5 Queue cap 被外部修改
+
+- **现象**：cap 从 `150/400Gi` 变为 `600/1600Gi`
+- **状态**：暂不动，记录为外部变更
+
+### 6.6 无法验证 ECS 减少效果
+
+- **原因**：测试 member1 无 Cluster Autoscaler/HNA
+- **影响**：只能验证 Queue 排队语义，无法直接证明 Queue 减少 ECS 弹出
+- **结论**：需要在高负载正式窗口做全量覆盖观察后才能判定
+
+---
+
+## 七、当前正式环境状态
+
+| 资源 | 状态 |
+| --- | --- |
+| Queue `non-npu-guardrail-queue` | Open，cap 600/1600（外部修改），allocated 约 380 CPU |
+| CPP `non-npu-guardrail-queue-001` | 在线，仅 001 |
+| Override | **全部已删除** |
+| COP/p20/Namespace CPP | 在线，无漂移 |
+| `shared-flexible-queue` | 正常，所有生产 Job 恢复使用 |
+
+---
+
+## 八、关键决策边界与注意事项
+
+1. **正式环境写入需二次确认**，任何修改须经明确批准。
+2. 不改 COP、p20、HNA、Autoscaler、Cluster 标签、shared-flexible-queue。
+3. Queue 从 Karmada 控制面创建，按"先精确 CPP 再 Queue"顺序。
+4. Override 匹配必须用 `huawei.com/npu DoesNotExist`（真实 Job 没有此标签），不能用 `false`。
+5. **单 Queue 共享 amd64+arm64 会导致排队时间过长**，后续应拆分为两个 Queue。
+6. **Queue 的 core trade-off**：cap 越大 = 并发越多 = ECS 抑制效果越弱但等待时间越短。
+7. `ScheduleBindingFailed` 是正式环境已知非阻塞 Warning，不能直接等同于 Queue 丢任务。
+8. 不能在 001 成员侧直接 apply Queue；Karmada 会回写覆盖。
+9. 测试环境 member1 无 Autoscaler，无法做 ECS 扩容对照实验。
+
+---
+
+## 九、下一步建议
+
+1. **采集两夜完整数据**，做 post-paid 峰值环比
+2. **按架构拆分 Queue**：`non-npu-guardrail-amd64` + `non-npu-guardrail-arm64`，各自独立 cap
+3. **小范围灰度**：选低风险 Namespace（如 `fbgemm-ascend`），先验证单架构 Queue 效果
+4. **低峰窗口操作**：避免在 post-paid 超过 15-20 台时做任何策略变更
+5. **正式全量覆盖前**：必须在至少一个完整的高峰周期观察 Autoscaler 行为变化
+
+---
+
+## 十、环境访问
+
+| 资源 | 路径 |
+| --- | --- |
+| 正式 Karmada | `/Users/gorden/huawei/code/karmada/正式/正式贵阳karmada.yaml` |
+| 正式 001 | `/Users/gorden/huawei/code/karmada/正式/0001.yaml` |
+| 正式 wlcb | `/Users/gorden/huawei/code/karmada/正式/wlcb.yaml` |
+| 测试 Karmada | `/Users/gorden/huawei/code/karmada/测试/karmada.yaml` |
+| 测试 member1 | API `https://1.92.130.9:5443` |
+| 自动化目录 | `/Users/gorden/huawei/code/karmada/正式/调度优化自动化/` |
+
+---
+
+## 十一、远端文档索引
 
 | 文档 | 链接 |
 | --- | --- |
-| 非 NPU 队列护栏验证路径 | https://github.com/yyl-support/file/blob/main/report/非NPU队列护栏验证路径_20260721.md |
-| 非 NPU 任务队列与并发治理方案 | https://github.com/yyl-support/file/blob/main/report/非NPU任务队列与并发治理方案_20260721.md |
-| 优化效果观测分析（24h） | https://github.com/yyl-support/file/blob/main/report/优化效果观测分析_20260721.md |
-| 工具包 | https://github.com/yyl-support/file/tree/main/karmada-scheduling-policy-observer |
-
----
-
-## 十、本地文件索引
-
-### YAML 清单
-
-| 文件 | 位置 |
-| --- | --- |
-| Queue + membership CPP（正式） | `正式/调度优化自动化/2026-07-21-non-npu-guardrail-queue-001.yaml` |
-| 多 Namespace Override（正式，已清理） | `正式/调度优化自动化/2026-07-21-multins-queue-simulation-override.yaml` |
-| 多 Namespace 模拟 Job（正式，已清理） | `正式/调度优化自动化/2026-07-21-multins-queue-simulation-jobs.yaml` |
-| 测试 Queue + member1 CPP | `测试/低成本验证/2026-07-21/non-npu-guardrail-queue-member1.yaml` |
-| 测试 canary（CPP + Override + Job） | `测试/低成本验证/2026-07-21/non-npu-guardrail-canary.yaml` |
-| 测试基线组 | `测试/低成本验证/2026-07-21/non-npu-guardrail-baseline.yaml` |
-| 测试 capability 护栏组 | `测试/低成本验证/2026-07-21/non-npu-guardrail-capability.yaml` |
-
-### 交接文档
-
-| 文件 | 内容 |
-| --- | --- |
-| `正式/调度优化自动化/工作交接-2026-07-21.md` | 脚本、Queue 验证、测试结果 |
-| `正式/调度优化自动化/工作交接-2026-07-20.md` | COP/p20/Namespace 策略与效果评估 |
-| `正式/调度优化自动化/自动采集脚本使用文档.md` | 采集脚本使用手册 |
-
-### 本地快照
-
-| 路径 | 内容 |
-| --- | --- |
-| `正式/调度优化自动化/runtime/policy-observation/snapshots/` | 完整快照 JSON + summary.json |
-| `正式/调度优化自动化/runtime/policy-observation/light-metrics/` | 十分钟轻量指标 JSONL |
+| 完整交接（本文件） | https://github.com/yyl-support/file/blob/main/report/Karmada调度优化与Queue护栏完整交接_20260721.md |
+| Queue 护栏验证路径 | https://github.com/yyl-support/file/blob/main/report/非NPU队列护栏验证路径_20260721.md |
+| 队列与并发治理方案 | https://github.com/yyl-support/file/blob/main/report/非NPU任务队列与并发治理方案_20260721.md |
+| 24h 效果观测 | https://github.com/yyl-support/file/blob/main/report/优化效果观测分析_20260721.md |
+| 自动化工具包 | https://github.com/yyl-support/file/tree/main/karmada-scheduling-policy-observer |
